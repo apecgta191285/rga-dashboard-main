@@ -1,4 +1,4 @@
-import { Controller, Post, Delete, UseGuards, Logger, Param, Body } from '@nestjs/common';
+import { Controller, Post, Delete, UseGuards, Logger, Param, Body, ForbiddenException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiBody } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -19,6 +19,12 @@ export class DevController {
 
     constructor(private readonly mockSeeder: MockDataSeederService) { }
 
+    private ensureNotProduction() {
+        if (process.env.NODE_ENV === 'production') {
+            throw new ForbiddenException('Development tools are disabled in production environment');
+        }
+    }
+
     // ============================================
     // Master Seeding (All-in-one)
     // ============================================
@@ -26,6 +32,7 @@ export class DevController {
     @Post('seed-all')
     @ApiOperation({ summary: 'Seed ทั้งหมด (campaigns, metrics, alerts, sync logs)' })
     async seedAll(@CurrentUser() user: any) {
+        this.ensureNotProduction();
         this.logger.log(`[DEV] ${user.email} → seed-all`);
         return this.mockSeeder.seedAll(user.tenantId);
     }
@@ -37,6 +44,7 @@ export class DevController {
     @Post('seed-campaigns')
     @ApiOperation({ summary: 'Seed campaigns (12 campaigns ทุก platform)' })
     async seedCampaigns(@CurrentUser() user: any) {
+        this.ensureNotProduction();
         this.logger.log(`[DEV] ${user.email} → seed-campaigns`);
         return this.mockSeeder.seedCampaigns(user.tenantId);
     }
@@ -45,6 +53,7 @@ export class DevController {
     @ApiOperation({ summary: 'Seed metrics สำหรับ campaigns ทั้งหมด (30 วัน)' })
     @ApiBody({ schema: { properties: { days: { type: 'number', default: 30 } } }, required: false })
     async seedMetrics(@CurrentUser() user: any, @Body('days') days?: number) {
+        this.ensureNotProduction();
         this.logger.log(`[DEV] ${user.email} → seed-metrics (${days || 30} days)`);
         return this.mockSeeder.seedAllCampaignMetrics(user.tenantId, days || 30);
     }
@@ -52,6 +61,7 @@ export class DevController {
     @Post('seed-alerts')
     @ApiOperation({ summary: 'Seed alerts (8 alerts)' })
     async seedAlerts(@CurrentUser() user: any) {
+        this.ensureNotProduction();
         this.logger.log(`[DEV] ${user.email} → seed-alerts`);
         return this.mockSeeder.seedAlerts(user.tenantId, 8);
     }
@@ -59,6 +69,7 @@ export class DevController {
     @Post('seed-sync-logs')
     @ApiOperation({ summary: 'Seed sync logs (12 logs)' })
     async seedSyncLogs(@CurrentUser() user: any) {
+        this.ensureNotProduction();
         this.logger.log(`[DEV] ${user.email} → seed-sync-logs`);
         return this.mockSeeder.seedSyncLogs(user.tenantId, 12);
     }
@@ -74,6 +85,7 @@ export class DevController {
         @CurrentUser() user: any,
         @Param('platform') platform: string,
     ) {
+        this.ensureNotProduction();
         this.logger.log(`[DEV] ${user.email} → seed-platform/${platform}`);
         return this.mockSeeder.seedCampaigns(user.tenantId, [platform]);
     }
@@ -85,6 +97,7 @@ export class DevController {
     @Delete('clear-mock')
     @ApiOperation({ summary: 'ลบ mock data ทั้งหมด' })
     async clearMockData(@CurrentUser() user: any) {
+        this.ensureNotProduction();
         this.logger.log(`[DEV] ${user.email} → clear-mock`);
         return this.mockSeeder.clearMockData(user.tenantId);
     }
@@ -92,6 +105,7 @@ export class DevController {
     @Delete('clear-campaigns')
     @ApiOperation({ summary: 'ลบเฉพาะ mock campaigns และ metrics' })
     async clearCampaigns(@CurrentUser() user: any) {
+        this.ensureNotProduction();
         this.logger.log(`[DEV] ${user.email} → clear-campaigns`);
         return this.mockSeeder.clearCampaignsAndMetrics(user.tenantId);
     }

@@ -1,5 +1,5 @@
 ﻿import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { CampaignsService } from './campaigns.service';
 import { CreateCampaignDto, UpdateCampaignDto, QueryCampaignsDto } from './dto';
@@ -19,7 +19,19 @@ export class CampaignsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all campaigns with filtering and pagination' })
+  @ApiOperation({
+    summary: 'Get all campaigns with filtering, pagination, and time-window metrics',
+    description: 'Use startDate/endDate to filter metrics aggregation to a specific time window (e.g., "Last 7 Days").'
+  })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 10)' })
+  @ApiQuery({ name: 'search', required: false, type: String, description: 'Search by campaign name or external ID' })
+  @ApiQuery({ name: 'platform', required: false, type: String, description: 'Filter by platform' })
+  @ApiQuery({ name: 'status', required: false, type: String, description: 'Filter by status' })
+  @ApiQuery({ name: 'sortBy', required: false, type: String, description: 'Sort field' })
+  @ApiQuery({ name: 'sortOrder', required: false, enum: ['asc', 'desc'], description: 'Sort direction' })
+  @ApiQuery({ name: 'startDate', required: false, type: String, description: 'Metrics start date (YYYY-MM-DD)' })
+  @ApiQuery({ name: 'endDate', required: false, type: String, description: 'Metrics end date (YYYY-MM-DD)' })
   async findAll(@Request() req, @Query() query: QueryCampaignsDto) {
     const tenantId = req.user.tenantId;
     return this.campaignsService.findAll(tenantId, query);
@@ -54,8 +66,13 @@ export class CampaignsController {
   }
 
   @Get(':id/metrics')
-  @ApiOperation({ summary: 'Get campaign metrics' })
+  @ApiOperation({
+    summary: 'Get campaign metrics with optional date range',
+    description: 'Returns daily metrics for a single campaign. Use startDate/endDate to filter.'
+  })
   @ApiParam({ name: 'id', description: 'Campaign ID' })
+  @ApiQuery({ name: 'startDate', required: false, type: String, description: 'Start date (YYYY-MM-DD)' })
+  @ApiQuery({ name: 'endDate', required: false, type: String, description: 'End date (YYYY-MM-DD)' })
   async getMetrics(
     @Request() req,
     @Param('id') id: string,
@@ -63,11 +80,9 @@ export class CampaignsController {
     @Query('endDate') endDate?: string,
   ) {
     const tenantId = req.user.tenantId;
-    // ✅ Removed unused variables, pass strings directly
     return this.campaignsService.getCampaignMetrics(tenantId, id,
       startDate || undefined,
       endDate || undefined,
     );
   }
 }
-

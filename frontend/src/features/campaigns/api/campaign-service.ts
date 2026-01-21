@@ -1,20 +1,56 @@
 // Campaign Service with Adapter Pattern
 // Normalizes Backend UPPERCASE enums to Frontend lowercase types
+// Supports time-window filtering via startDate/endDate params
 
 import { apiClient } from '@/services/api-client';
 import type { Campaign, CampaignStatus, CampaignPlatform } from '../types';
 import type { CreateCampaignFormData } from '../types/schema';
 
 // =============================================================================
+// Query Parameters Interface
+// =============================================================================
+
+export interface CampaignQueryParams {
+    page?: number;
+    limit?: number;
+    search?: string;
+    platform?: string;
+    status?: string;
+    sortBy?: 'name' | 'createdAt' | 'status' | 'platform';
+    sortOrder?: 'asc' | 'desc';
+    /** Metrics aggregation start date (ISO 8601: YYYY-MM-DD) */
+    startDate?: string;
+    /** Metrics aggregation end date (ISO 8601: YYYY-MM-DD) */
+    endDate?: string;
+}
+
+// =============================================================================
+// Paginated Response Interface
+// =============================================================================
+
+export interface CampaignListResponse {
+    data: Campaign[];
+    meta: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+        startDate?: string;
+        endDate?: string;
+    };
+}
+
+// =============================================================================
 // Backend Response Types (Raw API Response)
 // =============================================================================
+
 interface BackendCampaign {
     id: string;
     name: string;
     status: string;      // UPPERCASE: "ACTIVE", "PAUSED", "DRAFT", etc.
     platform: string;    // UPPERCASE: "GOOGLE_ADS", "FACEBOOK", "TIKTOK"
     budget: number;
-    spent?: number;
+    spend?: number;
     impressions?: number;
     clicks?: number;
     startDate: string;
@@ -22,16 +58,10 @@ interface BackendCampaign {
     externalId?: string;
 }
 
-interface PaginatedResponse<T> {
-    items: T[];
-    total: number;
-    page: number;
-    limit: number;
-}
-
 // =============================================================================
 // Adapter: Platform Mapping (Backend -> Frontend)
 // =============================================================================
+
 const PLATFORM_MAP: Record<string, CampaignPlatform> = {
     GOOGLE_ADS: 'google',
     GOOGLE: 'google',
@@ -50,6 +80,7 @@ const PLATFORM_REVERSE_MAP: Record<CampaignPlatform, string> = {
 // =============================================================================
 // Adapter: Status Mapping (Backend -> Frontend)
 // =============================================================================
+
 const STATUS_MAP: Record<string, CampaignStatus> = {
     ACTIVE: 'active',
     PAUSED: 'paused',
@@ -71,6 +102,7 @@ const STATUS_REVERSE_MAP: Record<CampaignStatus, string> = {
 // =============================================================================
 // Normalizer Function: Backend -> Frontend
 // =============================================================================
+
 function normalizeCampaign(raw: BackendCampaign): Campaign {
     return {
         id: raw.id,
@@ -78,7 +110,7 @@ function normalizeCampaign(raw: BackendCampaign): Campaign {
         status: STATUS_MAP[raw.status] || 'draft',
         platform: PLATFORM_MAP[raw.platform] || 'google',
         budget: raw.budget ?? 0,
-        spent: raw.spent ?? 0,
+        spent: raw.spend ?? 0,
         impressions: raw.impressions ?? 0,
         clicks: raw.clicks ?? 0,
         startDate: raw.startDate,
@@ -89,6 +121,7 @@ function normalizeCampaign(raw: BackendCampaign): Campaign {
 // =============================================================================
 // Payload Transformer: Frontend Form -> Backend DTO
 // =============================================================================
+
 interface CreateCampaignPayload {
     name: string;
     platform: string;
@@ -114,13 +147,34 @@ function toBackendPayload(formData: CreateCampaignFormData): CreateCampaignPaylo
 // =============================================================================
 // Service Functions
 // =============================================================================
+
 export const CampaignService = {
     /**
-     * Fetch all campaigns with normalized data
-     * Handles multiple API response formats with robust unwrapping
+     * Fetch all campaigns with optional filtering and time-window metrics
+     * 
+     * @param params - Query parameters including pagination, filters, and date range
+     * @returns Array of normalized campaigns
      */
-    async getCampaigns(): Promise<Campaign[]> {
-        const response = await apiClient.get('/campaigns');
+    async getCampaigns(params: CampaignQueryParams = {}): Promise<Campaign[]> {
+        // Build query string from params
+        const queryParams = new URLSearchParams();
+
+        if (params.page) queryParams.set('page', String(params.page));
+        if (params.limit) queryParams.set('limit', String(params.limit));
+        if (params.search) queryParams.set('search', params.search);
+        if (params.platform) queryParams.set('platform', params.platform);
+        if (params.status) queryParams.set('status', params.status);
+        if (params.sortBy) queryParams.set('sortBy', params.sortBy);
+        if (params.sortOrder) queryParams.set('sortOrder', params.sortOrder);
+
+        // Time-window filtering
+        if (params.startDate) queryParams.set('startDate', params.startDate);
+        if (params.endDate) queryParams.set('endDate', params.endDate);
+
+        const queryString = queryParams.toString();
+        const url = queryString ? `/campaigns?${queryString}` : '/campaigns';
+
+        const response = await apiClient.get(url);
         const rawData = response.data;
 
         // DEBUG: Log raw response to browser console
@@ -153,6 +207,46 @@ export const CampaignService = {
 
         console.log('[CampaignService] Extracted items count:', items.length);
         return items.map(normalizeCampaign);
+    },
+
+    /**
+     * Fetch campaigns with full pagination metadata
+     */
+    async getCampaignsPaginated(params: CampaignQueryParams = {}): Promise<CampaignListResponse> {
+        const queryParams = new URLSearchParams();
+
+        if (params.page) queryParams.set('page', String(params.page));
+        if (params.limit) queryParams.set('limit', String(params.limit));
+        if (params.search) queryParams.set('search', params.search);
+        if (params.platform) queryParams.set('platform', params.platform);
+        if (params.status) queryParams.set('status', params.status);
+        if (params.sortBy) queryParams.set('sortBy', params.sortBy);
+        if (params.sortOrder) queryParams.set('sortOrder', params.sortOrder);
+        if (params.startDate) queryParams.set('startDate', params.startDate);
+        if (params.endDate) queryParams.set('endDate', params.endDate);
+
+        const queryString = queryParams.toString();
+        const url = queryString ? `/campaigns?${queryString}` : '/campaigns';
+
+        const response = await apiClient.get(url);
+        const rawData = response.data;
+
+        // Handle paginated response structure
+        let items: BackendCampaign[] = [];
+        let meta = { page: 1, limit: 10, total: 0, totalPages: 1 };
+
+        if (rawData && typeof rawData === 'object' && !Array.isArray(rawData)) {
+            items = rawData.data || rawData.items || [];
+            meta = rawData.meta || meta;
+        } else if (Array.isArray(rawData)) {
+            items = rawData;
+            meta = { page: 1, limit: items.length, total: items.length, totalPages: 1 };
+        }
+
+        return {
+            data: items.map(normalizeCampaign),
+            meta,
+        };
     },
 
     /**

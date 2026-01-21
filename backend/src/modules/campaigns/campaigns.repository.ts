@@ -39,6 +39,10 @@ export class PrismaCampaignsRepository implements CampaignsRepository {
     const status = query.status || undefined;
     const platform = query.platform || undefined;
 
+    // Parse date range for metrics filtering
+    const startDate = query.startDate ? new Date(query.startDate) : undefined;
+    const endDate = query.endDate ? new Date(query.endDate) : undefined;
+
     const where: Prisma.CampaignWhereInput = { tenantId };
 
     if (search) {
@@ -67,12 +71,31 @@ export class PrismaCampaignsRepository implements CampaignsRepository {
     const orderBy: any = {};
     orderBy[sortBy] = sortOrder;
 
+    // ==========================================================================
+    // TIME-WINDOW FILTERING: Conditionally filter metrics by date range
+    // ==========================================================================
+    // If startDate or endDate is provided, only include metrics within that range.
+    // Otherwise, include all metrics (backward compatible behavior).
+    // ==========================================================================
+
+    const metricsInclude: Prisma.CampaignInclude['metrics'] =
+      (startDate || endDate)
+        ? {
+          where: {
+            date: {
+              ...(startDate && { gte: startDate }),
+              ...(endDate && { lte: endDate }),
+            },
+          },
+        }
+        : true;
+
     return Promise.all([
       this.prisma.campaign.findMany({
         where,
         take,
         skip,
-        include: { metrics: true },
+        include: { metrics: metricsInclude },
         orderBy,
       }),
       this.prisma.campaign.count({ where }),
