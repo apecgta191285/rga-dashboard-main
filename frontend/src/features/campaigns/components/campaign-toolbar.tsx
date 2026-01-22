@@ -39,8 +39,6 @@ const STATUS_OPTIONS = [
     { value: 'ALL', label: 'All Statuses' },
     { value: 'ACTIVE', label: 'Active' },
     { value: 'PAUSED', label: 'Paused' },
-    { value: 'DRAFT', label: 'Draft' },
-    { value: 'COMPLETED', label: 'Completed' },
 ] as const;
 
 // =============================================================================

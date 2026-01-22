@@ -19,7 +19,7 @@ import {
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -191,14 +191,8 @@ export function CampaignsTable({
                     <TableRow>
                         {/* Selection Checkbox */}
                         <TableHead className="w-[50px]">
-                            <Checkbox
+                            <Switch
                                 checked={allSelected}
-                                ref={(el) => {
-                                    if (el) {
-                                        // TypeScript doesn't have indeterminate in the type
-                                        (el as any).indeterminate = someSelected;
-                                    }
-                                }}
                                 onCheckedChange={(checked) => onToggleAll(!!checked)}
                                 aria-label="Select all campaigns"
                             />
@@ -291,7 +285,7 @@ export function CampaignsTable({
                             >
                                 {/* Selection Checkbox */}
                                 <TableCell>
-                                    <Checkbox
+                                    <Switch
                                         checked={isSelected}
                                         onCheckedChange={() => onToggleSelect(campaign.id)}
                                         aria-label={`Select ${campaign.name}`}
