@@ -86,6 +86,8 @@ import { CommonModule } from './common/common.module';
     MockDataModule, // Mock Data Seeding
     NotificationModule, // Notification System (Sprint 4)
     CommonModule, // Shared Services (Encryption, etc.)
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    ...(process.env.NODE_ENV !== 'production' ? [require('./modules/debug/debug.module').DebugModule] : []),
   ],
   controllers: [AppController],
   providers: [

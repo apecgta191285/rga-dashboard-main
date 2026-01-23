@@ -72,19 +72,20 @@ const SEVERITY_CONFIG: Record<string, { label: string; variant: 'default' | 'sec
 // Helper Functions
 // =============================================================================
 
-function formatCondition(metric: string, operator: string, threshold: number): string {
+function formatCondition(metric: string, operator: string, threshold: number | string): string {
     const metricLabel = METRIC_LABELS[metric] || metric.toUpperCase();
     const opLabel = OPERATOR_LABELS[operator] || operator;
+    const value = Number(threshold); // Ensure value is a number
 
     // Format threshold based on metric type
     let formattedThreshold: string;
     if (metric === 'ctr' || metric === 'roas') {
-        formattedThreshold = threshold.toFixed(2);
+        formattedThreshold = value.toFixed(2);
         if (metric === 'ctr') formattedThreshold += '%';
     } else if (metric === 'spend' || metric === 'cpc') {
-        formattedThreshold = `$${threshold.toFixed(2)}`;
+        formattedThreshold = `$${value.toFixed(2)}`;
     } else {
-        formattedThreshold = threshold.toLocaleString();
+        formattedThreshold = value.toLocaleString();
     }
 
     return `${metricLabel} ${opLabel} ${formattedThreshold}`;

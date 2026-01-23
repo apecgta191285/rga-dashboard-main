@@ -7,38 +7,38 @@ import { DashboardService } from './dashboard.service';
 import { MetricsService } from './metrics.service';
 import { ExportService } from './export.service';
 import { GetDashboardOverviewDto, DashboardOverviewResponseDto, PeriodEnum } from './dto/dashboard-overview.dto';
-// ✅ Use TenantCacheInterceptor instead of default CacheInterceptor
 import { TenantCacheInterceptor } from '../../common/interceptors/tenant-cache.interceptor';
-
+import { IntegrationSwitchService } from '../data-sources/integration-switch.service';
 
 @ApiTags('Dashboard')
 @ApiBearerAuth()
 @Controller('dashboard')
 @UseGuards(JwtAuthGuard)
-@UseInterceptors(TenantCacheInterceptor)  // ✅ Tenant-aware cache
+@UseInterceptors(TenantCacheInterceptor)
 export class DashboardController {
   constructor(
     private readonly dashboardService: DashboardService,
     private readonly metricsService: MetricsService,
     private readonly exportService: ExportService,
+    private readonly integrationSwitchService: IntegrationSwitchService,
   ) { }
 
   /**
    * Dashboard Overview API (v1.0)
    * Returns aggregated metrics, growth, trends, and recent campaigns
+   * Uses IntegrationSwitchService to toggle between Real & Mock Data
    */
   @Get('overview')
-  @ApiOperation({ summary: 'Get dashboard overview data' })
+  @ApiOperation({ summary: 'Get dashboard overview data (Smart Switch: Demo vs Live)' })
   @ApiQuery({ name: 'period', enum: PeriodEnum, required: false })
   @ApiQuery({ name: 'tenantId', required: false, description: 'Tenant override (SUPER_ADMIN only)' })
   @ApiResponse({ status: 200, description: 'Dashboard overview data', type: DashboardOverviewResponseDto })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Tenant override forbidden' })
   async getOverview(
     @CurrentUser() user: any,
     @Query() query: GetDashboardOverviewDto,
-  ): Promise<DashboardOverviewResponseDto> {
-    return this.dashboardService.getOverview(user, query);
+  ) {
+    // Delegate to the Switch Service
+    return this.integrationSwitchService.getDashboardOverview(user, query);
   }
 
   @Get('metrics')
@@ -54,10 +54,6 @@ export class DashboardController {
     return this.dashboardService.getSummary(req.user.tenantId, daysNum);
   }
 
-  /**
-   * Get summary metrics filtered by platform
-   * @param platform - 'ALL' | 'GOOGLE_ADS' | 'FACEBOOK' | 'TIKTOK' | 'LINE_ADS'
-   */
   @Get('summary-by-platform')
   async getSummaryByPlatform(
     @Request() req,
@@ -75,17 +71,17 @@ export class DashboardController {
     @Query('limit') limit?: string,
     @Query('days') days?: string,
   ) {
-    // Robust parsing for limit - handle potential non-numeric strings
+    // Robust parsing
     let limitNum = 5;
     if (limit) {
       const parsed = parseInt(limit, 10);
-      if (!isNaN(parsed) && parsed > 0) {
-        limitNum = parsed;
-      }
+      if (!isNaN(parsed) && parsed > 0) limitNum = parsed;
     }
 
     const daysNum = days ? parseInt(days, 10) : 30;
-    return this.dashboardService.getTopCampaigns(req.user.tenantId, limitNum, daysNum);
+
+    // Use Switch Service
+    return this.integrationSwitchService.getTopCampaigns(req.user.tenantId, limitNum, daysNum);
   }
 
   @Get('trends')
@@ -96,7 +92,6 @@ export class DashboardController {
 
   @Get('performance-by-platform')
   async getPerformanceByPlatform(@Request() req, @Query('startDate') startDate?: string) {
-    // Parse startDate (e.g., '7d', '30d') to days number
     let days = 30;
     if (startDate && startDate.endsWith('d')) {
       days = parseInt(startDate.replace('d', ''), 10);
@@ -104,47 +99,29 @@ export class DashboardController {
     return this.dashboardService.getPerformanceByPlatform(req.user.tenantId, days);
   }
 
-  /**
-   * Get metrics trends
-   */
   @Get('metrics/trends')
-  @UseGuards(JwtAuthGuard)
   async getMetricsTrends(
     @CurrentUser() user: any,
-    @Query('period') period: string = '7d',  // ✅ Accept any period: 7d, 14d, 30d, 90d
+    @Query('period') period: string = '7d',
     @Query('compare') compare?: 'previous_period',
   ) {
-    return this.metricsService.getMetricsTrends(
-      user.tenantId,
-      period,
-      compare,
-    );
+    return this.metricsService.getMetricsTrends(user.tenantId, period, compare);
   }
 
-  /**
-   * Get daily metrics for charts
-   */
   @Get('metrics/daily')
-  @UseGuards(JwtAuthGuard)
   async getDailyMetrics(
     @CurrentUser() user: any,
-    @Query('period') period: string = '7d',  // ✅ Accept any period: 7d, 14d, 30d, 90d
+    @Query('period') period: string = '7d',
   ) {
     return this.metricsService.getDailyMetrics(user.tenantId, period);
   }
 
-  /**
-   * Export campaigns to CSV
-   * @deprecated Use GET /export/campaigns with startDate/endDate instead
-   */
   @Get('export/campaigns/csv')
-  @UseGuards(JwtAuthGuard)
   async exportCampaignsCSV(
     @CurrentUser() user: any,
     @Query('platform') platform?: string,
     @Query('status') status?: string,
   ) {
-    // Default to last 30 days if no date range specified
     const endDate = new Date();
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - 30);
@@ -157,20 +134,13 @@ export class DashboardController {
     });
   }
 
-  /**
-   * Export metrics to PDF
-   */
   @Get('export/metrics/pdf')
-  @UseGuards(JwtAuthGuard)
   async exportMetricsPDF(
     @CurrentUser() user: any,
     @Query('period') period: '7d' | '30d' = '7d',
     @Res() res?: Response,
   ) {
-    const pdf = await this.exportService.exportMetricsToPDF(
-      user.tenantId,
-      period,
-    );
+    const pdf = await this.exportService.exportMetricsToPDF(user.tenantId, period);
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader(
@@ -179,25 +149,17 @@ export class DashboardController {
     );
     res.send(pdf);
   }
-  /**
-   * Get onboarding checklist status
-   */
+
   @Get('onboarding-status')
   async getOnboardingStatus(@CurrentUser('tenantId') tenantId: string) {
     return this.dashboardService.getOnboardingStatus(tenantId);
   }
 
-  /**
-   * DEV ONLY: Manually seed mock data
-   */
   @Post('seed')
   async seedMockData(@CurrentUser('tenantId') tenantId: string) {
     return this.dashboardService.seedMockData(tenantId);
   }
 
-  /**
-   * DEV ONLY: Clear mock data
-   */
   @Delete('seed')
   async clearMockData(@CurrentUser('tenantId') tenantId: string) {
     return this.dashboardService.clearMockData(tenantId);

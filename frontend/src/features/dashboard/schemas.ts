@@ -170,6 +170,7 @@ export const DashboardOverviewDataSchema = z
         growth: GrowthMetricsSchema,
         trends: z.array(TrendDataPointSchema),
         recentCampaigns: z.array(RecentCampaignSchema),
+        isDemo: z.boolean().optional(),
     })
     .strict();
 

@@ -164,6 +164,9 @@ export class DashboardOverviewDataDto {
 
     @ApiProperty({ type: [RecentCampaignDto] })
     recentCampaigns: RecentCampaignDto[];
+
+    @ApiPropertyOptional({ example: true })
+    isDemo?: boolean;
 }
 
 /**

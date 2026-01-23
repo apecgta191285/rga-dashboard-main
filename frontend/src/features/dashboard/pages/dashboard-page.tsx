@@ -18,28 +18,24 @@ import { FinancialOverview } from '../components/widgets/financial-overview';
 import { useDashboardOverview } from '../hooks/use-dashboard';
 import type { PeriodEnum } from '../schemas';
 import { IntegrationChecklist } from '@/components/IntegrationChecklist';
+import { DemoBanner } from '@/components/dashboard/DemoBanner';
 
-// =============================================================================
-// Error State Component
-// =============================================================================
-
-interface ErrorStateProps {
-    error: Error;
-    onRetry?: () => void;
-}
-
-function ErrorState({ error, onRetry }: ErrorStateProps) {
+// Internal Error State Component
+function ErrorState({ error, onRetry }: { error: Error; onRetry: () => void }) {
     return (
-        <Alert variant="destructive" className="mb-6">
+        <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Failed to load dashboard data</AlertTitle>
+            <AlertTitle>Error</AlertTitle>
             <AlertDescription className="flex items-center justify-between">
-                <span>{error.message || 'An unexpected error occurred. Please try again.'}</span>
-                {onRetry && (
-                    <Button variant="outline" size="sm" onClick={onRetry}>
-                        Retry
-                    </Button>
-                )}
+                <span>{error.message || 'Failed to load dashboard data'}</span>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onRetry}
+                    className="ml-4 bg-background/10 hover:bg-background/20 text-destructive-foreground border-destructive-foreground/20"
+                >
+                    Retry
+                </Button>
             </AlertDescription>
         </Alert>
     );
@@ -59,7 +55,6 @@ function deltaClassName(value: number | null | undefined) {
 // =============================================================================
 // Main Page Component
 // =============================================================================
-
 export function DashboardPage() {
     // Period state for date filtering
     const [period, setPeriod] = useState<PeriodEnum>('7d');
@@ -81,6 +76,9 @@ export function DashboardPage() {
                         </p>
                     </div>
                 </div>
+
+                {/* Demo Banner */}
+                {data?.isDemo && <DemoBanner isDemo={data.isDemo} />}
 
                 {/* Error State */}
                 {error && <ErrorState error={error} onRetry={refetch} />}
