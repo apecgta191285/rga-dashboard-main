@@ -47,3 +47,38 @@ export const formatDate = (date: string | Date): string => {
     });
 };
 
+/**
+ * Format currency as Thai Baht with 2 decimal places
+ */
+export const formatCurrencyTHBDecimal = (value: number): string => {
+    return new Intl.NumberFormat('th-TH', {
+        style: 'currency',
+        currency: 'THB',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }).format(value);
+};
+
+/**
+ * Format currency in compact notation (e.g., $1.2M)
+ */
+export const formatCompactCurrency = (value: number, currency = 'USD'): string => {
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency,
+        notation: 'compact',
+        maximumFractionDigits: 2,
+    }).format(value);
+};
+
+/**
+ * Format currency with full amount (no decimals)
+ */
+export const formatCurrencyFull = (value: number, currency = 'USD'): string => {
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency,
+        maximumFractionDigits: 0,
+    }).format(value);
+};
+

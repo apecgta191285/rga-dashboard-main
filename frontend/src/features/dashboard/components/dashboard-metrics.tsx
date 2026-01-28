@@ -30,6 +30,7 @@ interface MetricConfig {
     icon: typeof CreditCard;
     getValue: (summary: SummaryMetrics) => string;
     getTrend: (growth: GrowthMetrics) => number | null;
+    accentColor: 'indigo' | 'violet' | 'cyan' | 'amber';
 }
 
 const metricsConfig: MetricConfig[] = [
@@ -38,24 +39,28 @@ const metricsConfig: MetricConfig[] = [
         icon: CreditCard,
         getValue: (s) => formatCurrencyTHB(s.totalCost),
         getTrend: (g) => g.costGrowth,
+        accentColor: 'indigo',
     },
     {
         title: 'Impressions',
         icon: Eye,
         getValue: (s) => formatNumber(s.totalImpressions),
         getTrend: (g) => g.impressionsGrowth,
+        accentColor: 'violet',
     },
     {
         title: 'Clicks',
         icon: MousePointerClick,
         getValue: (s) => formatNumber(s.totalClicks),
         getTrend: (g) => g.clicksGrowth,
+        accentColor: 'cyan',
     },
     {
         title: 'Conversions',
         icon: Target,
         getValue: (s) => formatNumber(s.totalConversions),
         getTrend: (g) => g.conversionsGrowth,
+        accentColor: 'amber',
     },
 ];
 
@@ -75,6 +80,7 @@ export function DashboardMetrics({
                     key={metric.title}
                     title={metric.title}
                     icon={metric.icon}
+                    accentColor={metric.accentColor as any}
                     value={summary ? metric.getValue(summary) : metric.getValue({
                         totalImpressions: 0,
                         totalClicks: 0,
@@ -82,6 +88,8 @@ export function DashboardMetrics({
                         totalConversions: 0,
                         averageCtr: 0,
                         averageRoas: 0,
+                        averageCpm: 0,
+                        averageRoi: 0,
                     })}
                     trend={growth ? metric.getTrend(growth) : null}
                     trendLabel="vs last period"

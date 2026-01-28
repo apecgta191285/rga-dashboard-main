@@ -56,12 +56,17 @@ export const envValidationSchema = Joi.object({
     // ============================================
     TIKTOK_APP_ID: Joi.string().optional(),
     TIKTOK_APP_SECRET: Joi.string().optional(),
+    TIKTOK_REDIRECT_URI: Joi.string().uri().optional(),
+    TIKTOK_USE_SANDBOX: Joi.string().valid('true', 'false').optional(),
+    TIKTOK_SANDBOX_ACCESS_TOKEN: Joi.string().optional(),
+    TIKTOK_SANDBOX_ADVERTISER_ID: Joi.string().optional(),
 
     // ============================================
     // LINE OAuth (Optional)
     // ============================================
     LINE_CHANNEL_ID: Joi.string().optional(),
     LINE_CHANNEL_SECRET: Joi.string().optional(),
+    LINE_CALLBACK_URL: Joi.string().uri().optional(),
 
     // ============================================
     // CORS & Security

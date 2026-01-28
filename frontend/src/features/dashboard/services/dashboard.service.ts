@@ -40,7 +40,7 @@ const DASHBOARD_ENDPOINTS = {
 export async function getDashboardOverview(
     params: DashboardOverviewQuery = {}
 ): Promise<DashboardOverviewData> {
-    const { period = '7d', tenantId } = params;
+    const { period = '7d', tenantId, startDate, endDate } = params;
 
     const response = await apiClient.get<DashboardOverviewData>(
         DASHBOARD_ENDPOINTS.OVERVIEW,
@@ -48,6 +48,8 @@ export async function getDashboardOverview(
             params: {
                 period,
                 ...(tenantId && { tenantId }),
+                ...(startDate && { startDate }),
+                ...(endDate && { endDate }),
             },
         }
     );

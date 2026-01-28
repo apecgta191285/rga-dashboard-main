@@ -4,6 +4,7 @@
 // Features: Sub-route highlighting, mobile Sheet drawer, keyboard shortcuts
 // =============================================================================
 
+import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { useAuthStore, selectUser } from '@/stores/auth-store';
 import { UserRole } from '@/types/enums';
@@ -18,18 +19,29 @@ import {
     SidebarMenu,
     SidebarMenuItem,
     SidebarMenuButton,
+    SidebarMenuSub,
+    SidebarMenuSubItem,
+    SidebarMenuSubButton,
     SidebarSeparator,
 } from '@/components/ui/sidebar';
 import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import {
     BarChart3,
+    ChevronDown,
     Database,
     FileText,
+    LineChart,
     LogOut,
     Search,
     Settings,
     TrendingUp,
     Users,
     Zap,
+    Filter,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -37,12 +49,19 @@ import type { LucideIcon } from 'lucide-react';
 // Types & Menu Configuration
 // =============================================================================
 
+interface NavSubItem {
+    label: string;
+    href: string;
+    icon?: LucideIcon;
+}
+
 interface NavItem {
     label: string;
     href: string;
     icon: LucideIcon;
     comingSoon?: boolean;
     adminOnly?: boolean;
+    subItems?: NavSubItem[];
 }
 
 interface NavGroup {
@@ -54,7 +73,16 @@ const NAV_GROUPS: NavGroup[] = [
     {
         title: 'Analytics',
         items: [
-            { label: 'Overview', href: '/dashboard', icon: BarChart3 },
+            {
+                label: 'Overview',
+                href: '/dashboard',
+                icon: BarChart3,
+                subItems: [
+                    { label: 'Integration Checklist', href: '/dashboard#integration-checklist', icon: Zap },
+                    { label: 'Performance Trends', href: '/dashboard#performance-trends', icon: LineChart },
+                    { label: 'Conversion Funnel', href: '/dashboard#conversion-funnel', icon: Filter },
+                ],
+            },
             { label: 'Campaigns', href: '/campaigns', icon: Zap },
             { label: 'Data Sources', href: '/data-sources', icon: Database },
         ],
@@ -149,6 +177,59 @@ export function AppSidebar() {
                                                     </span>
                                                 </SidebarMenuButton>
                                             </SidebarMenuItem>
+                                        );
+                                    }
+
+                                    // Items with sub-menu (collapsible)
+                                    if (item.subItems && item.subItems.length > 0) {
+                                        return (
+                                            <Collapsible
+                                                key={item.href}
+                                                defaultOpen={active}
+                                                className="group/collapsible"
+                                            >
+                                                <SidebarMenuItem>
+                                                    <CollapsibleTrigger asChild>
+                                                        <SidebarMenuButton
+                                                            isActive={active}
+                                                            tooltip={item.label}
+                                                        >
+                                                            <Icon className="size-4" />
+                                                            <span>{item.label}</span>
+                                                            <ChevronDown className="ml-auto size-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                                                        </SidebarMenuButton>
+                                                    </CollapsibleTrigger>
+                                                    <CollapsibleContent>
+                                                        <SidebarMenuSub>
+                                                            {item.subItems.map((subItem) => {
+                                                                const SubIcon = subItem.icon;
+                                                                const subActive = location.includes(subItem.href.split('#')[1] || '');
+                                                                return (
+                                                                    <SidebarMenuSubItem key={subItem.href}>
+                                                                        <SidebarMenuSubButton
+                                                                            isActive={subActive}
+                                                                            onClick={() => {
+                                                                                setLocation(subItem.href.split('#')[0]);
+                                                                                // Scroll to section after navigation
+                                                                                setTimeout(() => {
+                                                                                    const hash = subItem.href.split('#')[1];
+                                                                                    if (hash) {
+                                                                                        const element = document.getElementById(hash);
+                                                                                        element?.scrollIntoView({ behavior: 'smooth' });
+                                                                                    }
+                                                                                }, 100);
+                                                                            }}
+                                                                        >
+                                                                            {SubIcon && <SubIcon className="size-4" />}
+                                                                            <span>{subItem.label}</span>
+                                                                        </SidebarMenuSubButton>
+                                                                    </SidebarMenuSubItem>
+                                                                );
+                                                            })}
+                                                        </SidebarMenuSub>
+                                                    </CollapsibleContent>
+                                                </SidebarMenuItem>
+                                            </Collapsible>
                                         );
                                     }
 

@@ -28,7 +28,37 @@ export interface SummaryCardProps {
     loading?: boolean;
     /** Optional additional className */
     className?: string;
+    /** Accent color for the card */
+    accentColor?: 'indigo' | 'violet' | 'cyan' | 'amber';
 }
+
+// Metric-specific styling configuration
+const ACCENT_STYLES = {
+    indigo: {
+        iconBg: 'bg-indigo-50 dark:bg-indigo-950/30',
+        iconColor: 'text-indigo-500 dark:text-indigo-400',
+        hoverBorder: 'hover:border-indigo-200 dark:hover:border-indigo-800',
+        gradient: 'from-indigo-50/50 via-transparent to-transparent dark:from-indigo-950/20',
+    },
+    violet: {
+        iconBg: 'bg-violet-50 dark:bg-violet-950/30',
+        iconColor: 'text-violet-500 dark:text-violet-400',
+        hoverBorder: 'hover:border-violet-200 dark:hover:border-violet-800',
+        gradient: 'from-violet-50/50 via-transparent to-transparent dark:from-violet-950/20',
+    },
+    cyan: {
+        iconBg: 'bg-cyan-50 dark:bg-cyan-950/30',
+        iconColor: 'text-cyan-500 dark:text-cyan-400',
+        hoverBorder: 'hover:border-cyan-200 dark:hover:border-cyan-800',
+        gradient: 'from-cyan-50/50 via-transparent to-transparent dark:from-cyan-950/20',
+    },
+    amber: {
+        iconBg: 'bg-amber-50 dark:bg-amber-950/30',
+        iconColor: 'text-amber-500 dark:text-amber-400',
+        hoverBorder: 'hover:border-amber-200 dark:hover:border-amber-800',
+        gradient: 'from-amber-50/50 via-transparent to-transparent dark:from-amber-950/20',
+    },
+};
 
 // =============================================================================
 // Loading Skeleton
@@ -61,6 +91,7 @@ export function SummaryCard({
     trendLabel = 'vs last period',
     loading = false,
     className,
+    accentColor = 'indigo',
 }: SummaryCardProps) {
     // Show skeleton when loading
     if (loading) {
@@ -71,16 +102,37 @@ export function SummaryCard({
     const isPositive = trend !== null && trend > 0;
     const isNegative = trend !== null && trend < 0;
     const TrendIcon = isPositive ? TrendingUp : TrendingDown;
+    const accent = ACCENT_STYLES[accentColor];
 
     return (
-        <Card className={cn('relative overflow-hidden', className)}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <Card
+            className={cn(
+                'relative overflow-hidden group',
+                'transition-all duration-300 ease-out',
+                'hover:shadow-lg hover:-translate-y-1',
+                accent.hoverBorder,
+                className
+            )}
+        >
+            {/* Gradient overlay */}
+            <div className={cn(
+                'absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-300',
+                accent.gradient
+            )} />
+
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                     {title}
                 </CardTitle>
-                <Icon className="h-4 w-4 text-muted-foreground" />
+                <div className={cn(
+                    'h-8 w-8 rounded-lg flex items-center justify-center',
+                    'transition-all duration-300 group-hover:scale-110',
+                    accent.iconBg
+                )}>
+                    <Icon className={cn('h-4 w-4', accent.iconColor)} />
+                </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="relative z-10">
                 {/* Value */}
                 <div className="text-2xl font-bold tracking-tight">{value}</div>
 
@@ -89,7 +141,7 @@ export function SummaryCard({
                     <div className="mt-2 flex items-center gap-1 text-xs">
                         <TrendIcon
                             className={cn(
-                                'h-3 w-3',
+                                'h-3 w-3 transition-transform group-hover:scale-110',
                                 isPositive && 'text-emerald-500',
                                 isNegative && 'text-rose-500'
                             )}

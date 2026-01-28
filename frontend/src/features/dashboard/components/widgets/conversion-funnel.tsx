@@ -1,13 +1,11 @@
-import { Download, FileSpreadsheet, FileText } from 'lucide-react';
+import { useRef } from 'react';
+import { Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { BrandLogo } from '@/components/ui/brand-logo';
 import { cn } from '@/lib/utils';
+import { downloadCsv } from '@/lib/download-utils';
+import { ExportDropdown } from '@/components/ui/export-dropdown';
 
 export interface FunnelStage {
     label: string;
@@ -16,33 +14,21 @@ export interface FunnelStage {
     dotClassName: string;
 }
 
+export interface PlatformFunnelStage {
+    platform: string;
+    impressions: number;
+    clicks: number;
+    conversions: number;
+    color: string;
+}
+
 export interface ConversionFunnelProps {
     stages?: FunnelStage[];
+    platformStages?: PlatformFunnelStage[];
     className?: string;
     title?: string;
     description?: string;
 }
-
-const DEFAULT_STAGES: FunnelStage[] = [
-    {
-        label: 'Visits',
-        value: 0,
-        barClassName: 'bg-gradient-to-r from-blue-400 to-sky-200',
-        dotClassName: 'bg-blue-400',
-    },
-    {
-        label: 'Add to cart',
-        value: 0,
-        barClassName: 'bg-gradient-to-r from-orange-500 to-orange-300',
-        dotClassName: 'bg-orange-500',
-    },
-    {
-        label: 'Checkout',
-        value: 0,
-        barClassName: 'bg-gradient-to-r from-amber-400 to-yellow-200',
-        dotClassName: 'bg-amber-400',
-    },
-];
 
 function clamp(n: number, min: number, max: number) {
     return Math.min(max, Math.max(min, n));
@@ -58,177 +44,137 @@ function buildFunnelCsv(stages: FunnelStage[]) {
     return ['stage,value,percentage', ...rows].join('\n');
 }
 
-function downloadTextFile(filename: string, content: string, mime = 'text/plain;charset=utf-8;') {
-    const blob = new Blob([content], { type: mime });
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-
-    URL.revokeObjectURL(url);
-}
-
-function escapeHtml(value: string) {
-    return value
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#039;');
-}
-
-function openPrintWindow(title: string, bodyHtml: string) {
-    const win = window.open('', '_blank', 'noopener,noreferrer');
-    if (!win) return;
-
-    win.document.open();
-    win.document.write(`<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>${escapeHtml(title)}</title>
-    <style>
-      :root { color-scheme: light; }
-      body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; padding: 24px; }
-      h1 { font-size: 18px; margin: 0 0 8px; }
-      p { margin: 0 0 12px; }
-      .muted { color: #6b7280; font-size: 12px; }
-      .card { border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px; }
-      table { width: 100%; border-collapse: collapse; }
-      th, td { padding: 8px; border-bottom: 1px solid #e5e7eb; font-size: 12px; text-align: left; }
-      th { color: #6b7280; font-weight: 600; }
-      .right { text-align: right; }
-      @media print { body { padding: 0; } }
-    </style>
-  </head>
-  <body>
-    ${bodyHtml}
-  </body>
-</html>`);
-    win.document.close();
-
-    win.focus();
-    setTimeout(() => {
-        win.print();
-    }, 150);
-}
-
 export function ConversionFunnel({
-    stages = DEFAULT_STAGES,
+    stages = [],
+    platformStages = [],
     className,
     title = 'Conversion Funnel',
     description = 'User journey effectiveness',
 }: ConversionFunnelProps) {
     const displayStages = stages;
+    const hasData = displayStages.length > 0;
+    const hasPlatformData = platformStages.length > 0;
     const max = Math.max(1, ...displayStages.map((s) => s.value));
 
-    const downloadCsv = () =>
-        downloadTextFile(
+    const cardRef = useRef<HTMLDivElement>(null);
+
+    const handleExportCsv = () => {
+        downloadCsv(
             'conversion-funnel.csv',
-            buildFunnelCsv(displayStages),
-            'text/csv;charset=utf-8;'
+            buildFunnelCsv(displayStages)
         );
-
-    const downloadPdf = () => {
-        const rows = displayStages
-            .map((s) => {
-                const pct = (s.value / max) * 100;
-                return `<tr><td>${escapeHtml(s.label)}</td><td class="right">${escapeHtml(
-                    String(s.value)
-                )}</td><td class="right">${escapeHtml(pct.toFixed(2))}%</td></tr>`;
-            })
-            .join('');
-
-        openPrintWindow(title, `
-          <h1>${escapeHtml(title)}</h1>
-          <p class="muted">${escapeHtml(description)}</p>
-          <div class="card">
-            <table>
-              <thead>
-                <tr>
-                  <th>Stage</th>
-                  <th class="right">Value</th>
-                  <th class="right">% of top</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${rows}
-              </tbody>
-            </table>
-          </div>
-        `);
     };
 
     return (
-        <Card className={cn('h-[400px] rounded-3xl border border-border shadow-lg', className)}>
-            <CardHeader className="space-y-1">
+        <Card ref={cardRef} className={cn('h-auto rounded-3xl border border-border shadow-lg', className)}>
+            <CardHeader className="space-y-1 pb-2">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="space-y-1">
                         <CardTitle className="text-lg font-bold">{title}</CardTitle>
                         <CardDescription>{description}</CardDescription>
                     </div>
 
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="sm" className="gap-2 text-xs" title="Download">
-                                <Download className="h-3.5 w-3.5" />
-                                Download
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={downloadCsv} className="gap-2">
-                                <FileSpreadsheet className="h-4 w-4" />
-                                CSV
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={downloadPdf} className="gap-2">
-                                <FileText className="h-4 w-4" />
-                                PDF
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                    <ExportDropdown
+                        filename="conversion-funnel"
+                        targetElement={cardRef.current}
+                        onExportCsv={hasData ? handleExportCsv : undefined}
+                        disabled={!hasData}
+                    />
                 </div>
             </CardHeader>
 
-            <CardContent className="space-y-6">
-                {displayStages.map((stage) => {
-                    const widthPct = clamp((stage.value / max) * 100, 0, 100);
+            {hasData ? (
+                <CardContent className="space-y-6">
+                    {/* Main Funnel Visualization */}
+                    <div className="space-y-4 pt-2">
+                        {displayStages.map((stage, index) => {
+                            const widthPct = clamp((stage.value / max) * 100, 0, 100);
+                            const nextStage = displayStages[index + 1];
+                            const conversionRate = nextStage && stage.value > 0
+                                ? ((nextStage.value / stage.value) * 100).toFixed(1)
+                                : null;
 
-                    return (
-                        <div key={stage.label} className="group flex items-center justify-between">
-                            <div
-                                className={cn(
-                                    'relative h-12 overflow-hidden rounded-full shadow-sm transition-all duration-700 ease-out group-hover:shadow-lg group-hover:scale-[1.02] brightness-105',
-                                    stage.barClassName
-                                )}
-                                style={{ width: `${widthPct}%`, maxWidth: '100%' }}
-                            >
-                                <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.28),transparent)] mix-blend-overlay" />
-                            </div>
+                            return (
+                                <div key={stage.label}>
+                                    <div className="group flex items-center justify-between gap-4">
+                                        <div
+                                            className={cn(
+                                                'relative h-10 overflow-hidden rounded-full shadow-sm transition-all duration-700 ease-out group-hover:shadow-lg group-hover:scale-[1.01] brightness-105',
+                                                stage.barClassName
+                                            )}
+                                            style={{ width: `${widthPct}%`, minWidth: '40px' }}
+                                        >
+                                            <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent)] mix-blend-overlay" />
+                                        </div>
 
-                            <div className="ml-6 flex-shrink-0 min-w-[140px] text-right text-sm">
-                                <p className="text-base font-semibold text-foreground">{stage.label}</p>
-                                <p className="text-3xl font-semibold tracking-tight text-foreground/90">
-                                    {stage.value}
-                                </p>
+                                        <div className="flex flex-col items-end min-w-[100px] text-right">
+                                            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{stage.label}</span>
+                                            <span className="text-2xl font-bold tracking-tight text-foreground">
+                                                {stage.value.toLocaleString()}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Conversion rate connector */}
+                                    {conversionRate && (
+                                        <div className="relative h-8 ml-8 my-1 flex items-center">
+                                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/40 px-2 py-0.5 rounded-md">
+                                                <span>↓</span>
+                                                <span className="font-medium">{conversionRate}% conversion</span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {hasPlatformData && (
+                        <div className="pt-4 border-t border-border/60">
+                            <h4 className="text-sm font-semibold mb-4 text-foreground/80">Platform Performance</h4>
+                            <div className="grid gap-3 sm:grid-cols-1">
+                                {platformStages?.map((platform) => (
+                                    <div
+                                        key={platform.platform}
+                                        className="flex flex-wrap items-center justify-between p-3 rounded-lg border bg-card/50 hover:bg-accent/50 transition-all duration-200"
+                                    >
+                                        <div className="flex items-center gap-3 min-w-[120px]">
+                                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted border border-border shadow-sm">
+                                                <BrandLogo platformId={platform.platform} className="h-4 w-4" />
+                                            </div>
+                                            <span className="text-sm font-semibold">{platform.platform}</span>
+                                        </div>
+
+                                        <div className="flex flex-1 items-center justify-end gap-x-6 gap-y-2 flex-wrap text-sm">
+                                            <div className="flex flex-col items-end">
+                                                <span className="text-[10px] text-muted-foreground uppercase">Impr.</span>
+                                                <span className="font-medium tabular-nums">{platform.impressions.toLocaleString()}</span>
+                                            </div>
+                                            <div className="flex flex-col items-end">
+                                                <span className="text-[10px] text-muted-foreground uppercase">Clicks</span>
+                                                <span className="font-medium tabular-nums">{platform.clicks.toLocaleString()}</span>
+                                            </div>
+                                            <div className="flex flex-col items-end min-w-[60px]">
+                                                <span className="text-[10px] text-muted-foreground uppercase">Conv.</span>
+                                                <span className="font-bold tabular-nums text-foreground">{platform.conversions.toLocaleString()}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
-                    );
-                })}
-
-                <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-                    {displayStages.map((stage) => (
-                        <span key={stage.label} className="flex items-center gap-1">
-                            <span className={cn('h-2 w-2 rounded-full', stage.dotClassName)} />
-                            {stage.label}
-                        </span>
-                    ))}
-                </div>
-            </CardContent>
+                    )}
+                </CardContent>
+            ) : (
+                <CardContent className="flex h-[280px] items-center justify-center">
+                    <div className="text-center">
+                        <p className="text-sm font-medium text-foreground">No funnel data yet</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                            Connect a data source to start seeing funnel metrics.
+                        </p>
+                    </div>
+                </CardContent>
+            )}
         </Card>
     );
 }
