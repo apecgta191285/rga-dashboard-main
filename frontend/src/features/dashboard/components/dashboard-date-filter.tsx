@@ -31,6 +31,10 @@ export interface DashboardDateFilterProps {
     value: PeriodEnum;
     /** Callback when period changes */
     onValueChange: (value: PeriodEnum) => void;
+    /** Custom date range (for 'custom' period) */
+    customRange?: { from: Date; to: Date };
+    /** Callback when custom range changes */
+    onCustomRangeChange?: (range: { from: Date; to: Date }) => void;
     /** Optional className */
     className?: string;
 }
@@ -86,26 +90,33 @@ function getPeriodFromPickedDate(pickedDate: Date, currentPeriod: PeriodEnum): P
 export function DashboardDateFilter({
     value,
     onValueChange,
+    customRange,
+    onCustomRangeChange,
     className,
 }: DashboardDateFilterProps) {
     const [open, setOpen] = useState(false);
-    const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+    const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({
+        from: customRange?.from,
+        to: customRange?.to,
+    });
 
     const selectedLabel = useMemo(() => {
+        if (value === 'custom' && customRange) {
+            return `${format(customRange.from, 'dd MMM')} - ${format(customRange.to, 'dd MMM')}`;
+        }
         const match = PERIOD_OPTIONS.find((opt) => opt.value === value);
         return match?.label ?? value;
-    }, [value]);
+    }, [value, customRange]);
 
-    const handleDateSelect = (date?: Date) => {
-        if (!date) return;
-        setSelectedDate(date);
-
-        const nextPeriod = getPeriodFromPickedDate(date, value);
-
-        if (nextPeriod !== value) {
-            onValueChange(nextPeriod);
+    const handleRangeSelect = (range?: { from?: Date; to?: Date }) => {
+        if (!range?.from || !range?.to) {
+            setDateRange(range || {});
+            return;
         }
 
+        setDateRange(range);
+        onValueChange('custom');
+        onCustomRangeChange?.({ from: range.from, to: range.to });
         setOpen(false);
     };
 
@@ -114,13 +125,13 @@ export function DashboardDateFilter({
             <PopoverTrigger asChild>
                 <Button
                     variant="outline"
-                    className={`h-9 w-[160px] justify-between ${className ?? ''}`}
+                    className={`h-8 w-[140px] px-2.5 text-xs justify-between ${className ?? ''}`}
                 >
-                    <span className="flex items-center">
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {selectedLabel}
+                    <span className="flex items-center min-w-0">
+                        <CalendarIcon className="mr-1.5 h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{selectedLabel}</span>
                     </span>
-                    <ChevronDown className="h-4 w-4 opacity-50" />
+                    <ChevronDown className="h-3.5 w-3.5 opacity-50 shrink-0" />
                 </Button>
             </PopoverTrigger>
             <PopoverContent
@@ -138,7 +149,7 @@ export function DashboardDateFilter({
                                     setOpen(false);
                                 }}
                             >
-                                <SelectTrigger className="h-9 w-full rounded-lg bg-background shadow-sm">
+                                <SelectTrigger className="h-8 w-full rounded-lg bg-background shadow-sm text-xs">
                                     <SelectValue placeholder="Select period" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -157,16 +168,22 @@ export function DashboardDateFilter({
                             <div className="text-[11px] font-medium text-muted-foreground">Date</div>
                             <div className="rounded-xl bg-background">
                                 <Calendar
-                                    mode="single"
-                                    selected={selectedDate}
-                                    onSelect={handleDateSelect}
+                                    mode="range"
+                                    selected={dateRange as { from: Date; to?: Date } | undefined}
+                                    onSelect={handleRangeSelect}
                                     captionLayout="dropdown"
                                     fromYear={new Date().getFullYear() - 1}
                                     toYear={new Date().getFullYear()}
                                     footer={
-                                        selectedDate ? (
+                                        dateRange?.from ? (
                                             <div className="px-2 pb-1 text-xs text-muted-foreground">
-                                                {format(selectedDate, 'PPP')}
+                                                {dateRange.to ? (
+                                                    <>
+                                                        {format(dateRange.from, 'PPP')} - {format(dateRange.to, 'PPP')}
+                                                    </>
+                                                ) : (
+                                                    format(dateRange.from, 'PPP')
+                                                )}
                                             </div>
                                         ) : undefined
                                     }

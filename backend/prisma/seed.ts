@@ -257,6 +257,13 @@ async function main() {
     },
   });
 
+  const shouldSeedDemoData = process.env.SEED_DEMO_DATA === 'true';
+
+  if (!shouldSeedDemoData) {
+    console.log('⏭️ Skipping demo integrations/accounts/campaigns. Set SEED_DEMO_DATA=true to enable.');
+    return;
+  }
+
   // 4. Create Integrations & Accounts (Required for Campaigns)
   console.log('🔗 Creating integrations...');
 

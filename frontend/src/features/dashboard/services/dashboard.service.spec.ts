@@ -28,12 +28,18 @@ const mockValidResponse: DashboardOverviewData = {
         totalConversions: 625,
         averageCtr: 4.07,
         averageRoas: 3.85,
+        averageCpm: 93.41,
+        averageRoi: 285.0,
     },
     growth: {
         impressionsGrowth: 12.5,
         clicksGrowth: 8.3,
         costGrowth: -5.2,
         conversionsGrowth: 15.7,
+        ctrGrowth: 0.6,
+        cpmGrowth: -3.2,
+        roasGrowth: 4.1,
+        roiGrowth: 2.1,
     },
     trends: [
         {
@@ -58,6 +64,9 @@ const mockValidResponse: DashboardOverviewData = {
             status: 'ACTIVE',
             platform: 'GOOGLE_ADS',
             spending: 28500.0,
+            impressions: 250000,
+            clicks: 10000,
+            conversions: 350,
             budgetUtilization: 57.0,
         },
         {
@@ -66,6 +75,9 @@ const mockValidResponse: DashboardOverviewData = {
             status: 'ACTIVE',
             platform: 'FACEBOOK',
             spending: 14000.0,
+            impressions: 205000,
+            clicks: 8500,
+            conversions: 275,
             budgetUtilization: 46.7,
         },
     ],

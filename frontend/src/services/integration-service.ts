@@ -45,6 +45,7 @@ export const integrationService = {
     // Status Endpoints
     // ============================================
     getGoogleAdsStatus: () => apiClient.get('/integrations/google-ads/status'),
+    getFacebookAdsStatus: () => apiClient.get('/integrations/facebook-ads/status'),
     getGoogleAnalyticsStatus: () => apiClient.get('/auth/google/analytics/status'),
     getLineAdsStatus: () => apiClient.get('/integrations/line-ads/status'),
     getTikTokAdsStatus: () => apiClient.get('/integrations/tiktok-ads/status'),

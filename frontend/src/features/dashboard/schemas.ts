@@ -10,7 +10,7 @@ import { z } from 'zod';
 // Enums
 // =============================================================================
 
-export const PeriodEnumSchema = z.enum(['7d', '30d', 'this_month', 'last_month']);
+export const PeriodEnumSchema = z.enum(['7d', '30d', 'this_month', 'last_month', 'custom']);
 export type PeriodEnum = z.infer<typeof PeriodEnumSchema>;
 
 export const CampaignStatusSchema = z.enum([
@@ -60,6 +60,12 @@ export const SummaryMetricsSchema = z
 
         /** Calculated ROAS (revenue / spend) */
         averageRoas: z.number().nonnegative(),
+
+        /** Calculated CPM (cost per 1,000 impressions) */
+        averageCpm: z.number().nonnegative(),
+
+        /** Calculated ROI percentage ((revenue - cost) / cost * 100) */
+        averageRoi: z.number(),
     })
     .strict();
 
@@ -75,6 +81,11 @@ export const GrowthMetricsSchema = z
         clicksGrowth: z.number().nullable(),
         costGrowth: z.number().nullable(),
         conversionsGrowth: z.number().nullable(),
+
+        ctrGrowth: z.number().nullable(),
+        cpmGrowth: z.number().nullable(),
+        roasGrowth: z.number().nullable(),
+        roiGrowth: z.number().nullable(),
     })
     .strict();
 
@@ -123,6 +134,15 @@ export const RecentCampaignSchema = z
 
         /** Total spend for this campaign in selected period */
         spending: z.number().nonnegative(),
+
+        /** Total impressions for this campaign in selected period */
+        impressions: z.number().int().nonnegative().optional().default(0),
+
+        /** Total clicks for this campaign in selected period */
+        clicks: z.number().int().nonnegative().optional().default(0),
+
+        /** Total conversions for this campaign in selected period */
+        conversions: z.number().int().nonnegative().optional().default(0),
 
         /** Budget utilization percentage (optional) */
         budgetUtilization: z.number().nonnegative().optional(),
@@ -196,6 +216,8 @@ export type DashboardOverviewResponse = z.infer<typeof DashboardOverviewResponse
 
 export const DashboardOverviewQuerySchema = z.object({
     period: PeriodEnumSchema.optional(),
+    startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
     tenantId: z.string().uuid().optional(),
 });
 
