@@ -52,13 +52,22 @@ export class MockDataService {
         const conversions = Math.floor(clicks * 0.05 * (0.8 + Math.random() * 0.4)); // 5% CVR
         const revenue = cost * 2.5 * (0.8 + Math.random() * 0.4); // 2.5 ROAS
 
+        const safeImpressions = impressions > 0 ? impressions : 1;
+        const safeCost = cost > 0 ? cost : 1;
+        const ctr = (clicks / safeImpressions) * 100;
+        const roas = revenue / safeCost;
+        const cpm = (cost / safeImpressions) * 1000;
+        const roi = ((revenue - cost) / safeCost) * 100;
+
         return {
             totalImpressions: impressions,
             totalClicks: clicks,
             totalCost: Number(cost.toFixed(2)),
             totalConversions: conversions,
-            averageCtr: Number(((clicks / impressions) * 100).toFixed(2)),
-            averageRoas: Number((revenue / cost).toFixed(2))
+            averageCtr: Number(ctr.toFixed(2)),
+            averageRoas: Number(roas.toFixed(2)),
+            averageCpm: Number(cpm.toFixed(2)),
+            averageRoi: Number(roi.toFixed(2)),
         };
     }
 
@@ -68,7 +77,11 @@ export class MockDataService {
             impressionsGrowth: randomGrowth(),
             clicksGrowth: randomGrowth(),
             costGrowth: randomGrowth(),
-            conversionsGrowth: randomGrowth()
+            conversionsGrowth: randomGrowth(),
+            ctrGrowth: randomGrowth(),
+            cpmGrowth: randomGrowth(),
+            roasGrowth: randomGrowth(),
+            roiGrowth: randomGrowth(),
         };
     }
 
@@ -106,6 +119,9 @@ export class MockDataService {
                 status: CampaignStatus.ACTIVE,
                 platform: AdPlatform.FACEBOOK,
                 spending: 12500,
+                impressions: 150000,
+                clicks: 5200,
+                conversions: 310,
                 budgetUtilization: 85
             },
             {
@@ -114,6 +130,9 @@ export class MockDataService {
                 status: CampaignStatus.ACTIVE,
                 platform: AdPlatform.GOOGLE_ADS,
                 spending: 45000,
+                impressions: 420000,
+                clicks: 16800,
+                conversions: 980,
                 budgetUtilization: 92
             },
             {
@@ -122,6 +141,9 @@ export class MockDataService {
                 status: CampaignStatus.PAUSED,
                 platform: AdPlatform.TIKTOK,
                 spending: 8200,
+                impressions: 80000,
+                clicks: 2200,
+                conversions: 140,
                 budgetUtilization: 45
             },
             {
@@ -130,6 +152,9 @@ export class MockDataService {
                 status: CampaignStatus.ACTIVE,
                 platform: AdPlatform.LINE_ADS,
                 spending: 15600,
+                impressions: 120000,
+                clicks: 3400,
+                conversions: 210,
                 budgetUtilization: 60
             },
             {
@@ -138,6 +163,9 @@ export class MockDataService {
                 status: CampaignStatus.ENDED,
                 platform: AdPlatform.GOOGLE_ADS,
                 spending: 5400,
+                impressions: 56000,
+                clicks: 980,
+                conversions: 55,
                 budgetUtilization: 100
             }
         ];
@@ -145,12 +173,19 @@ export class MockDataService {
         // Generate more if requested
         if (count > 5) {
             for (let i = 6; i <= count; i++) {
+                const impressions = Math.floor(Math.random() * 200000) + 1000;
+                const clicks = Math.floor(impressions * (0.01 + Math.random() * 0.04));
+                const conversions = Math.floor(clicks * (0.01 + Math.random() * 0.12));
+
                 campaigns.push({
                     id: `mock-cmp-${i}`,
                     name: `Mock Campaign #${i}`,
                     status: Math.random() > 0.3 ? CampaignStatus.ACTIVE : CampaignStatus.PAUSED,
                     platform: Math.random() > 0.5 ? AdPlatform.FACEBOOK : AdPlatform.GOOGLE_ADS,
                     spending: Math.floor(Math.random() * 10000),
+                    impressions,
+                    clicks,
+                    conversions,
                     budgetUtilization: Math.floor(Math.random() * 100)
                 });
             }
