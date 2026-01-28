@@ -1,143 +1,157 @@
-import { Settings } from 'lucide-react';
+import { useState } from 'react';
 import { useLocation } from 'wouter';
+import { ChevronDown, ChevronUp } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { LoadingSpinner } from './ui/LoadingSpinner';
-import { useIntegrationStatus, type IntegrationStatus } from '../hooks/useIntegrationStatus';
+import { BrandLogo } from './ui/brand-logo';
+import { PLATFORMS } from '../constants/platforms';
+import { useIntegrationStatus, IntegrationStatus } from '../hooks/useIntegrationStatus';
 
-type IntegrationItem = {
-    id: keyof IntegrationStatus;
-    category: string;
-    name: string;
-    iconUrl: string;
-    iconBg: string;
-    iconBorder: string;
+const statusKeyMap: Record<string, keyof IntegrationStatus> = {
+    'google-ads': 'googleAds',
+    'facebook-ads': 'facebookAds',
+    'line-ads': 'lineAds',
+    'tiktok-ads': 'tiktokAds',
 };
 
-const INTEGRATIONS: IntegrationItem[] = [
-    {
-        id: 'googleAds',
-        category: 'ADS',
-        name: 'Google Ads',
-        iconUrl: 'https://cdn.simpleicons.org/googleads/ef4444',
-        iconBg: 'rgba(0, 0, 0, 0.02)',
-        iconBorder: 'hsl(var(--border))',
+// Platform-specific styling configuration
+const PLATFORM_STYLES: Record<string, {
+    bgGradient: string;
+    hoverBorder: string;
+    iconRing: string;
+    glowColor: string;
+}> = {
+    'google-ads': {
+        bgGradient: 'from-red-50/50 to-orange-50/30 dark:from-red-950/20 dark:to-orange-950/10',
+        hoverBorder: 'hover:border-red-200 dark:hover:border-red-800',
+        iconRing: 'group-hover:ring-red-200/80 dark:group-hover:ring-red-700/50',
+        glowColor: 'group-hover:shadow-red-100/50 dark:group-hover:shadow-red-900/30',
     },
-    {
-        id: 'facebookAds',
-        category: 'ADS',
-        name: 'Facebook',
-        iconUrl: 'https://cdn.simpleicons.org/facebook/2563eb',
-        iconBg: 'rgba(0, 0, 0, 0.02)',
-        iconBorder: 'hsl(var(--border))',
+    'facebook-ads': {
+        bgGradient: 'from-blue-50/50 to-indigo-50/30 dark:from-blue-950/20 dark:to-indigo-950/10',
+        hoverBorder: 'hover:border-blue-200 dark:hover:border-blue-800',
+        iconRing: 'group-hover:ring-blue-200/80 dark:group-hover:ring-blue-700/50',
+        glowColor: 'group-hover:shadow-blue-100/50 dark:group-hover:shadow-blue-900/30',
     },
-    {
-        id: 'lineAds',
-        category: 'ADS',
-        name: 'LINE OA',
-        iconUrl: 'https://cdn.simpleicons.org/line/22c55e',
-        iconBg: 'rgba(0, 0, 0, 0.02)',
-        iconBorder: 'hsl(var(--border))',
+    'line-ads': {
+        bgGradient: 'from-emerald-50/50 to-green-50/30 dark:from-emerald-950/20 dark:to-green-950/10',
+        hoverBorder: 'hover:border-emerald-200 dark:hover:border-emerald-800',
+        iconRing: 'group-hover:ring-emerald-200/80 dark:group-hover:ring-emerald-700/50',
+        glowColor: 'group-hover:shadow-emerald-100/50 dark:group-hover:shadow-emerald-900/30',
     },
-    {
-        id: 'tiktokAds',
-        category: 'ADS',
-        name: 'TikTok Ads',
-        iconUrl: 'https://cdn.simpleicons.org/tiktok/FFFFFF',
-        iconBg: 'rgb(17, 24, 39)',
-        iconBorder: 'rgb(17, 24, 39)',
+    'tiktok-ads': {
+        bgGradient: 'from-slate-50/50 to-gray-50/30 dark:from-slate-950/20 dark:to-gray-950/10',
+        hoverBorder: 'hover:border-slate-300 dark:hover:border-slate-700',
+        iconRing: 'group-hover:ring-slate-300/80 dark:group-hover:ring-slate-600/50',
+        glowColor: 'group-hover:shadow-slate-200/50 dark:group-hover:shadow-slate-800/30',
     },
-];
-
-export type IntegrationChecklistProps = {
-    status?: Partial<IntegrationStatus>;
-    loading?: boolean;
 };
 
-export function IntegrationChecklist({ status: statusOverride, loading }: IntegrationChecklistProps) {
+export function IntegrationChecklist() {
     const [, setLocation] = useLocation();
     const { status, isLoading } = useIntegrationStatus();
+    const [isCollapsed, setIsCollapsed] = useState(false);
 
-    const resolvedStatus: IntegrationStatus = {
-        ...status,
-        ...statusOverride,
-    };
+    const platforms = PLATFORMS.filter((p) =>
+        ['google-ads', 'facebook-ads', 'line-ads', 'tiktok-ads'].includes(p.id)
+    );
 
-    const isBusy = loading ?? isLoading;
-
-    if (isBusy) {
+    if (isLoading) {
         return (
-            <div className="rounded-3xl border bg-card text-card-foreground shadow p-6">
-                <div className="flex justify-center">
+            <Card>
+                <CardContent className="pt-6 flex justify-center">
                     <LoadingSpinner text="Loading integration status..." />
-                </div>
-            </div>
+                </CardContent>
+            </Card>
         );
     }
 
     return (
-        <div className="rounded-3xl border bg-card text-card-foreground shadow p-6 space-y-6">
-            <div className="flex items-start justify-between gap-4">
-                <div className="space-y-2 max-w-4xl">
-                    <h2 className="text-[24px] leading-snug font-semibold text-foreground break-words">
-                        Integration Checklist
-                    </h2>
-                    <p className="text-muted-foreground text-[16px] leading-relaxed break-words">
-                        Connect data sources for real-time insights
-                    </p>
+        <Card className="w-full rounded-3xl">
+            <CardHeader className="pb-4">
+                <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-1">
+                        <CardTitle>Integration Checklist</CardTitle>
+                        <CardDescription>Connect data sources for real-time insights</CardDescription>
+                    </div>
+
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="rounded-full px-3 py-2 text-xs font-semibold gap-2 shrink-0"
+                        onClick={() => setIsCollapsed((prev) => !prev)}
+                    >
+                        {isCollapsed ? (
+                            <ChevronDown className="h-4 w-4" />
+                        ) : (
+                            <ChevronUp className="h-4 w-4" />
+                        )}
+                        {isCollapsed ? 'Open' : 'Close'}
+                    </Button>
                 </div>
+            </CardHeader>
 
-                <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="rounded-full px-3 py-2 text-xs font-semibold gap-2 shrink-0"
-                    onClick={() => setLocation('/data-sources')}
-                >
-                    <Settings className="h-4 w-4" />
-                    Settings
-                </Button>
-            </div>
+            {isCollapsed ? null : (
+                <CardContent className="pt-0">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {platforms.map((platform) => {
+                            const statusKey = statusKeyMap[platform.id];
+                            const isConnected = statusKey ? status[statusKey] : false;
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {INTEGRATIONS.map((item) => {
-                    const isConnected = Boolean(resolvedStatus[item.id]);
-                    const dotColor = isConnected ? 'rgb(34, 197, 94)' : 'rgb(229, 231, 235)';
+                            // Safe style lookup
+                            const defaultStyles = PLATFORM_STYLES['tiktok-ads'];
+                            const styles = PLATFORM_STYLES[platform.id] || defaultStyles;
 
-                    return (
-                        <button
-                            key={item.id}
-                            type="button"
-                            className="w-full rounded-2xl px-5 py-4 text-left transition-all duration-200 border bg-card hover:shadow-sm hover:-translate-y-0.5"
-                            onClick={() => setLocation('/data-sources')}
-                        >
-                            <div className="flex items-start justify-between gap-4">
-                                <div className="flex items-center gap-4 min-w-0">
-                                    <div
-                                        className="h-12 w-12 rounded-full flex items-center justify-center shrink-0 border"
-                                        style={{ backgroundColor: item.iconBg, borderColor: item.iconBorder }}
-                                    >
-                                        <img src={item.iconUrl} className="h-7 w-7" alt={item.name} />
+                            const displayName = platform.id === 'line-ads' ? 'LINE Ads' : platform.name;
+                            const dotClassName = isConnected
+                                ? 'bg-emerald-500 shadow-[0_0_0_3px_rgba(34,197,94,0.15)] animate-pulse'
+                                : 'bg-slate-200';
+
+                            return (
+                                <button
+                                    key={platform.id}
+                                    type="button"
+                                    className={`
+                                        group w-full rounded-2xl px-5 py-4 text-left
+                                        transition-all duration-300 ease-out
+                                        border bg-gradient-to-br ${styles.bgGradient}
+                                        hover:shadow-lg hover:-translate-y-1 ${styles.hoverBorder} ${styles.glowColor}
+                                        ${!isConnected ? 'grayscale opacity-60 hover:opacity-80' : ''}
+                                    `}
+                                    onClick={() => setLocation('/data-sources')}
+                                >
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div className="flex items-center gap-4 min-w-0">
+                                            <div className={`
+                                                relative h-12 w-12 rounded-full flex items-center justify-center shrink-0
+                                                border bg-white dark:bg-slate-900 shadow-sm
+                                                transition-all duration-300
+                                                group-hover:shadow-md group-hover:scale-110
+                                                ring-2 ring-transparent ${styles.iconRing}
+                                            `}>
+                                                <BrandLogo platformId={platform.id} className="h-7 w-7" />
+                                            </div>
+
+                                            <div className="min-w-0">
+                                                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                                                    ADS
+                                                </p>
+                                                <p className="mt-0.5 text-sm font-bold leading-tight truncate">
+                                                    {displayName}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <span className={`mt-1 h-3 w-3 rounded-full transition-transform group-hover:scale-125 ${dotClassName}`} />
                                     </div>
-
-                                    <div className="min-w-0">
-                                        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                                            {item.category}
-                                        </p>
-                                        <p className="mt-1 text-sm font-semibold leading-tight truncate">
-                                            {item.name}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <span
-                                    className="mt-1 h-2.5 w-2.5 rounded-full"
-                                    style={{ backgroundColor: dotColor }}
-                                />
-                            </div>
-                        </button>
-                    );
-                })}
-            </div>
-        </div>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </CardContent>
+            )}
+        </Card>
     );
 }

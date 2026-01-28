@@ -25,6 +25,10 @@ export const dashboardKeys = {
 interface UseDashboardOverviewOptions {
     /** Time period for aggregation */
     period?: PeriodEnum;
+    /** Custom start date (YYYY-MM-DD) */
+    startDate?: string;
+    /** Custom end date (YYYY-MM-DD) */
+    endDate?: string;
     /** Explicit tenant override (SUPER_ADMIN only) */
     tenantId?: string;
     /** Enable/disable the query */
@@ -66,6 +70,8 @@ interface UseDashboardOverviewOptions {
 export function useDashboardOverview(options: UseDashboardOverviewOptions = {}) {
     const {
         period = '7d',
+        startDate,
+        endDate,
         tenantId,
         enabled = true,
         refetchInterval = 0,
@@ -74,14 +80,16 @@ export function useDashboardOverview(options: UseDashboardOverviewOptions = {}) 
 
     return useQuery<DashboardOverviewData, Error>({
         queryKey: dashboardKeys.overviewByPeriod(period, tenantId),
-        queryFn: () => getDashboardOverview({ period, tenantId }),
+        queryFn: () => getDashboardOverview({ period, startDate, endDate, tenantId }),
         enabled,
         staleTime,
         refetchInterval: refetchInterval > 0 ? refetchInterval : undefined,
         refetchOnWindowFocus: true,
         retry: 3,
         retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-        // TanStack Query v4 uses keepPreviousData boolean option
+        // TODO: When upgrading to TanStack Query v5, replace with:
+        // import { keepPreviousData } from '@tanstack/react-query';
+        // placeholderData: keepPreviousData,
         keepPreviousData: true,
     });
 }

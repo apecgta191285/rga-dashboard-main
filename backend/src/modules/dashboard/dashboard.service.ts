@@ -74,6 +74,7 @@ export class DashboardService {
           gte: currentStartDate,
           lte: today,
         },
+        // ✅ Include all data (real + mock) - will show 0 if no data exists
       },
       _sum: {
         impressions: true,
@@ -91,6 +92,7 @@ export class DashboardService {
           gte: previousStartDate,
           lt: currentStartDate,
         },
+        // ✅ Include all data (real + mock)
       },
       _sum: {
         impressions: true,
@@ -174,6 +176,7 @@ export class DashboardService {
       where: {
         campaign: campaignFilter,
         date: { gte: currentStartDate, lte: today },
+        // ✅ Include all data (real + mock)
       },
       _sum: { impressions: true, clicks: true, spend: true, conversions: true },
     });
@@ -183,6 +186,7 @@ export class DashboardService {
       where: {
         campaign: campaignFilter,
         date: { gte: previousStartDate, lt: currentStartDate },
+        // ✅ Include all data (real + mock)
       },
       _sum: { impressions: true, clicks: true, spend: true, conversions: true },
     });
@@ -236,6 +240,7 @@ export class DashboardService {
       where: {
         campaign: { tenantId },
         date: { gte: startDate },
+        // ✅ Include all data (real + mock)
       },
       _sum: {
         impressions: true,
@@ -451,6 +456,7 @@ export class DashboardService {
           gte: startDate,
           lte: today,
         },
+        // ✅ Include all data (real + mock)
       },
       _sum: {
         sessions: true,
@@ -547,17 +553,44 @@ export class DashboardService {
       tenantId = query.tenantId;
     }
 
-    const period = query.period || PeriodEnum.SEVEN_DAYS;
+    let startDate: Date;
+    let endDate: Date;
+    let period: PeriodEnum;
 
-    // Get date ranges
-    const { startDate, endDate } = DateRangeUtil.getDateRangeByPeriod(period);
-    const previousPeriod = DateRangeUtil.getPreviousPeriodByPeriod(period, startDate, endDate);
+    // Check if custom date range is provided
+    if (query.startDate && query.endDate) {
+      // Use custom date range
+      startDate = new Date(query.startDate);
+      endDate = new Date(query.endDate);
+
+      // Validate date range
+      if (startDate > endDate) {
+        throw new Error('startDate must be before or equal to endDate');
+      }
+
+      // Use the provided period or default for metadata
+      period = query.period || PeriodEnum.SEVEN_DAYS;
+    } else {
+      // Use period-based date range (existing logic)
+      period = query.period || PeriodEnum.SEVEN_DAYS;
+      const dateRange = DateRangeUtil.getDateRangeByPeriod(period);
+      startDate = dateRange.startDate;
+      endDate = dateRange.endDate;
+    }
+
+    // Get previous period for comparison
+    const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    const previousPeriod = {
+      startDate: new Date(startDate.getTime() - daysDiff * 24 * 60 * 60 * 1000),
+      endDate: new Date(startDate.getTime() - 1),
+    };
 
     // 1. Get current period metrics
     const currentMetrics = await this.prisma.metric.aggregate({
       where: {
         tenantId,
         date: { gte: startDate, lte: endDate },
+        // ✅ Include all data (real + mock)
       },
       _sum: {
         impressions: true,
@@ -573,12 +606,14 @@ export class DashboardService {
       where: {
         tenantId,
         date: { gte: previousPeriod.startDate, lte: previousPeriod.endDate },
+        // ✅ Include all data (real + mock)
       },
       _sum: {
         impressions: true,
         clicks: true,
         spend: true,
         conversions: true,
+        revenue: true,
       },
     });
 
@@ -588,6 +623,7 @@ export class DashboardService {
       where: {
         tenantId,
         date: { gte: startDate, lte: endDate },
+        // ✅ Include all data (real + mock)
       },
       _sum: {
         impressions: true,
@@ -613,8 +649,16 @@ export class DashboardService {
         platform: true,
         budget: true,
         metrics: {
-          where: { date: { gte: startDate, lte: endDate } },
-          select: { spend: true },
+          where: {
+            date: { gte: startDate, lte: endDate },
+            // ✅ Include all data (real + mock)
+          },
+          select: {
+            spend: true,
+            impressions: true,
+            clicks: true,
+            conversions: true,
+          },
         },
       },
     });
@@ -626,6 +670,9 @@ export class DashboardService {
     const totalConversions = currentMetrics._sum.conversions || 0;
     const totalRevenue = Number(currentMetrics._sum.revenue) || 0;
 
+    const averageCpm = totalImpressions > 0 ? (totalCost / totalImpressions) * 1000 : 0;
+    const averageRoi = totalCost > 0 ? ((totalRevenue - totalCost) / totalCost) * 100 : 0;
+
     const summary = {
       totalImpressions,
       totalClicks,
@@ -633,6 +680,8 @@ export class DashboardService {
       totalConversions,
       averageCtr: totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0,
       averageRoas: totalCost > 0 ? totalRevenue / totalCost : 0,
+      averageCpm,
+      averageRoi,
     };
 
     // Calculate growth percentages with null handling
@@ -645,12 +694,22 @@ export class DashboardService {
     const prevClicks = previousMetrics._sum.clicks || 0;
     const prevCost = Number(previousMetrics._sum.spend) || 0;
     const prevConversions = previousMetrics._sum.conversions || 0;
+    const prevRevenue = Number(previousMetrics._sum.revenue) || 0;
+
+    const prevCtr = prevImpressions > 0 ? (prevClicks / prevImpressions) * 100 : 0;
+    const prevCpm = prevImpressions > 0 ? (prevCost / prevImpressions) * 1000 : 0;
+    const prevRoas = prevCost > 0 ? prevRevenue / prevCost : 0;
+    const prevRoi = prevCost > 0 ? ((prevRevenue - prevCost) / prevCost) * 100 : 0;
 
     const growth = {
       impressionsGrowth: calculateGrowth(totalImpressions, prevImpressions),
       clicksGrowth: calculateGrowth(totalClicks, prevClicks),
       costGrowth: calculateGrowth(totalCost, prevCost),
       conversionsGrowth: calculateGrowth(totalConversions, prevConversions),
+      ctrGrowth: calculateGrowth(summary.averageCtr, prevCtr),
+      cpmGrowth: calculateGrowth(summary.averageCpm, prevCpm),
+      roasGrowth: calculateGrowth(summary.averageRoas, prevRoas),
+      roiGrowth: calculateGrowth(summary.averageRoi, prevRoi),
     };
 
     // Format trends
@@ -662,16 +721,24 @@ export class DashboardService {
       conversions: m._sum.conversions || 0,
     }));
 
-    // Format recent campaigns
+    // Format recent campaigns with metrics
     const recentCampaigns = campaignsWithSpend.map((c) => {
-      const spending = c.metrics.reduce((sum, m) => sum + Number(m.spend || 0), 0);
+      const metrics = c.metrics as any[]; // Cast to any array to bypass stale type definitions
+      const spending = metrics.reduce((sum, m) => sum + Number(m.spend || 0), 0);
+      const impressions = metrics.reduce((sum, m) => sum + (m.impressions || 0), 0);
+      const clicks = metrics.reduce((sum, m) => sum + (m.clicks || 0), 0);
+      const conversions = metrics.reduce((sum, m) => sum + (m.conversions || 0), 0);
       const budget = Number(c.budget) || 0;
+
       return {
         id: c.id,
         name: c.name,
         status: c.status,
         platform: c.platform,
         spending,
+        impressions,
+        clicks,
+        conversions,
         budgetUtilization: budget > 0 ? (spending / budget) * 100 : undefined,
       };
     });

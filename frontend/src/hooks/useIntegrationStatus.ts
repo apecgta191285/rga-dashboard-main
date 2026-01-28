@@ -29,14 +29,16 @@ export function useIntegrationStatus() {
             setIsLoading(true);
 
             // Fetch all statuses in parallel
-            const [googleAdsRes, ga4Res, lineAdsRes, tiktokAdsRes] = await Promise.allSettled([
+            const [googleAdsRes, facebookAdsRes, ga4Res, lineAdsRes, tiktokAdsRes] = await Promise.allSettled([
                 integrationService.getGoogleAdsStatus(),
+                integrationService.getFacebookAdsStatus(),
                 integrationService.getGoogleAnalyticsStatus(),
                 integrationService.getLineAdsStatus(),
                 integrationService.getTikTokAdsStatus(),
             ]);
 
             const googleAdsStatus = googleAdsRes.status === 'fulfilled' ? googleAdsRes.value.data : { isConnected: false, accounts: [] };
+            const facebookAdsStatus = facebookAdsRes.status === 'fulfilled' ? facebookAdsRes.value.data : { isConnected: false, accounts: [] };
             const ga4Status = ga4Res.status === 'fulfilled' ? ga4Res.value.data : { isConnected: false, account: null };
             const lineAdsStatus = lineAdsRes.status === 'fulfilled' ? lineAdsRes.value.data : { isConnected: false, accounts: [] };
             const tiktokAdsStatus = tiktokAdsRes.status === 'fulfilled' ? tiktokAdsRes.value.data : { isConnected: false, accounts: [] };
@@ -44,6 +46,7 @@ export function useIntegrationStatus() {
             setStatus(prev => ({
                 ...prev,
                 googleAds: googleAdsStatus.isConnected,
+                facebookAds: facebookAdsStatus.isConnected,
                 googleAnalytics: ga4Status.isConnected,
                 lineAds: lineAdsStatus.isConnected,
                 tiktokAds: tiktokAdsStatus.isConnected,
