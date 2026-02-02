@@ -39,7 +39,7 @@ export function BulkActionBar({
     }
 
     return (
-        <div className="flex items-center justify-between gap-4 rounded-lg border bg-muted/50 p-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 rounded-lg border bg-muted/50 p-3">
             {/* Selection Info */}
             <div className="flex items-center gap-3">
                 <Button
@@ -56,8 +56,8 @@ export function BulkActionBar({
                 </span>
             </div>
 
-            {/* Bulk Actions */}
-            <div className="flex items-center gap-2">
+            {/* Bulk Actions - Wrap on mobile */}
+            <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto justify-start sm:justify-end">
                 <Button
                     variant="outline"
                     size="sm"
@@ -65,7 +65,7 @@ export function BulkActionBar({
                     className="gap-2"
                 >
                     <Pause className="h-4 w-4" />
-                    Pause
+                    <span className="hidden xs:inline">Pause</span>
                 </Button>
                 <Button
                     variant="outline"
@@ -74,7 +74,7 @@ export function BulkActionBar({
                     className="gap-2"
                 >
                     <Play className="h-4 w-4" />
-                    Enable
+                    <span className="hidden xs:inline">Enable</span>
                 </Button>
                 <Button
                     variant="outline"
@@ -83,7 +83,7 @@ export function BulkActionBar({
                     className="gap-2 text-destructive hover:text-destructive"
                 >
                     <Trash2 className="h-4 w-4" />
-                    Delete
+                    <span className="hidden xs:inline">Delete</span>
                 </Button>
             </div>
         </div>

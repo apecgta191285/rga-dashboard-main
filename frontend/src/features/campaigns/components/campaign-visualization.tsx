@@ -82,7 +82,7 @@ export function CampaignVisualization({ campaigns, summary, onDownload }: Campai
                             <BarChart
                                 data={chartData}
                                 margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                                barSize={24}
+                                barSize={16}
                             >
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                                 <XAxis

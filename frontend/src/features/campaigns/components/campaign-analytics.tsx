@@ -223,9 +223,9 @@ export function CampaignAnalytics({ campaigns }: CampaignAnalyticsProps) {
 
     return (
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mt-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6 mt-6">
             {/* LEFT COLUMN: Conversion Rate Insights (2/3 width) */}
-            <div className="xl:col-span-2 rounded-3xl border border-gray-100 bg-white p-6 space-y-4 shadow-sm h-full flex flex-col">
+            <div className="lg:col-span-1 xl:col-span-2 rounded-3xl border border-gray-100 bg-white p-4 sm:p-6 space-y-4 shadow-sm h-full flex flex-col">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <div>
                         <p className="text-2xl font-bold tracking-tight">Conversion Rate</p>
@@ -236,7 +236,7 @@ export function CampaignAnalytics({ campaigns }: CampaignAnalyticsProps) {
                 <div className="space-y-6 flex-1 flex flex-col">
                     {/* Campaign Selector Carousel */}
                     <div className="flex flex-wrap gap-2 pb-2">
-                        {campaigns.slice(0, 8).map(campaign => (
+                        {campaigns.slice(0, 10).map(campaign => (
                             <button
                                 key={campaign.id}
                                 onClick={() => setSelectedCampaignId(campaign.id)}
@@ -289,8 +289,8 @@ export function CampaignAnalytics({ campaigns }: CampaignAnalyticsProps) {
                                 </div>
                             </div>
 
-                            {/* Insights Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {/* Insights Grid - Stack on mobile */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                                 {/* Insight Card */}
                                 <motion.div
                                     initial={{ opacity: 0, y: 20 }}
@@ -394,7 +394,7 @@ export function CampaignAnalytics({ campaigns }: CampaignAnalyticsProps) {
             </div>
 
             {/* RIGHT COLUMN: Platform Breakdown (1/3 width) */}
-            <div className="xl:col-span-1 rounded-3xl border border-gray-100 bg-white p-6 space-y-6 shadow-sm flex flex-col h-full">
+            <div className="lg:col-span-1 xl:col-span-1 rounded-3xl border border-gray-100 bg-white p-4 sm:p-6 space-y-4 sm:space-y-6 shadow-sm flex flex-col h-full">
                 <div>
                     <p className="text-2xl font-bold tracking-tight">Platform Breakdown</p>
                     <p className="text-sm text-muted-foreground">Key metrics and budget utilization</p>

@@ -21,6 +21,7 @@ interface CampaignSummaryProps {
 const SummaryCard = ({
     title,
     value,
+    mobileValue,
     icon: Icon,
     trend,
     trendLabel = "vs last period",
@@ -29,6 +30,7 @@ const SummaryCard = ({
 }: {
     title: string;
     value: string;
+    mobileValue?: string;
     icon: any;
     trend?: string;
     trendLabel?: string;
@@ -45,7 +47,14 @@ const SummaryCard = ({
             </div>
         </CardHeader>
         <CardContent>
-            <div className="text-2xl font-bold">{value}</div>
+            {mobileValue ? (
+                <>
+                    <div className="text-xl sm:text-2xl font-bold hidden sm:block">{value}</div>
+                    <div className="text-xl font-bold sm:hidden">{mobileValue}</div>
+                </>
+            ) : (
+                <div className="text-xl sm:text-2xl font-bold">{value}</div>
+            )}
             {trend && (
                 <p className="text-xs text-muted-foreground mt-1">
                     <span className={trend.startsWith('+') ? "text-emerald-500" : "text-red-500"}>
@@ -68,6 +77,11 @@ export function CampaignSummary({ summary, isLoading = false }: CampaignSummaryP
 
     // Formatters
     const currency = (val: number) => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(val);
+    const currencyShort = (val: number) => {
+        if (val >= 1000000) return `฿${(val / 1000000).toFixed(1)}M`;
+        if (val >= 1000) return `฿${(val / 1000).toFixed(0)}K`;
+        return `฿${val}`;
+    };
     const number = (val: number) => new Intl.NumberFormat('th-TH').format(val);
     const percent = (val: number) => `${val.toFixed(2)}%`;
 
@@ -77,11 +91,12 @@ export function CampaignSummary({ summary, isLoading = false }: CampaignSummaryP
     };
 
     return (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {/* 1. Total Budget */}
             <SummaryCard
                 title="Total Budget"
                 value={currency(summary.budget)}
+                mobileValue={currencyShort(summary.budget)}
                 icon={Wallet}
                 colorClass="text-indigo-600"
                 bgClass="bg-indigo-100"
@@ -91,6 +106,7 @@ export function CampaignSummary({ summary, isLoading = false }: CampaignSummaryP
             <SummaryCard
                 title="Total Spend"
                 value={currency(summary.spend)}
+                mobileValue={currencyShort(summary.spend)}
                 icon={CreditCard}
                 colorClass="text-blue-600"
                 bgClass="bg-blue-100"
@@ -100,6 +116,7 @@ export function CampaignSummary({ summary, isLoading = false }: CampaignSummaryP
             <SummaryCard
                 title="Total Revenue"
                 value={currency(summary.revenue)}
+                mobileValue={currencyShort(summary.revenue)}
                 icon={DollarSign}
                 colorClass="text-emerald-600"
                 bgClass="bg-emerald-100"
