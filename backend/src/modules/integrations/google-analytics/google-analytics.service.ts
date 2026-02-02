@@ -15,6 +15,8 @@ export class GoogleAnalyticsService {
 
     async getBasicMetrics(tenantId: string, startDate: string = '7daysAgo', endDate: string = 'today') {
         try {
+            const hideMockData = process.env.HIDE_MOCK_DATA === 'true';
+
             // 1. Get GA4 account from DB for this tenant
             const account = await this.prisma.googleAnalyticsAccount.findFirst({
                 where: { tenantId, status: 'ACTIVE' },
@@ -42,7 +44,8 @@ export class GoogleAnalyticsService {
                 where: {
                     tenantId,
                     propertyId: account.propertyId,
-                    date: { gte: startDateObj }
+                    date: { gte: startDateObj },
+                    ...(hideMockData ? { isMockData: false } : {}),
                 },
                 orderBy: { date: 'asc' }
             });
@@ -59,7 +62,7 @@ export class GoogleAnalyticsService {
 
                 return {
                     connected: true,
-                    isMockData: syncedData.some(d => d.isMockData),
+                    isMockData: !hideMockData && syncedData.some(d => d.isMockData),
                     totals,
                     rows: syncedData.map(d => ({
                         date: d.date.toISOString().split('T')[0].replace(/-/g, ''),

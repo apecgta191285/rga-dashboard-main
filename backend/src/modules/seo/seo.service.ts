@@ -38,6 +38,7 @@ export class SeoService {
     ) { }
 
     async getOverview(tenantId: string, period?: string) {
+        const hideMockData = process.env.HIDE_MOCK_DATA === 'true';
         const days = DateRangeUtil.parsePeriodDays(period || '30d');
         const { startDate, endDate } = DateRangeUtil.getDateRange(days);
 
@@ -51,19 +52,34 @@ export class SeoService {
         let siteUrl = configuredSiteUrl;
         let gscDataCount = 0;
 
-        if (siteUrl) {
-            gscDataCount = await this.prisma.searchConsolePerformance.count({
-                where: { tenantId, siteUrl, date: { gte: startDate, lte: endDate } },
-            });
+        if (!hideMockData) {
+            if (siteUrl) {
+                gscDataCount = await this.prisma.searchConsolePerformance.count({
+                    where: { tenantId, siteUrl, date: { gte: startDate, lte: endDate } },
+                });
 
-            if (gscDataCount === 0) {
+                if (gscDataCount === 0) {
+                    const latest = await this.prisma.searchConsolePerformance.findFirst({
+                        where: { tenantId },
+                        orderBy: { date: 'desc' },
+                        select: { siteUrl: true },
+                    });
+
+                    if (latest?.siteUrl && latest.siteUrl !== siteUrl) {
+                        siteUrl = latest.siteUrl;
+                        gscDataCount = await this.prisma.searchConsolePerformance.count({
+                            where: { tenantId, siteUrl, date: { gte: startDate, lte: endDate } },
+                        });
+                    }
+                }
+            } else {
                 const latest = await this.prisma.searchConsolePerformance.findFirst({
                     where: { tenantId },
                     orderBy: { date: 'desc' },
                     select: { siteUrl: true },
                 });
 
-                if (latest?.siteUrl && latest.siteUrl !== siteUrl) {
+                if (latest?.siteUrl) {
                     siteUrl = latest.siteUrl;
                     gscDataCount = await this.prisma.searchConsolePerformance.count({
                         where: { tenantId, siteUrl, date: { gte: startDate, lte: endDate } },
@@ -71,21 +87,18 @@ export class SeoService {
                 }
             }
         } else {
-            const latest = await this.prisma.searchConsolePerformance.findFirst({
-                where: { tenantId },
-                orderBy: { date: 'desc' },
-                select: { siteUrl: true },
-            });
-
-            if (latest?.siteUrl) {
-                siteUrl = latest.siteUrl;
+            // When hiding mock data, do NOT attempt DB fallback for GSC siteUrl.
+            // GSC rows have no isMockData flag, so fallback could surface demo data.
+            if (siteUrl) {
                 gscDataCount = await this.prisma.searchConsolePerformance.count({
                     where: { tenantId, siteUrl, date: { gte: startDate, lte: endDate } },
                 });
             }
         }
 
-        const gscConnected = (!!configuredSiteUrl && hasCredentials) || gscDataCount > 0;
+        const gscConnected = hideMockData
+            ? (!!configuredSiteUrl && hasCredentials && gscDataCount > 0)
+            : ((!!configuredSiteUrl && hasCredentials) || gscDataCount > 0);
 
         const ga4Account = await this.prisma.googleAnalyticsAccount.findFirst({
             where: { tenantId, status: 'ACTIVE' },
@@ -94,7 +107,7 @@ export class SeoService {
         const ga4Connected = !!ga4Account;
 
         const ga4Agg = await this.prisma.webAnalyticsDaily.aggregate({
-            where: { tenantId, date: { gte: startDate, lte: endDate } },
+            where: { tenantId, date: { gte: startDate, lte: endDate }, ...(hideMockData ? { isMockData: false } : {}) },
             _sum: {
                 activeUsers: true,
                 newUsers: true,
@@ -154,13 +167,14 @@ export class SeoService {
     }
 
     async getDashboard(tenantId: string, period?: string, limit: number = 10) {
+        const hideMockData = process.env.HIDE_MOCK_DATA === 'true';
         const days = DateRangeUtil.parsePeriodDays(period || '30d');
         const { startDate, endDate } = DateRangeUtil.getDateRange(days);
 
         const overview = await this.getOverview(tenantId, period);
 
         const ga4Daily = await this.prisma.webAnalyticsDaily.findMany({
-            where: { tenantId, date: { gte: startDate, lte: endDate } },
+            where: { tenantId, date: { gte: startDate, lte: endDate }, ...(hideMockData ? { isMockData: false } : {}) },
             orderBy: { date: 'asc' },
             select: {
                 date: true,

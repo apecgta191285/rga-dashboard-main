@@ -77,6 +77,8 @@ export class MetricsService {
         startDate: Date,
         endDate: Date,
     ) {
+        const hideMockData = process.env.HIDE_MOCK_DATA === 'true';
+
         const result = await this.prisma.metric.aggregate({
             where: {
                 campaign: { tenantId },
@@ -84,6 +86,7 @@ export class MetricsService {
                     gte: startDate,
                     lte: endDate,
                 },
+                ...(hideMockData ? { isMockData: false } : {}),
             },
             _sum: {
                 impressions: true,
@@ -107,6 +110,7 @@ export class MetricsService {
                     gte: startDate,
                     lte: endDate,
                 },
+                ...(hideMockData ? { isMockData: false } : {}),
             },
             _sum: {
                 sessions: true,
@@ -168,6 +172,8 @@ export class MetricsService {
         const days = DateRangeUtil.parsePeriodDays(period);
         const { startDate, endDate } = DateRangeUtil.getDateRange(days);
 
+        const hideMockData = process.env.HIDE_MOCK_DATA === 'true';
+
         const metrics = await this.prisma.metric.groupBy({
             by: ['date'],
             where: {
@@ -176,6 +182,7 @@ export class MetricsService {
                     gte: startDate,
                     lte: endDate,
                 },
+                ...(hideMockData ? { isMockData: false } : {}),
             },
             _sum: {
                 impressions: true,
@@ -220,6 +227,8 @@ export class MetricsService {
         startDate: Date,
         endDate: Date,
     ) {
+        const hideMockData = process.env.HIDE_MOCK_DATA === 'true';
+
         if (metric === 'sessions') {
             const rows = await this.prisma.webAnalyticsDaily.groupBy({
                 by: ['date'],
@@ -229,6 +238,7 @@ export class MetricsService {
                         gte: startDate,
                         lte: endDate,
                     },
+                    ...(hideMockData ? { isMockData: false } : {}),
                 },
                 _sum: {
                     sessions: true,
@@ -258,6 +268,7 @@ export class MetricsService {
                         gte: startDate,
                         lte: endDate,
                     },
+                    ...(hideMockData ? { isMockData: false } : {}),
                 },
                 _sum: { impressions: true },
                 orderBy: {
@@ -284,6 +295,7 @@ export class MetricsService {
                         gte: startDate,
                         lte: endDate,
                     },
+                    ...(hideMockData ? { isMockData: false } : {}),
                 },
                 _sum: { clicks: true },
                 orderBy: {
@@ -310,6 +322,7 @@ export class MetricsService {
                         gte: startDate,
                         lte: endDate,
                     },
+                    ...(hideMockData ? { isMockData: false } : {}),
                 },
                 _sum: { conversions: true },
                 orderBy: {
@@ -336,6 +349,7 @@ export class MetricsService {
                         gte: startDate,
                         lte: endDate,
                     },
+                    ...(hideMockData ? { isMockData: false } : {}),
                 },
                 _sum: { spend: true },
                 orderBy: {
@@ -361,6 +375,7 @@ export class MetricsService {
                     gte: startDate,
                     lte: endDate,
                 },
+                ...(hideMockData ? { isMockData: false } : {}),
             },
             _sum: { revenue: true },
             orderBy: {

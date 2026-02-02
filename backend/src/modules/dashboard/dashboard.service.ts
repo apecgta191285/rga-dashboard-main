@@ -44,6 +44,7 @@ export class DashboardService {
   ) { }
 
   async getSummary(tenantId: string, days: number = 30) {
+    const hideMockData = process.env.HIDE_MOCK_DATA === 'true';
     const { startDate: currentStartDate, endDate: today } = DateRangeUtil.getDateRange(days);
     const { startDate: previousStartDate } = DateRangeUtil.getPreviousPeriodDateRange(currentStartDate, days);
 
@@ -76,6 +77,7 @@ export class DashboardService {
           gte: currentStartDate,
           lte: today,
         },
+        ...(hideMockData ? { isMockData: false } : {}),
         // Include all data (real + mock) - will show 0 if no data exists
       },
       _sum: {
@@ -94,6 +96,7 @@ export class DashboardService {
           gte: previousStartDate,
           lt: currentStartDate,
         },
+        ...(hideMockData ? { isMockData: false } : {}),
         // Include all data (real + mock)
       },
       _sum: {
@@ -129,7 +132,7 @@ export class DashboardService {
       totalImpressions: currentMetrics._sum.impressions ?? 0,
       totalClicks: currentMetrics._sum.clicks ?? 0,
       totalConversions: currentMetrics._sum.conversions ?? 0,
-      isMockData: !!hasMockData,
+      isMockData: !hideMockData && !!hasMockData,
       trends: {
         campaigns: calculateTrend(totalCampaigns, previousTotalCampaigns),
         spend: calculateTrend(
@@ -153,6 +156,7 @@ export class DashboardService {
    * @param platform - 'ALL' | 'GOOGLE_ADS' | 'FACEBOOK' | 'TIKTOK' | 'LINE_ADS'
    */
   async getSummaryByPlatform(tenantId: string, days: number = 30, platform: string = 'ALL') {
+    const hideMockData = process.env.HIDE_MOCK_DATA === 'true';
     const { startDate: currentStartDate, endDate: today } = DateRangeUtil.getDateRange(days);
     const { startDate: previousStartDate } = DateRangeUtil.getPreviousPeriodDateRange(currentStartDate, days);
 
@@ -178,6 +182,7 @@ export class DashboardService {
       where: {
         campaign: campaignFilter,
         date: { gte: currentStartDate, lte: today },
+        ...(hideMockData ? { isMockData: false } : {}),
         // Include all data (real + mock)
       },
       _sum: { impressions: true, clicks: true, spend: true, conversions: true },
@@ -188,6 +193,7 @@ export class DashboardService {
       where: {
         campaign: campaignFilter,
         date: { gte: previousStartDate, lt: currentStartDate },
+        ...(hideMockData ? { isMockData: false } : {}),
         // Include all data (real + mock)
       },
       _sum: { impressions: true, clicks: true, spend: true, conversions: true },
@@ -215,7 +221,7 @@ export class DashboardService {
       totalImpressions: currentMetrics._sum.impressions ?? 0,
       totalClicks: currentMetrics._sum.clicks ?? 0,
       totalConversions: currentMetrics._sum.conversions ?? 0,
-      isMockData: !!hasMockData,
+      isMockData: !hideMockData && !!hasMockData,
       trends: {
         spend: calculateTrend(
           toNumber(currentMetrics._sum.spend),
@@ -234,6 +240,7 @@ export class DashboardService {
   }
 
   async getTopCampaigns(tenantId: string, limit = 5, days = 30) {
+    const hideMockData = process.env.HIDE_MOCK_DATA === 'true';
     const { startDate } = DateRangeUtil.getDateRange(days);
 
     // 1. Aggregate metrics by campaignId using Database GroupBy
@@ -242,6 +249,7 @@ export class DashboardService {
       where: {
         campaign: { tenantId },
         date: { gte: startDate },
+        ...(hideMockData ? { isMockData: false } : {}),
         // Include all data (real + mock)
       },
       _sum: {
@@ -296,6 +304,7 @@ export class DashboardService {
   }
 
   async getTrends(tenantId: string, days = 30) {
+    const hideMockData = process.env.HIDE_MOCK_DATA === 'true';
     const { startDate, endDate: today } = DateRangeUtil.getDateRange(days);
 
     const metrics = await this.prisma.metric.groupBy({
@@ -306,6 +315,7 @@ export class DashboardService {
           gte: startDate,
           lte: today,
         },
+        ...(hideMockData ? { isMockData: false } : {}),
       },
       _sum: {
         impressions: true,
@@ -369,6 +379,7 @@ export class DashboardService {
   }
 
   async getPerformanceByPlatform(tenantId: string, days = 30) {
+    const hideMockData = process.env.HIDE_MOCK_DATA === 'true';
     const { startDate, endDate: today } = DateRangeUtil.getDateRange(days);
 
     // 1. Get Campaign Metrics (Google Ads, Facebook Ads)
@@ -380,6 +391,7 @@ export class DashboardService {
           gte: startDate,
           lte: today,
         },
+        ...(hideMockData ? { isMockData: false } : {}),
       },
       _sum: {
         spend: true,
@@ -424,6 +436,7 @@ export class DashboardService {
           gte: startDate,
           lte: today,
         },
+        ...(hideMockData ? { isMockData: false } : {}),
         // Include all data (real + mock)
       },
       _sum: {
@@ -486,6 +499,7 @@ export class DashboardService {
     user: { tenantId: string; role: UserRole },
     query: GetDashboardOverviewDto,
   ): Promise<DashboardOverviewResponseDto> {
+    const hideMockData = process.env.HIDE_MOCK_DATA === 'true';
     // Security: Force tenantId from JWT unless SUPER_ADMIN
     let tenantId = user.tenantId;
     if (query.tenantId) {
@@ -532,6 +546,7 @@ export class DashboardService {
       where: {
         tenantId,
         date: { gte: startDate, lte: endDate },
+        ...(hideMockData ? { isMockData: false } : {}),
         // Include all data (real + mock)
       },
       _sum: {
@@ -548,6 +563,7 @@ export class DashboardService {
       where: {
         tenantId,
         date: { gte: previousPeriod.startDate, lte: previousPeriod.endDate },
+        ...(hideMockData ? { isMockData: false } : {}),
         // Include all data (real + mock)
       },
       _sum: {
@@ -565,6 +581,7 @@ export class DashboardService {
       where: {
         tenantId,
         date: { gte: startDate, lte: endDate },
+        ...(hideMockData ? { isMockData: false } : {}),
         // Include all data (real + mock)
       },
       _sum: {
@@ -593,6 +610,7 @@ export class DashboardService {
         metrics: {
           where: {
             date: { gte: startDate, lte: endDate },
+            ...(hideMockData ? { isMockData: false } : {}),
             // Include all data (real + mock)
           },
           select: {

@@ -91,6 +91,8 @@ export const envValidationSchema = Joi.object({
     // ============================================
     CORS_ORIGINS: Joi.string().optional(),
 
+    HIDE_MOCK_DATA: Joi.string().valid('true', 'false').optional(),
+
     // Frontend URL - required in production, has default in development
     FRONTEND_URL: Joi.string()
         .uri()
