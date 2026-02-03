@@ -15,12 +15,13 @@ import { DashboardPage } from "@/features/dashboard";
 import { CampaignsPage, CampaignDetailsPage } from "@/features/campaigns";
 // ✅ NEW: Import from feature module (replaces legacy pages/Integrations)
 import { DataSourcesPage } from "@/features/data-sources";
+// ✅ NEW: Import from feature module (replaces legacy pages/SeoWebAnalytics)
+import { SeoPage } from "@/features/seo";
 import Users from "./pages/Users";
 import Integrations from "./pages/Integrations";
 import Settings from "./pages/Settings";
 import Reports from "./pages/Reports";
 import TrendAnalysis from "./pages/TrendAnalysis";
-import SeoWebAnalytics from "./pages/SeoWebAnalytics";
 import EcommerceInsights from "./pages/EcommerceInsights";
 import CrmLeadsInsights from "./pages/CrmLeadsInsights";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -55,7 +56,10 @@ function Router() {
       <Route path="/settings" component={Settings} />
       <Route path="/reports" component={Reports} />
       <Route path="/trend-analysis" component={TrendAnalysis} />
-      <Route path="/seo-web-analytics" component={SeoWebAnalytics} />
+      {/* ✅ NEW: Use feature-based SeoPage with ProtectedRoute wrapper */}
+      <Route path="/seo-web-analytics">
+        {() => <ProtectedRoute><SeoPage /></ProtectedRoute>}
+      </Route>
       <Route path="/ecommerce-insights" component={EcommerceInsights} />
       <Route path="/crm-leads-insights" component={CrmLeadsInsights} />
       <Route path="/">

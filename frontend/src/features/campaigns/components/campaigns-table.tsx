@@ -324,190 +324,197 @@ export function CampaignsTable({
         <div className="space-y-4">
             {/* Column Toggle Toolbar */}
             {/* Toolbar: Pagination & Column Toggle */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-2">
-                <div className="text-xs text-muted-foreground order-2 sm:order-1 font-medium">
-                    {totalItems > 0 ? (
-                        <>
-                            Showing <span className="text-foreground">{(page - 1) * pageSize + 1}</span> to <span className="text-foreground">{Math.min(page * pageSize, totalItems)}</span> of <span className="text-foreground">{totalItems}</span> entries
-                        </>
-                    ) : (
-                        "No campaigns found"
-                    )}
-                </div>
-
-                <div className="flex items-center gap-2 order-1 sm:order-2 w-full sm:w-auto justify-end">
-                    {/* Pagination Controls */}
-                    <div className="flex items-center space-x-2 mr-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => onPageChange?.(Math.max(1, page - 1))}
-                            disabled={page === 1 || isLoading}
-                            className="h-8"
-                        >
-                            &lt; Previous
-                        </Button>
-                        <div className="text-sm font-medium whitespace-nowrap">
-                            Page {page} of {totalPages}
-                        </div>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => onPageChange?.(Math.min(totalPages, page + 1))}
-                            disabled={page === totalPages || isLoading}
-                            className="h-8"
-                        >
-                            Next &gt;
-                        </Button>
+            <div className="flex flex-col gap-3 py-2">
+                {/* Top row: Pagination info (left) + Controls (right) */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="text-xs text-muted-foreground font-medium">
+                        {totalItems > 0 ? (
+                            <>
+                                Showing <span className="text-foreground">{(page - 1) * pageSize + 1}</span> to <span className="text-foreground">{Math.min(page * pageSize, totalItems)}</span> of <span className="text-foreground">{totalItems}</span> entries
+                            </>
+                        ) : (
+                            "No campaigns found"
+                        )}
                     </div>
 
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="sm" className="h-8 lg:flex">
-                                <Columns className="mr-2 h-4 w-4" />
-                                Columns Select
+                    <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end flex-wrap">
+                        {/* Pagination Controls */}
+                        <div className="flex items-center space-x-1 sm:space-x-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => onPageChange?.(Math.max(1, page - 1))}
+                                disabled={page === 1 || isLoading}
+                                className="h-8 px-2 sm:px-3"
+                            >
+                                <span className="hidden sm:inline">&lt; Prev</span>
+                                <span className="sm:hidden">&lt;</span>
                             </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-[150px]">
-                            {reorderableColumns.map((col) => (
-                                <DropdownMenuCheckboxItem
-                                    key={col}
-                                    className="capitalize"
-                                    checked={visibleColumns.has(col)}
-                                    onCheckedChange={() => toggleColumn(col)}
-                                    onSelect={(e) => e.preventDefault()}
-                                >
-                                    {COLUMN_LABELS[col] || col}
-                                </DropdownMenuCheckboxItem>
-                            ))}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                            <div className="text-xs sm:text-sm font-medium whitespace-nowrap">
+                                {page}/{totalPages}
+                            </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => onPageChange?.(Math.min(totalPages, page + 1))}
+                                disabled={page === totalPages || isLoading}
+                                className="h-8 px-2 sm:px-3"
+                            >
+                                <span className="hidden sm:inline">Next &gt;</span>
+                                <span className="sm:hidden">&gt;</span>
+                            </Button>
+                        </div>
+
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm" className="h-8">
+                                    <Columns className="h-4 w-4" />
+                                    <span className="hidden sm:inline ml-2">Columns</span>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-[150px]">
+                                {reorderableColumns.map((col) => (
+                                    <DropdownMenuCheckboxItem
+                                        key={col}
+                                        className="capitalize"
+                                        checked={visibleColumns.has(col)}
+                                        onCheckedChange={() => toggleColumn(col)}
+                                        onSelect={(e) => e.preventDefault()}
+                                    >
+                                        {COLUMN_LABELS[col] || col}
+                                    </DropdownMenuCheckboxItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
                 </div>
             </div>
 
-            <div className="rounded-xl border shadow-sm bg-white overflow-hidden">
-                <Table>
-                    <TableHeader className="bg-gray-50/50">
-                        <TableRow>
-                            {/* 1. SELECTION (Fixed) */}
-                            <TableHead className="w-[50px]">
-                                <Switch checked={allSelected} onCheckedChange={(checked) => onToggleAll(!!checked)} aria-label="Select all" />
-                            </TableHead>
+            <div className="rounded-xl border shadow-sm bg-white overflow-hidden overflow-x-auto">
+                <div className="min-w-[800px]">
+                    <Table>
+                        <TableHeader className="bg-gray-50/50">
+                            <TableRow>
+                                {/* 1. SELECTION (Fixed) */}
+                                <TableHead className="w-[50px]">
+                                    <Switch checked={allSelected} onCheckedChange={(checked) => onToggleAll(!!checked)} aria-label="Select all" />
+                                </TableHead>
 
-                            {/* 2. CAMPAIGN NAME (Fixed) */}
-                            <TableHead className="w-[250px]">
-                                <span className="uppercase text-[11px] font-bold tracking-wider text-gray-500">
-                                    <SortableHeader column="name" label="Campaign" currentSortBy={sortBy} currentSortOrder={sortOrder} onSort={onSort} />
-                                </span>
-                            </TableHead>
-
-                            {/* 3. STATUS (Fixed) */}
-                            <TableHead className="text-center">
-                                <span className="uppercase text-[11px] font-bold tracking-wider text-gray-500">
-                                    <SortableHeader column="status" label="Status" currentSortBy={sortBy} currentSortOrder={sortOrder} onSort={onSort} align="center" />
-                                </span>
-                            </TableHead>
-
-                            {/* 4. DYNAMIC COLUMNS (Draggable) */}
-                            {visibleReorderableColumns.map((col) => (
-                                <TableHead
-                                    key={col}
-                                    className="text-center cursor-move transition-colors hover:bg-muted/30"
-                                    draggable
-                                    onDragStart={(e) => handleDragStart(e, col)}
-                                    onDragOver={handleDragOver}
-                                    onDrop={(e) => handleDrop(e, col)}
-                                    title="Drag to reorder"
-                                >
+                                {/* 2. CAMPAIGN NAME (Fixed) */}
+                                <TableHead className="w-[250px]">
                                     <span className="uppercase text-[11px] font-bold tracking-wider text-gray-500">
-                                        <SortableHeader
-                                            column={col}
-                                            label={COLUMN_LABELS[col] || col}
-                                            currentSortBy={sortBy}
-                                            currentSortOrder={sortOrder}
-                                            onSort={onSort}
-                                            align="center"
-                                        />
+                                        <SortableHeader column="name" label="Campaign" currentSortBy={sortBy} currentSortOrder={sortOrder} onSort={onSort} />
                                     </span>
                                 </TableHead>
-                            ))}
 
-                            {/* 5. ACTIONS (Fixed) */}
-                            <TableHead className="w-[50px]"></TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {campaigns.map((campaign) => {
-                            const isSelected = selectedIds.has(campaign.id);
-                            return (
-                                <TableRow
-                                    key={campaign.id}
-                                    className={cn(
-                                        "transition-colors hover:bg-gray-50/80",
-                                        isSelected && "bg-blue-50/50 hover:bg-blue-50/70"
-                                    )}
-                                >
-                                    {/* 1. SELECTION */}
-                                    <TableCell>
-                                        <Switch checked={isSelected} onCheckedChange={() => onToggleSelect(campaign.id)} />
-                                    </TableCell>
+                                {/* 3. STATUS (Fixed) */}
+                                <TableHead className="text-center">
+                                    <span className="uppercase text-[11px] font-bold tracking-wider text-gray-500">
+                                        <SortableHeader column="status" label="Status" currentSortBy={sortBy} currentSortOrder={sortOrder} onSort={onSort} align="center" />
+                                    </span>
+                                </TableHead>
 
-                                    {/* 2. CAMPAIGN NAME */}
-                                    <TableCell>
-                                        <Link href={`/campaigns/${campaign.id}`}>
-                                            <span className="font-medium hover:underline text-primary cursor-pointer">{campaign.name}</span>
-                                        </Link>
-                                    </TableCell>
+                                {/* 4. DYNAMIC COLUMNS (Draggable) */}
+                                {visibleReorderableColumns.map((col) => (
+                                    <TableHead
+                                        key={col}
+                                        className="text-center cursor-move transition-colors hover:bg-muted/30"
+                                        draggable
+                                        onDragStart={(e) => handleDragStart(e, col)}
+                                        onDragOver={handleDragOver}
+                                        onDrop={(e) => handleDrop(e, col)}
+                                        title="Drag to reorder"
+                                    >
+                                        <span className="uppercase text-[11px] font-bold tracking-wider text-gray-500">
+                                            <SortableHeader
+                                                column={col}
+                                                label={COLUMN_LABELS[col] || col}
+                                                currentSortBy={sortBy}
+                                                currentSortOrder={sortOrder}
+                                                onSort={onSort}
+                                                align="center"
+                                            />
+                                        </span>
+                                    </TableHead>
+                                ))}
 
-                                    {/* 3. STATUS */}
-                                    <TableCell className="text-center">
-                                        <Badge variant="secondary" className={STATUS_STYLES[campaign.status]}>
-                                            {campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}
-                                        </Badge>
-                                    </TableCell>
-
-                                    {/* 4. DYNAMIC COLUMNS */}
-                                    {visibleReorderableColumns.map((col) => (
-                                        <TableCell key={col} className="text-center">
-                                            {renderCell(campaign, col)}
+                                {/* 5. ACTIONS (Fixed) */}
+                                <TableHead className="w-[50px]"></TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {campaigns.map((campaign) => {
+                                const isSelected = selectedIds.has(campaign.id);
+                                return (
+                                    <TableRow
+                                        key={campaign.id}
+                                        className={cn(
+                                            "transition-colors hover:bg-gray-50/80",
+                                            isSelected && "bg-blue-50/50 hover:bg-blue-50/70"
+                                        )}
+                                    >
+                                        {/* 1. SELECTION */}
+                                        <TableCell>
+                                            <Switch checked={isSelected} onCheckedChange={() => onToggleSelect(campaign.id)} />
                                         </TableCell>
-                                    ))}
 
-                                    {/* 5. ACTIONS */}
-                                    <TableCell>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                    <span className="sr-only">Open menu</span>
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onClick={() => onView?.(campaign)}>
-                                                    <Eye className="mr-2 h-4 w-4" /> View Details
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => onEdit?.(campaign)}>
-                                                    <Edit className="mr-2 h-4 w-4" /> Edit Campaign
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => onToggleStatus?.(campaign)}>
-                                                    {campaign.status === 'active' ? (
-                                                        <><Pause className="mr-2 h-4 w-4" /> Pause Campaign</>
-                                                    ) : (
-                                                        <><Play className="mr-2 h-4 w-4" /> Activate Campaign</>
-                                                    )}
-                                                </DropdownMenuItem>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem onClick={() => onDelete?.(campaign)} className="text-destructive focus:text-destructive">
-                                                    <Trash2 className="mr-2 h-4 w-4" /> Delete Campaign
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
-                                </TableRow>
-                            );
-                        })}
-                    </TableBody>
-                </Table>
+                                        {/* 2. CAMPAIGN NAME */}
+                                        <TableCell>
+                                            <Link href={`/campaigns/${campaign.id}`}>
+                                                <span className="font-medium hover:underline text-primary cursor-pointer">{campaign.name}</span>
+                                            </Link>
+                                        </TableCell>
+
+                                        {/* 3. STATUS */}
+                                        <TableCell className="text-center">
+                                            <Badge variant="secondary" className={STATUS_STYLES[campaign.status]}>
+                                                {campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}
+                                            </Badge>
+                                        </TableCell>
+
+                                        {/* 4. DYNAMIC COLUMNS */}
+                                        {visibleReorderableColumns.map((col) => (
+                                            <TableCell key={col} className="text-center">
+                                                {renderCell(campaign, col)}
+                                            </TableCell>
+                                        ))}
+
+                                        {/* 5. ACTIONS */}
+                                        <TableCell>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                        <MoreHorizontal className="h-4 w-4" />
+                                                        <span className="sr-only">Open menu</span>
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem onClick={() => onView?.(campaign)}>
+                                                        <Eye className="mr-2 h-4 w-4" /> View Details
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => onEdit?.(campaign)}>
+                                                        <Edit className="mr-2 h-4 w-4" /> Edit Campaign
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => onToggleStatus?.(campaign)}>
+                                                        {campaign.status === 'active' ? (
+                                                            <><Pause className="mr-2 h-4 w-4" /> Pause Campaign</>
+                                                        ) : (
+                                                            <><Play className="mr-2 h-4 w-4" /> Activate Campaign</>
+                                                        )}
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem onClick={() => onDelete?.(campaign)} className="text-destructive focus:text-destructive">
+                                                        <Trash2 className="mr-2 h-4 w-4" /> Delete Campaign
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })}
+                        </TableBody>
+                    </Table>
+                </div>
             </div>
         </div>
     );
