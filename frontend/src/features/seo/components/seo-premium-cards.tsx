@@ -63,7 +63,7 @@ export function SeoPremiumCards({ data, isLoading }: SeoPremiumCardsProps) {
                         </div>
                         <div className="flex justify-between">
                             <span>Traffic Cost</span>
-                            <span className="font-medium text-gray-900">$0</span>
+                            <span className="font-medium text-gray-900">${data.trafficCost ? data.trafficCost.toLocaleString() : "0"}</span>
                         </div>
                     </div>
                 </CardContent>
@@ -95,7 +95,7 @@ export function SeoPremiumCards({ data, isLoading }: SeoPremiumCardsProps) {
                         </div>
                         <div className="flex justify-between">
                             <span>Traffic Cost</span>
-                            <span className="font-medium text-gray-900">$0</span>
+                            <span className="font-medium text-gray-900">${data.trafficCost ? data.trafficCost.toLocaleString() : "0"}</span>
                         </div>
                     </div>
                 </CardContent>

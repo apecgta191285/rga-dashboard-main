@@ -4,6 +4,7 @@ export interface SeoMetricSummary {
     organicSessions: number;
     goalCompletions: number | null;
     avgPosition: number | null;
+    avgPositionTrend?: number;
     avgTimeOnPage: number; // in seconds
     bounceRate: number;
     organicSessionsTrend?: number;

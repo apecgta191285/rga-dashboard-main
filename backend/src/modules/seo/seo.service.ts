@@ -81,25 +81,38 @@ export class SeoService {
             timeTrend = ((Math.floor(currentTime) % 31) - 15);
         }
 
-        return {
-            organicSessions: currentSessions,
-            newUsers: currentNewUsers,
-            avgTimeOnPage: Math.round(currentTime),
-            organicSessionsTrend: parseFloat(sessionsTrend.toFixed(1)),
-            newUsersTrend: parseFloat(newUsersTrend.toFixed(1)),
-            avgTimeOnPageTrend: parseFloat(timeTrend.toFixed(1)),
-            // Existing fields (some null)
-            goalCompletions: null,
-            avgPosition: null,
-            bounceRate: 0,
+        // Fetch SEO premium metrics from metadata (latest record with SEO data)
+        const latestSeoData = await this.prisma.webAnalyticsDaily.findFirst({
+            where: {
+                tenantId,
+                metadata: {
+                    not: null
+                }
+            },
+            orderBy: { date: 'desc' }
+        });
 
-            // New Design Metrics (Not in DB yet -> null)
-            ur: null,
-            dr: null,
-            backlinks: null,
-            referringDomains: null,
-            keywords: null,
-            trafficCost: null
+        // Extract SEO metrics from metadata if available
+        const seoMetrics = (latestSeoData?.metadata as any)?.seoMetrics || {};
+
+        return {
+            organicSessions: seoMetrics.organicSessions || currentSessions,
+            newUsers: currentNewUsers,
+            avgTimeOnPage: seoMetrics.avgTimeOnPage || Math.round(currentTime),
+            organicSessionsTrend: seoMetrics.organicSessionsTrend || parseFloat(sessionsTrend.toFixed(1)),
+            newUsersTrend: parseFloat(newUsersTrend.toFixed(1)),
+            avgTimeOnPageTrend: seoMetrics.avgTimeOnPageTrend || parseFloat(timeTrend.toFixed(1)),
+            // Premium SEO Metrics from database
+            goalCompletions: seoMetrics.goalCompletions || null,
+            avgPosition: seoMetrics.avgPosition || null,
+            avgPositionTrend: seoMetrics.avgPositionTrend || 0,
+            bounceRate: 0,
+            ur: seoMetrics.ur || null,
+            dr: seoMetrics.dr || null,
+            backlinks: seoMetrics.backlinks || null,
+            referringDomains: seoMetrics.referringDomains || null,
+            keywords: seoMetrics.keywords || null,
+            trafficCost: seoMetrics.trafficCost || null
         };
     }
 
@@ -141,7 +154,35 @@ export class SeoService {
             }
         });
 
-        // 3. Merge Data
+        // 3. Fetch SEO metrics from metadata for history
+        const seoDataForHistory = await this.prisma.webAnalyticsDaily.findMany({
+            where: {
+                tenantId,
+                date: {
+                    gte: startDate,
+                    lte: endDate
+                },
+                metadata: {
+                    not: null
+                }
+            },
+            select: {
+                date: true,
+                metadata: true
+            }
+        });
+
+        // Create a map for SEO metrics by date
+        const seoMetricsMap = new Map<string, any>();
+        seoDataForHistory.forEach(item => {
+            const dateStr = item.date.toISOString().split('T')[0];
+            const seoMetrics = (item.metadata as any)?.seoMetrics;
+            if (seoMetrics) {
+                seoMetricsMap.set(dateStr, seoMetrics);
+            }
+        });
+
+        // 4. Merge Data
         // Create a map for quick lookup of ads data by date string
         const adsMap = new Map<string, { clicks: number, spend: number, impressions: number }>();
         adsData.forEach(item => {
@@ -153,7 +194,7 @@ export class SeoService {
             });
         });
 
-        // Map organic data and merge with ads data
+        // 5. Map organic data and merge with ads data
         // Note: This relies on organicData having entries for days. 
         // If organic data is sparse, we might miss ads-only days. 
         // For distinct complete timeline, we'd generate a date range array, but this is a good start.
@@ -161,12 +202,23 @@ export class SeoService {
             const dateStr = item.date.toISOString().split('T')[0];
             const ads = adsMap.get(dateStr) || { clicks: 0, spend: 0, impressions: 0 };
 
+            // Get SEO metrics for this date from metadata if available
+            const seoMetricsForDate = seoMetricsMap.get(dateStr);
+
             return {
                 date: dateStr,
                 organicTraffic: item.sessions,
                 paidTraffic: ads.clicks,
                 paidTrafficCost: ads.spend,
-                impressions: ads.impressions
+                impressions: ads.impressions,
+                // Additional SEO metrics from metadata
+                avgPosition: seoMetricsForDate?.avgPosition || 0,
+                referringDomains: seoMetricsForDate?.referringDomains || 0,
+                dr: seoMetricsForDate?.dr || 0,
+                ur: seoMetricsForDate?.ur || 0,
+                organicTrafficValue: seoMetricsForDate?.trafficCost || 0,
+                organicPages: Math.floor(item.sessions * 1.5), // Estimate based on sessions
+                crawledPages: Math.floor(item.sessions * 2.2), // Estimate based on sessions
             };
         });
     }
@@ -202,6 +254,84 @@ export class SeoService {
             console.error('Error fetching SEO keyword intent:', error);
             return [];
         }
+    }
+
+    async getSeoTrafficByLocation(tenantId: string) {
+        // Calculate date range (last 30 days)
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - 30);
+
+        try {
+            // Fetch location data from WebAnalyticsDaily metadata
+            const locationData = await this.prisma.webAnalyticsDaily.findMany({
+                where: {
+                    tenantId,
+                    date: {
+                        gte: startDate,
+                        lte: endDate
+                    },
+                    metadata: {
+                        not: null
+                    }
+                },
+                select: {
+                    metadata: true,
+                    sessions: true
+                }
+            });
+
+            if (locationData.length === 0) {
+                return [];
+            }
+
+            // Aggregate traffic by location
+            const locationMap = new Map<string, { country: string, city: string, traffic: number }>();
+
+            locationData.forEach(record => {
+                const location = (record.metadata as any)?.location;
+                if (location) {
+                    const key = `${location.country}-${location.city}`;
+                    const existing = locationMap.get(key);
+                    
+                    if (existing) {
+                        existing.traffic += record.sessions;
+                    } else {
+                        locationMap.set(key, {
+                            country: location.country,
+                            city: location.city,
+                            traffic: record.sessions
+                        });
+                    }
+                }
+            });
+
+            // Convert to array and sort by traffic (descending)
+            return Array.from(locationMap.values())
+                .map(location => ({
+                    ...location,
+                    countryCode: this.getCountryCode(location.country)
+                }))
+                .sort((a, b) => b.traffic - a.traffic)
+                .slice(0, 10); // Top 10 locations
+
+        } catch (error) {
+            console.error('Error fetching SEO traffic by location:', error);
+            return [];
+        }
+    }
+
+    private getCountryCode(countryName: string): string {
+        const countryMap: { [key: string]: string } = {
+            'Thailand': 'TH',
+            'United States': 'US',
+            'United Kingdom': 'GB',
+            'Singapore': 'SG',
+            'Japan': 'JP',
+            'Malaysia': 'MY',
+            'Australia': 'AU'
+        };
+        return countryMap[countryName] || 'XX';
     }
 
 }
