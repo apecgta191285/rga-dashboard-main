@@ -27,6 +27,8 @@ import { HealthModule } from './modules/health/health.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { envValidationSchema } from './config/env.validation';
 import { CommonModule } from './common/common.module';
+import { SeoModule } from './modules/seo/seo.module';
+
 
 @Module({
   imports: [
@@ -83,7 +85,9 @@ import { CommonModule } from './common/common.module';
     AlertModule, // Alert System
     HealthModule, // Health Check
     NotificationModule, // Notification System (Sprint 4)
+    SeoModule, // SEO System
     CommonModule, // Shared Services (Encryption, etc.)
+
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     ...(process.env.NODE_ENV !== 'production' ? [require('./modules/debug/debug.module').DebugModule] : []),
   ],

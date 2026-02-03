@@ -455,6 +455,42 @@ async function main() {
   });
   console.log(`✅ Created ${gaMetrics.length} GA4 records.`);
 
+  // 7. Create SEO Search Intent Data (Organic Keywords by Intent) - 90 Days
+  console.log('🔍 Creating SEO Search Intent data (90 Days)...');
+  const seoIntentMetrics = [];
+  let seoCurrentDate = new Date(startDate);
+
+  while (seoCurrentDate <= today) {
+    // Generate daily random volume for each intent type
+    const baseVolume = 100 + Math.floor(Math.random() * 50);
+
+    const intents = [
+      { type: 'branded', kRatio: 0.2, tRatio: 0.4 },
+      { type: 'non_branded', kRatio: 0.8, tRatio: 0.6 },
+      { type: 'informational', kRatio: 0.5, tRatio: 0.5 },
+      { type: 'navigational', kRatio: 0.1, tRatio: 0.1 },
+      { type: 'commercial', kRatio: 0.3, tRatio: 0.35 },
+      { type: 'transactional', kRatio: 0.1, tRatio: 0.05 }
+    ];
+
+    for (const intent of intents) {
+      seoIntentMetrics.push({
+        tenantId: tenant.id,
+        date: new Date(seoCurrentDate),
+        type: intent.type,
+        keywords: Math.floor(baseVolume * intent.kRatio * (0.8 + Math.random() * 0.4)),
+        traffic: Math.floor(baseVolume * intent.tRatio * 10 * (0.8 + Math.random() * 0.4)),
+      });
+    }
+
+    seoCurrentDate.setDate(seoCurrentDate.getDate() + 1);
+  }
+
+  await prisma.seoSearchIntent.createMany({
+    data: seoIntentMetrics,
+  });
+  console.log(`✅ Created ${seoIntentMetrics.length} SEO Intent records.`);
+
   console.log('🎉 Seed completed successfully!');
 }
 
