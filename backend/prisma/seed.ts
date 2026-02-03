@@ -450,10 +450,6 @@ async function main() {
     currentDate.setDate(currentDate.getDate() + 1);
   }
 
-  await prisma.webAnalyticsDaily.createMany({
-    data: gaMetrics,
-  });
-  console.log(`✅ Created ${gaMetrics.length} GA4 records.`);
 
   // 7. Create SEO Search Intent Data (Organic Keywords by Intent) - 90 Days
   console.log('🔍 Creating SEO Search Intent data (90 Days)...');
@@ -490,6 +486,129 @@ async function main() {
     data: seoIntentMetrics,
   });
   console.log(`✅ Created ${seoIntentMetrics.length} SEO Intent records.`);
+
+  // 8. Create SEO Premium Metrics Data (10 sets of data + 30 days history)
+  console.log('🚀 Creating SEO Premium Metrics data (10 sets + 30 days history)...');
+  
+  // Create Google Analytics Account for SEO tracking
+  const gaAccount = await prisma.googleAnalyticsAccount.create({
+    data: {
+      tenantId: tenant.id,
+      propertyId: 'GA4-987654321',
+      propertyName: 'RGA Main Property',
+      accessToken: 'mock_ga_token',
+      refreshToken: 'mock_ga_refresh',
+    },
+  });
+
+  // Generate 10 sets of SEO premium metrics across different dates
+  const seoPremiumData = [];
+  const premiumStartDate = new Date(today);
+  premiumStartDate.setDate(today.getDate() - 30); // Last 30 days
+
+  // Create 30 days of SEO metrics history for performance trends
+  for (let i = 0; i < 30; i++) {
+    const dataDate = new Date(premiumStartDate);
+    dataDate.setDate(premiumStartDate.getDate() + i);
+
+    // Generate realistic SEO metrics with variation
+    const organicSessions = Math.floor(5000 + Math.random() * 10000);
+    const avgPosition = 5 + Math.random() * 20; // 5-25 position
+    const ur = 20 + Math.random() * 60; // 20-80 UR score
+    const dr = 10 + Math.random() * 70; // 10-80 DR score
+    const backlinks = Math.floor(50 + Math.random() * 500);
+    const referringDomains = Math.floor(20 + Math.random() * 200);
+    const keywords = Math.floor(100 + Math.random() * 1000);
+    const trafficCost = Math.floor(1000 + Math.random() * 10000);
+    const goalCompletions = Math.floor(10 + Math.random() * 100);
+
+    seoPremiumData.push({
+      tenantId: tenant.id,
+      propertyId: 'GA4-987654321',
+      gaAccountId: gaAccount.id,
+      date: dataDate,
+      activeUsers: Math.floor(organicSessions * 0.8),
+      newUsers: Math.floor(organicSessions * 0.3),
+      sessions: organicSessions,
+      screenPageViews: organicSessions * 3,
+      engagementRate: new Prisma.Decimal(0.6 + Math.random() * 0.2),
+      bounceRate: new Prisma.Decimal(0.3 + Math.random() * 0.1),
+      avgSessionDuration: new Prisma.Decimal(120 + Math.random() * 60),
+      isMockData: true,
+      metadata: {
+        seoMetrics: {
+          avgPosition: parseFloat(avgPosition.toFixed(1)),
+          avgPositionTrend: parseFloat(((Math.random() - 0.5) * 10).toFixed(1)), // -5% to +5%
+          ur: parseFloat(ur.toFixed(1)),
+          dr: parseFloat(dr.toFixed(1)),
+          backlinks,
+          referringDomains,
+          keywords,
+          trafficCost,
+          goalCompletions,
+          organicSessions,
+          organicSessionsTrend: parseFloat(((Math.random() - 0.5) * 20).toFixed(1)), // -10% to +10%
+          avgTimeOnPage: Math.floor(60 + Math.random() * 180), // 60-240 seconds
+          avgTimeOnPageTrend: parseFloat(((Math.random() - 0.5) * 30).toFixed(1)), // -15% to +15%
+        }
+      }
+    });
+  }
+
+  await prisma.webAnalyticsDaily.createMany({
+    data: seoPremiumData,
+  });
+  console.log(`✅ Created ${seoPremiumData.length} SEO Premium Metrics records (30 days history).`);
+
+  // 9. Create Traffic by Location Data
+  console.log('🌍 Creating Traffic by Location data...');
+  const locations = [
+    { country: 'Thailand', city: 'Bangkok', traffic: 3500, countryCode: 'TH' },
+    { country: 'Thailand', city: 'Chiang Mai', traffic: 800, countryCode: 'TH' },
+    { country: 'Thailand', city: 'Phuket', traffic: 600, countryCode: 'TH' },
+    { country: 'United States', city: 'New York', traffic: 450, countryCode: 'US' },
+    { country: 'United States', city: 'Los Angeles', traffic: 380, countryCode: 'US' },
+    { country: 'United Kingdom', city: 'London', traffic: 320, countryCode: 'GB' },
+    { country: 'Singapore', city: 'Singapore', traffic: 290, countryCode: 'SG' },
+    { country: 'Japan', city: 'Tokyo', traffic: 260, countryCode: 'JP' },
+    { country: 'Malaysia', city: 'Kuala Lumpur', traffic: 240, countryCode: 'MY' },
+    { country: 'Australia', city: 'Sydney', traffic: 180, countryCode: 'AU' }
+  ];
+
+  // Store location data in a separate metadata table or as part of WebAnalyticsDaily
+  // For now, we'll create a simple structure that can be queried
+  const locationData = locations.map((location, index) => {
+    // Create unique date for each location to avoid constraint violation
+    const locationDate = new Date(premiumStartDate);
+    locationDate.setDate(premiumStartDate.getDate() + index);
+    
+    return {
+      tenantId: tenant.id,
+      propertyId: `GA4-LOCATION-${index}`, // Unique property ID for each location
+      date: locationDate,
+      activeUsers: Math.floor(location.traffic * 0.8),
+      newUsers: Math.floor(location.traffic * 0.3),
+      sessions: location.traffic,
+      screenPageViews: location.traffic * 3,
+      engagementRate: new Prisma.Decimal(0.6 + Math.random() * 0.2),
+      bounceRate: new Prisma.Decimal(0.3 + Math.random() * 0.1),
+      avgSessionDuration: new Prisma.Decimal(120 + Math.random() * 60),
+      isMockData: true,
+      metadata: {
+        location: {
+          country: location.country,
+          city: location.city,
+          countryCode: location.countryCode,
+          traffic: location.traffic
+        }
+      }
+    };
+  });
+
+  await prisma.webAnalyticsDaily.createMany({
+    data: locationData,
+  });
+  console.log(`✅ Created ${locationData.length} Traffic by Location records.`);
 
   console.log('🎉 Seed completed successfully!');
 }

@@ -651,6 +651,7 @@ model WebAnalyticsDaily {
   bounceRate         Decimal  @default(0) @map("bounce_rate") @db.Decimal(8, 4)
   avgSessionDuration Decimal  @default(0) @map("avg_session_duration") @db.Decimal(10, 2)
   isMockData         Boolean  @default(false) @map("is_mock_data")
+  metadata           Json?    @map("metadata") @db.JsonB
   createdAt          DateTime @default(now()) @map("created_at")
   updatedAt          DateTime @updatedAt @map("updated_at")
 
