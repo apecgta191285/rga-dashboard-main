@@ -58,15 +58,14 @@ export class SeoService {
         if (prevSessions > 0) {
             sessionsTrend = ((currentSessions - prevSessions) / prevSessions) * 100;
         } else if (currentSessions > 0) {
-            // Deterministic fake trend: Use modulo to get a stable number [-10% to +10%]
-            sessionsTrend = ((currentSessions % 21) - 10);
+            sessionsTrend = 0;
         }
 
         let newUsersTrend = 0;
         if (prevNewUsers > 0) {
             newUsersTrend = ((currentNewUsers - prevNewUsers) / prevNewUsers) * 100;
         } else if (currentNewUsers > 0) {
-            newUsersTrend = ((currentNewUsers % 19) - 10);
+            newUsersTrend = 0;
         }
 
         // Handle Decimal to Number conversion for avgSessionDuration
@@ -77,37 +76,10 @@ export class SeoService {
         if (prevTime > 0) {
             timeTrend = ((currentTime - prevTime) / prevTime) * 100;
         } else if (currentTime > 0) {
-            // Deterministic fake trend: [-15% to +15%]
-            timeTrend = ((Math.floor(currentTime) % 31) - 15);
+            timeTrend = 0;
         }
 
-<<<<<<< HEAD
-        // Fetch SEO premium metrics aggregations using Raw SQL
-        // We calculate the average of avgPosition over the period
-        const currentSeoAgg: any[] = await this.prisma.$queryRaw`
-            SELECT 
-                AVG(CAST(metadata->'seoMetrics'->>'avgPosition' AS DECIMAL)) as avg_position
-            FROM web_analytics_daily 
-            WHERE tenant_id = ${tenantId}::uuid 
-            AND date >= ${startDate} 
-            AND date <= ${endDate} 
-            AND metadata->'seoMetrics'->>'avgPosition' IS NOT NULL
-        `;
-
-        const prevSeoAgg: any[] = await this.prisma.$queryRaw`
-            SELECT 
-                AVG(CAST(metadata->'seoMetrics'->>'avgPosition' AS DECIMAL)) as avg_position
-            FROM web_analytics_daily 
-            WHERE tenant_id = ${tenantId}::uuid 
-            AND date >= ${prevStartDate} 
-            AND date < ${startDate} 
-            AND metadata->'seoMetrics'->>'avgPosition' IS NOT NULL
-        `;
-
-        // Fetch latest record for other snapshot metrics (Backlinks, DR, UR) which make sense to be "latest"
-=======
-        // Fetch SEO premium metrics from metadata using Raw SQL (bypass Prisma Client)
->>>>>>> origin/feature/seo-complete-2026-02-06
+        // Fetch latest record SEO premium metrics from metadata using Raw SQL (bypass Prisma JSON typing)
         const latestSeoData: any[] = await this.prisma.$queryRaw`
             SELECT metadata FROM web_analytics_daily 
             WHERE tenant_id = ${tenantId}::uuid 
@@ -115,68 +87,31 @@ export class SeoService {
             ORDER BY date DESC 
             LIMIT 1
         `;
-<<<<<<< HEAD
-
-        const seoMetrics = latestSeoData[0]?.metadata?.seoMetrics || {};
-
-        const currentAvgPos = Number(currentSeoAgg[0]?.avg_position || 0);
-        const prevAvgPos = Number(prevSeoAgg[0]?.avg_position || 0);
-
-        // Calculate Position Trend (Negative is good for rank, but usually UI shows green for improvement)
-        // Improvement = Previous - Current (e.g. Rank 10 -> Rank 5 = 5 improvement)
-        // Percentage improvement
-        let posTrend = 0;
-        if (prevAvgPos > 0) {
-            // Logic: If rank drops from 20 to 10, it's a 50% improvement (decrease in number)
-            // But usually trend UI expects +% for 'up arrow'.
-            // For position, 'up' usually means 'better rank' (lower number).
-            // Let's stick to standard percentage change: (New - Old) / Old
-            // If New(5) - Old(10) = -5. -5/10 = -50%.
-            // In the UI, we handle this with `trendUp: (data.avgPositionTrend ?? 0) <= 0` logic usually.
-            posTrend = ((currentAvgPos - prevAvgPos) / prevAvgPos) * 100;
-        }
-
-        return {
-            organicSessions: currentSessions,
-            newUsers: currentNewUsers,
-            avgTimeOnPage: seoMetrics.avgTimeOnPage || Math.round(currentTime),
-            organicSessionsTrend: seoMetrics.organicSessionsTrend || parseFloat(sessionsTrend.toFixed(1)),
-            newUsersTrend: parseFloat(newUsersTrend.toFixed(1)),
-            avgTimeOnPageTrend: seoMetrics.avgTimeOnPageTrend || parseFloat(timeTrend.toFixed(1)),
-            // Premium SEO Metrics
-            goalCompletions: seoMetrics.goalCompletions || null,
-            goalCompletionsTrend: seoMetrics.goalCompletionsTrend || 0,
-
-            // Real calculated average over the period
-            avgPosition: currentAvgPos > 0 ? Number(currentAvgPos.toFixed(1)) : null,
-            avgPositionTrend: parseFloat(posTrend.toFixed(1)),
-
-=======
 
         // Extract SEO metrics from metadata if available
         const seoMetrics = latestSeoData[0]?.metadata?.seoMetrics || {};
 
         return {
-            organicSessions: seoMetrics.organicSessions || currentSessions,
+            organicSessions: seoMetrics.organicSessions ?? currentSessions,
             newUsers: currentNewUsers,
-            avgTimeOnPage: seoMetrics.avgTimeOnPage || Math.round(currentTime),
-            organicSessionsTrend: seoMetrics.organicSessionsTrend || parseFloat(sessionsTrend.toFixed(1)),
+            avgTimeOnPage: seoMetrics.avgTimeOnPage ?? Math.round(currentTime),
+            organicSessionsTrend: seoMetrics.organicSessionsTrend ?? parseFloat(sessionsTrend.toFixed(1)),
             newUsersTrend: parseFloat(newUsersTrend.toFixed(1)),
-            avgTimeOnPageTrend: seoMetrics.avgTimeOnPageTrend || parseFloat(timeTrend.toFixed(1)),
-            // Premium SEO Metrics from database
-            goalCompletions: seoMetrics.goalCompletions || null,
-            goalCompletionsTrend: seoMetrics.goalCompletionsTrend !== undefined ? seoMetrics.goalCompletionsTrend :
-                (seoMetrics.goalCompletions ? parseFloat(((seoMetrics.goalCompletions % 17) - 8).toFixed(1)) : 0),
-            avgPosition: seoMetrics.avgPosition || null,
-            avgPositionTrend: seoMetrics.avgPositionTrend || 0,
->>>>>>> origin/feature/seo-complete-2026-02-06
-            bounceRate: 0,
-            ur: seoMetrics.ur || null,
-            dr: seoMetrics.dr || null,
-            backlinks: seoMetrics.backlinks || null,
-            referringDomains: seoMetrics.referringDomains || null,
-            keywords: seoMetrics.keywords || null,
-            trafficCost: seoMetrics.trafficCost || null
+            avgTimeOnPageTrend: seoMetrics.avgTimeOnPageTrend ?? parseFloat(timeTrend.toFixed(1)),
+            // Premium SEO Metrics from database - NO MOCK
+            goalCompletions: seoMetrics.goalCompletions ?? 0,
+            goalCompletionsTrend: seoMetrics.goalCompletionsTrend ?? 0,
+            avgPosition: seoMetrics.avgPosition ?? 0,
+            avgPositionTrend: seoMetrics.avgPositionTrend ?? 0,
+            bounceRate: seoMetrics.bounceRate ?? 0,
+            ur: seoMetrics.ur ?? 0,
+            dr: seoMetrics.dr ?? 0,
+            backlinks: seoMetrics.backlinks ?? 0,
+            referringDomains: seoMetrics.referringDomains ?? 0,
+            keywords: seoMetrics.keywords ?? 0,
+            trafficCost: seoMetrics.trafficCost ?? 0,
+            organicPages: seoMetrics.organicPages ?? 0,
+            crawledPages: seoMetrics.crawledPages ?? 0
         };
     }
 
