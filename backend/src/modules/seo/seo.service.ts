@@ -58,15 +58,16 @@ export class SeoService {
         if (prevSessions > 0) {
             sessionsTrend = ((currentSessions - prevSessions) / prevSessions) * 100;
         } else if (currentSessions > 0) {
-            // Deterministic fake trend: Use modulo to get a stable number [-10% to +10%]
-            sessionsTrend = ((currentSessions % 21) - 10);
+            // No mock data - use real trend only
+            sessionsTrend = 0;
         }
 
         let newUsersTrend = 0;
         if (prevNewUsers > 0) {
             newUsersTrend = ((currentNewUsers - prevNewUsers) / prevNewUsers) * 100;
         } else if (currentNewUsers > 0) {
-            newUsersTrend = ((currentNewUsers % 19) - 10);
+            // No mock data - use real trend only
+            newUsersTrend = 0;
         }
 
         // Handle Decimal to Number conversion for avgSessionDuration
@@ -77,8 +78,7 @@ export class SeoService {
         if (prevTime > 0) {
             timeTrend = ((currentTime - prevTime) / prevTime) * 100;
         } else if (currentTime > 0) {
-            // Deterministic fake trend: [-15% to +15%]
-            timeTrend = ((Math.floor(currentTime) % 31) - 15);
+            timeTrend = 0; // No mock data - use real trend only
         }
 
         // Fetch SEO premium metrics from metadata using Raw SQL (bypass Prisma Client)
@@ -100,19 +100,21 @@ export class SeoService {
             organicSessionsTrend: seoMetrics.organicSessionsTrend || parseFloat(sessionsTrend.toFixed(1)),
             newUsersTrend: parseFloat(newUsersTrend.toFixed(1)),
             avgTimeOnPageTrend: seoMetrics.avgTimeOnPageTrend || parseFloat(timeTrend.toFixed(1)),
-            // Premium SEO Metrics from database
-            goalCompletions: seoMetrics.goalCompletions || null,
-            goalCompletionsTrend: seoMetrics.goalCompletionsTrend !== undefined ? seoMetrics.goalCompletionsTrend :
-                (seoMetrics.goalCompletions ? parseFloat(((seoMetrics.goalCompletions % 17) - 8).toFixed(1)) : 0),
-            avgPosition: seoMetrics.avgPosition || null,
+            // Premium SEO Metrics from database - NO MOCK DATA
+            goalCompletions: seoMetrics.goalCompletions || 0,
+            goalCompletionsTrend: seoMetrics.goalCompletionsTrend || 0,
+            avgPosition: seoMetrics.avgPosition || 0,
             avgPositionTrend: seoMetrics.avgPositionTrend || 0,
-            bounceRate: 0,
-            ur: seoMetrics.ur || null,
-            dr: seoMetrics.dr || null,
-            backlinks: seoMetrics.backlinks || null,
-            referringDomains: seoMetrics.referringDomains || null,
-            keywords: seoMetrics.keywords || null,
-            trafficCost: seoMetrics.trafficCost || null
+            bounceRate: seoMetrics.bounceRate || 0,
+            ur: seoMetrics.ur || 0,
+            dr: seoMetrics.dr || 0,
+            backlinks: seoMetrics.backlinks || 0,
+            referringDomains: seoMetrics.referringDomains || 0,
+            keywords: seoMetrics.keywords || 0,
+            trafficCost: seoMetrics.trafficCost || 0,
+            // Add organicPages and crawledPages from database - NO MOCK DATA
+            organicPages: seoMetrics.organicPages || 0,
+            crawledPages: seoMetrics.crawledPages || 0
         };
     }
 
@@ -208,8 +210,8 @@ export class SeoService {
                 dr: seoMetricsForDate?.dr || 0,
                 ur: seoMetricsForDate?.ur || 0,
                 organicTrafficValue: seoMetricsForDate?.trafficCost || 0,
-                organicPages: Math.floor(item.sessions * 1.5), // Estimate based on sessions
-                crawledPages: Math.floor(item.sessions * 2.2), // Estimate based on sessions
+                organicPages: seoMetricsForDate?.organicPages || 0, // From database - NO MOCK DATA
+                crawledPages: seoMetricsForDate?.crawledPages || 0, // From database - NO MOCK DATA
             };
         });
     }

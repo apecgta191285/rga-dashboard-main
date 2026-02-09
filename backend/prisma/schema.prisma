@@ -206,6 +206,10 @@ model Tenant {
   webAnalyticsDaily       WebAnalyticsDaily[]
   adGroups                AdGroup[]
   SeoSearchIntent         SeoSearchIntent[]
+  SeoTopKeywords          SeoTopKeywords[]
+  SeoAnchorText           SeoAnchorText[]
+  SeoOffpageMetricSnapshots SeoOffpageMetricSnapshots[]
+  SeoTrafficByLocation    SeoTrafficByLocation[]
 
   @@map("tenants")
 }
@@ -691,6 +695,119 @@ model SeoSearchIntent {
   @@index([tenantId], name: "idx_seo_intent_tenant")
   @@index([date], name: "idx_seo_intent_date")
   @@map("seo_search_intent")
+}
+
+/// SEO Top Keywords - Top performing keywords
+model SeoTopKeywords {
+  id       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId String   @map("tenant_id") @db.Uuid
+  date     DateTime @map("date") @db.Date
+
+  keyword String @map("keyword") @db.VarChar(255)
+  position Float @map("position")
+  volume Int @map("volume")
+  traffic Int @map("traffic")
+  trafficPercentage Float @map("traffic_percentage")
+  url String @map("url") @db.Text
+  change Int @map("change")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId], name: "idx_seo_keywords_tenant")
+  @@index([date], name: "idx_seo_keywords_date")
+  @@map("seo_top_keywords")
+}
+
+/// SEO Anchor Text - Anchor text analysis
+model SeoAnchorText {
+  id       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId String   @map("tenant_id") @db.Uuid
+  date     DateTime @map("date") @db.Date
+
+  anchorText String @map("anchor_text") @db.VarChar(255)
+  domains Int @map("domains")
+  totalBacklinks Int @map("total_backlinks")
+  dofollowBacklinks Int @map("dofollow_backlinks")
+  referringDomains Int @map("referring_domains")
+  traffic Int @map("traffic")
+  trafficPercentage Float @map("traffic_percentage")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId], name: "idx_seo_anchor_tenant")
+  @@index([date], name: "idx_seo_anchor_date")
+  @@map("seo_anchor_text")
+}
+
+/// SEO Offpage Metric Snapshots - Offpage SEO metrics over time
+model SeoOffpageMetricSnapshots {
+  id       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId String   @map("tenant_id") @db.Uuid
+  date     DateTime @map("date") @db.Date
+
+  // Authority metrics
+  ur Float @map("ur")
+  dr Float @map("dr")
+  backlinks Int @map("backlinks")
+  referringDomains Int @map("referring_domains")
+  keywords Int @map("keywords")
+  trafficCost Int @map("traffic_cost")
+
+  // Traffic metrics
+  organicTraffic Int @map("organic_traffic")
+  organicTrafficValue Int @map("organic_traffic_value")
+
+  // Change metrics
+  newReferringDomains Int @default(0) @map("new_referring_domains")
+  newBacklinks Int @default(0) @map("new_backlinks")
+  lostReferringDomains Int @default(0) @map("lost_referring_domains")
+  lostBacklinks Int @default(0) @map("lost_backlinks")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, date], name: "seo_offpage_unique")
+  @@index([tenantId], name: "idx_seo_offpage_tenant")
+  @@index([date], name: "idx_seo_offpage_date")
+  @@map("seo_offpage_metric_snapshots")
+}
+
+/// SEO Traffic by Location - Traffic breakdown by location
+model SeoTrafficByLocation {
+  id       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId String   @map("tenant_id") @db.Uuid
+  date     DateTime @map("date") @db.Date
+
+  location String @map("location") @db.VarChar(100)
+  traffic Int @map("traffic")
+  trafficPercentage Float @map("traffic_percentage")
+  keywords Int @map("keywords")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, date, location], name: "seo_location_unique")
+  @@index([tenantId], name: "idx_seo_location_tenant")
+  @@index([date], name: "idx_seo_location_date")
+  @@map("seo_traffic_by_location")
 }
 
 /// AI Insight - AI/N8N generated insight payloads (JSONB)
