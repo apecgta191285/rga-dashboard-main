@@ -93,11 +93,26 @@ export class SeoService {
                 gscDataCount = await this.prisma.searchConsolePerformance.count({
                     where: { tenantId, siteUrl, date: { gte: startDate, lte: endDate } },
                 });
+            } else {
+                // Fallback to latest siteUrl even when HIDE_MOCK_DATA=true
+                // GSC table has no is_mock_data flag, so this is safe
+                const latest = await this.prisma.searchConsolePerformance.findFirst({
+                    where: { tenantId },
+                    orderBy: { date: 'desc' },
+                    select: { siteUrl: true },
+                });
+
+                if (latest?.siteUrl) {
+                    siteUrl = latest.siteUrl;
+                    gscDataCount = await this.prisma.searchConsolePerformance.count({
+                        where: { tenantId, siteUrl, date: { gte: startDate, lte: endDate } },
+                    });
+                }
             }
         }
 
         const gscConnected = hideMockData
-            ? (!!configuredSiteUrl && hasCredentials && gscDataCount > 0)
+            ? (gscDataCount > 0)
             : ((!!configuredSiteUrl && hasCredentials) || gscDataCount > 0);
 
         const ga4Account = await this.prisma.googleAnalyticsAccount.findFirst({
