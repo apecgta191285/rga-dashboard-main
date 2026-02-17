@@ -341,7 +341,7 @@ export class SeoService {
             });
         });
 
-        return organicData.map(item => {
+        const historyData = organicData.map(item => {
             const dateStr = item.date.toISOString().split('T')[0];
             const ads = adsMap.get(dateStr) || { clicks: 0, spend: 0, impressions: 0 };
 

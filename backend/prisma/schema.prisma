@@ -717,7 +717,7 @@ model SeoTopKeywords {
   trafficPercentage Float    @map("traffic_percentage")
   url               String   @map("url")
   change            Int      @map("change")
-  cpc               Float    @map("cpc")
+  cpc               Float    @default(0) @map("cpc")
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
   tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
