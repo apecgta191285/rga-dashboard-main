@@ -54,6 +54,7 @@ model Tenant {
   tiktokAdsAccounts            TikTokAdsAccount[]
   users                        User[]
   webAnalyticsDaily            WebAnalyticsDaily[]
+  searchConsolePerformance     SearchConsolePerformance[]
 
   @@map("tenants")
 }
@@ -915,6 +916,31 @@ model ChatMessage {
   @@map("chat_messages")
 }
 
-model TestDebug {
-  id Int @id @default(autoincrement())
+model SearchConsolePerformance {
+  id       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId String   @map("tenant_id") @db.Uuid
+  siteUrl  String   @map("site_url") @db.Text
+  date     DateTime @map("date") @db.Date
+
+  page    String? @map("page") @db.Text
+  query   String? @map("query") @db.Text
+  device  String? @map("device") @db.VarChar(50)
+  country String? @map("country") @db.VarChar(10)
+
+  clicks      Int     @default(0) @map("clicks")
+  impressions Int     @default(0) @map("impressions")
+  ctr         Decimal @default(0) @map("ctr") @db.Decimal(10, 6)
+  position    Decimal @default(0) @map("position") @db.Decimal(10, 4)
+
+  externalKey String @map("external_key") @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, externalKey], name: "search_console_perf_tenant_key_unique")
+  @@index([tenantId, date(sort: Desc)], name: "idx_search_console_perf_tenant_date")
+  @@index([siteUrl], name: "idx_search_console_perf_site_url")
+  @@map("search_console_performance")
 }
+
