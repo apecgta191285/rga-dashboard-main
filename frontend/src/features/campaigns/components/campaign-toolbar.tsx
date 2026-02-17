@@ -54,6 +54,8 @@ export interface CampaignToolbarProps {
     showSelectedOnly: boolean;
     /** Callback when show selected only toggle changes */
     onShowSelectedOnlyChange: (value: boolean) => void;
+    /** Number of selected campaigns */
+    selectedCount: number;
 }
 
 // =============================================================================
@@ -91,6 +93,7 @@ export function CampaignToolbar({
     onPeriodChange,
     showSelectedOnly,
     onShowSelectedOnlyChange,
+    selectedCount,
 }: CampaignToolbarProps) {
 
 
@@ -141,146 +144,148 @@ export function CampaignToolbar({
 
     const handleClearSearch = () => {
         setQuery('');
-        // Optional: onSearchChange(''); // If we want X to immediately reset, uncomment this.
-        // But user said "start search from button only".
-        // A reset button usually implies "clear filter".
-        // I will let X just clear text for now, or maybe it's better UX to let X be a "Reset" action?
-        // "Make search start from button ONLY".
-        // I will stick to: X clears text. User must click Search (or Enter) to apply empty search (reset).
+        onSearchChange('');
     };
 
     return (
-        <div className="flex flex-col gap-3">
-            {/* Search Input - Full width on mobile */}
-            <div className="flex w-full sm:max-w-sm items-center gap-2">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <div className="p-4 rounded-2xl bg-white border border-gray-100 shadow-sm space-y-4">
+            <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+
+                {/* Search Input */}
+                <div className="relative w-full md:max-w-sm group">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Search className="h-4 w-4 text-gray-400 group-focus-within:text-primary transition-colors duration-200" />
+                    </div>
                     <Input
                         type="text"
                         placeholder="Search campaigns..."
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        className="pl-9 pr-9"
+                        className="pl-10 pr-10 h-11 bg-gray-50/50 border-transparent hover:bg-gray-50 focus:bg-white focus:border-primary/20 focus:ring-4 focus:ring-primary/5 rounded-xl transition-all duration-200"
                         disabled={isLoading}
                     />
                     {query && (
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                        <button
                             onClick={handleClearSearch}
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
                         >
                             <X className="h-4 w-4" />
-                            <span className="sr-only">Clear search</span>
-                        </Button>
+                        </button>
                     )}
                 </div>
-                <Button onClick={handleSearch} disabled={isLoading} className="shrink-0">
-                    Search
-                </Button>
-            </div>
 
-            {/* Filters Row - Wrap on mobile */}
-            <div className="flex flex-wrap gap-2 items-center">
+                {/* Filters & Actions */}
+                <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
 
-                {/* Status Filter */}
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="w-full sm:w-[160px] justify-between border-dashed">
-                            {status.has('ALL') ? 'All Statuses' : `${status.size} Selected`}
-                            <ListFilter className="ml-2 h-4 w-4 opacity-50" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-[200px]" align="start">
-                        <DropdownMenuLabel>Filter Status</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuCheckboxItem
-                            checked={status.has('ALL')}
-                            onCheckedChange={() => onStatusChange(new Set(['ALL']))}
-                            onSelect={(e) => e.preventDefault()}
-                        >
-                            All Statuses
-                        </DropdownMenuCheckboxItem>
-                        <DropdownMenuSeparator />
-                        {STATUS_OPTIONS.slice(1).map((option) => (
-                            <DropdownMenuCheckboxItem
-                                key={option.value}
-                                checked={status.has(option.value)}
-                                onCheckedChange={() => handleToggle(status, onStatusChange, option.value)}
-                                onSelect={(e) => e.preventDefault()}
+                    {/* Status Filter */}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                variant="outline"
+                                className={`h-10 border-dashed rounded-lg px-3 lg:px-4 font-normal ${status.has('ALL')
+                                        ? 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                                        : 'border-blue-200 bg-blue-50/50 text-blue-700 hover:bg-blue-50'
+                                    }`}
                             >
-                                {option.label}
-                            </DropdownMenuCheckboxItem>
-                        ))}
-                        {status.size > 0 && !status.has('ALL') && (
-                            <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                    onSelect={() => onStatusChange(new Set(['ALL']))}
-                                    className="justify-center text-center text-sm"
-                                >
-                                    Clear filters
-                                </DropdownMenuItem>
-                            </>
-                        )}
-                    </DropdownMenuContent>
-                </DropdownMenu>
-
-                {/* Platform Filter */}
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="w-full sm:w-[160px] justify-between border-dashed">
-                            {platform.has('ALL') ? 'All Platforms' : `${platform.size} Selected`}
-                            <ListFilter className="ml-2 h-4 w-4 opacity-50" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-[200px]" align="start">
-                        <DropdownMenuLabel>Filter Platform</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuCheckboxItem
-                            checked={platform.has('ALL')}
-                            onCheckedChange={() => onPlatformChange(new Set(['ALL']))}
-                            onSelect={(e) => e.preventDefault()}
-                        >
-                            All Platforms
-                        </DropdownMenuCheckboxItem>
-                        <DropdownMenuSeparator />
-                        {PLATFORM_OPTIONS.slice(1).map((option) => (
+                                <ListFilter className={`mr-2 h-4 w-4 ${status.has('ALL') ? 'opacity-50' : 'text-blue-600'}`} />
+                                <span className="truncate max-w-[100px] lg:max-w-none">
+                                    {status.has('ALL') ? 'Status' : `${status.size} Selected`}
+                                </span>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-[200px] p-2 rounded-xl shadow-xl border-gray-100">
+                            <DropdownMenuLabel className="text-xs font-semibold text-gray-500 uppercase px-2 mb-1">Filter by Status</DropdownMenuLabel>
+                            <DropdownMenuSeparator className="-mx-2 mb-1" />
                             <DropdownMenuCheckboxItem
-                                key={option.value}
-                                checked={platform.has(option.value)}
-                                onCheckedChange={() => handleToggle(platform, onPlatformChange, option.value)}
-                                onSelect={(e) => e.preventDefault()}
+                                checked={status.has('ALL')}
+                                onCheckedChange={() => onStatusChange(new Set(['ALL']))}
+                                className="rounded-lg cursor-pointer"
                             >
-                                {option.label}
+                                All Statuses
                             </DropdownMenuCheckboxItem>
-                        ))}
-                        {platform.size > 0 && !platform.has('ALL') && (
-                            <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                    onSelect={() => onPlatformChange(new Set(['ALL']))}
-                                    className="justify-center text-center text-sm"
+                            {STATUS_OPTIONS.slice(1).map((option) => (
+                                <DropdownMenuCheckboxItem
+                                    key={option.value}
+                                    checked={status.has(option.value)}
+                                    onCheckedChange={() => handleToggle(status, onStatusChange, option.value)}
+                                    className="rounded-lg cursor-pointer"
                                 >
-                                    Clear filters
-                                </DropdownMenuItem>
-                            </>
-                        )}
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                                    {option.label}
+                                </DropdownMenuCheckboxItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
 
-                {/* Only Select Filter */}
-                <Button
-                    variant={showSelectedOnly ? 'default' : 'outline'}
-                    onClick={() => onShowSelectedOnlyChange(!showSelectedOnly)}
-                    className="whitespace-nowrap"
-                >
-                    Only Select
-                </Button>
+                    {/* Platform Filter */}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                variant="outline"
+                                className={`h-10 border-dashed rounded-lg px-3 lg:px-4 font-normal ${platform.has('ALL')
+                                        ? 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                                        : 'border-indigo-200 bg-indigo-50/50 text-indigo-700 hover:bg-indigo-50'
+                                    }`}
+                            >
+                                <ListFilter className={`mr-2 h-4 w-4 ${platform.has('ALL') ? 'opacity-50' : 'text-indigo-600'}`} />
+                                <span className="truncate max-w-[100px] lg:max-w-none">
+                                    {platform.has('ALL') ? 'Platform' : `${platform.size} Selected`}
+                                </span>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-[200px] p-2 rounded-xl shadow-xl border-gray-100">
+                            <DropdownMenuLabel className="text-xs font-semibold text-gray-500 uppercase px-2 mb-1">Filter by Platform</DropdownMenuLabel>
+                            <DropdownMenuSeparator className="-mx-2 mb-1" />
+                            <DropdownMenuCheckboxItem
+                                checked={platform.has('ALL')}
+                                onCheckedChange={() => onPlatformChange(new Set(['ALL']))}
+                                className="rounded-lg cursor-pointer"
+                            >
+                                All Platforms
+                            </DropdownMenuCheckboxItem>
+                            {PLATFORM_OPTIONS.slice(1).map((option) => (
+                                <DropdownMenuCheckboxItem
+                                    key={option.value}
+                                    checked={platform.has(option.value)}
+                                    onCheckedChange={() => handleToggle(platform, onPlatformChange, option.value)}
+                                    className="rounded-lg cursor-pointer"
+                                >
+                                    {option.label}
+                                </DropdownMenuCheckboxItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
 
-                {/* Date Filter */}
-                <DashboardDateFilter value={period} onValueChange={onPeriodChange} />
+                    {/* Divider */}
+                    <div className="h-6 w-px bg-gray-200 mx-1 hidden sm:block" />
+
+                    {/* Only Select Filter */}
+                    <Button
+                        variant={showSelectedOnly ? 'secondary' : 'ghost'}
+                        onClick={() => onShowSelectedOnlyChange(!showSelectedOnly)}
+                        disabled={selectedCount === 0}
+                        className={`h-10 rounded-lg px-3 font-normal transition-all ${showSelectedOnly
+                                ? 'bg-gray-900 text-white hover:bg-gray-800 shadow-md transform scale-105'
+                                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                            } ${selectedCount === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                        Selected Only {selectedCount > 0 && `(${selectedCount})`}
+                    </Button>
+
+                    {/* Date Filter - Wrapped for consistent height */}
+                    <div className="h-10 [&>button]:h-10 [&>button]:rounded-lg [&>button]:border-gray-200 [&>button]:shadow-sm">
+                        <DashboardDateFilter value={period} onValueChange={onPeriodChange} />
+                    </div>
+
+                    {/* Search Button (Mobile/Desktop consistent) */}
+                    <Button
+                        onClick={handleSearch}
+                        disabled={isLoading}
+                        className="h-10 rounded-lg px-6 bg-primary text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:bg-primary/90 transition-all active:scale-95 ml-auto md:ml-0"
+                    >
+                        Search
+                    </Button>
+                </div>
             </div>
         </div>
     );

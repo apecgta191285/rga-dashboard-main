@@ -4,10 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { Calculator, TrendingUp, Users, DollarSign, Target } from "lucide-react";
+import { Calculator, TrendingUp, Users, DollarSign, Target, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-export function MarketingTools() {
+interface MarketingToolsProps {
+    onBack?: () => void;
+}
+
+export function MarketingTools({ onBack }: MarketingToolsProps) {
     const [activeTab, setActiveTab] = useState('conversion');
 
     // State for calculators
@@ -16,6 +20,7 @@ export function MarketingTools() {
     const [cpl, setCpl] = useState({ cost: '', leads: '', result: 0 });
     const [leads, setLeads] = useState({ traffic: '', conversionRate: '', result: 0 });
     const [cpa, setCpa] = useState({ cost: '', customers: '', result: 0 });
+    const [profit, setProfit] = useState({ revenue: '', cost: '', result: 0 });
 
     // Calculation Handlers
     const calculateConversion = (key: string, value: string) => {
@@ -63,28 +68,54 @@ export function MarketingTools() {
         setCpa(prev => ({ ...prev, result: parseFloat(result.toFixed(2)) }));
     };
 
+    const calculateProfit = (key: string, value: string) => {
+        const newData = { ...profit, [key]: value };
+        setProfit(newData);
+        const revenue = parseFloat(newData.revenue) || 0;
+        const cost = parseFloat(newData.cost) || 0;
+        const result = revenue - cost;
+        setProfit(prev => ({ ...prev, result: parseFloat(result.toFixed(2)) }));
+    };
+
     const tabs = [
         { id: 'conversion', label: 'Conversion Rate', icon: Target },
         { id: 'lead', label: 'Lead/Traffic', icon: Users },
         { id: 'roi', label: 'ROI', icon: TrendingUp },
+        { id: 'profit', label: 'Profit', icon: DollarSign },
         { id: 'cpl', label: 'CPL', icon: DollarSign },
         { id: 'cpa', label: 'CPA', icon: Calculator },
     ];
 
     return (
-        <div className="flex flex-col items-center w-full py-12 space-y-8">
+        <div className="flex flex-col items-center w-full h-full overflow-y-auto custom-scrollbar pb-12 space-y-8 relative">
+            {onBack && (
+                <div className="h-16 w-full border-b border-slate-100 flex items-center justify-between px-6 bg-white/80 backdrop-blur sticky top-0 z-10">
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={onBack}
+                            className="group flex items-center gap-3 px-4 py-2 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-slate-300 hover:shadow-md transition-all duration-200"
+                        >
+                            <div className="p-1.5 bg-indigo-50 rounded-lg group-hover:bg-indigo-100 transition-colors">
+                                <ArrowLeft className="w-4 h-4 text-indigo-600" />
+                            </div>
+                            <span className="hidden md:inline text-sm font-bold text-slate-700 group-hover:text-slate-900">Back to AI Assistant</span>
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Header Section */}
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="flex flex-col items-center text-center space-y-3 max-w-2xl px-4"
+                className="flex flex-col items-center text-center space-y-3 max-w-2xl px-4 pt-12"
             >
                 <div className="p-3 bg-orange-50 rounded-xl mb-2">
                     <Calculator className="w-6 h-6 text-orange-600" />
                 </div>
                 <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
-                    Campaign Tools
+                    Marketing Calculators
                 </h2>
                 <p className="text-slate-500 text-base max-w-lg">
                     Simple calculators for your digital marketing metrics.
@@ -147,6 +178,7 @@ export function MarketingTools() {
                                 <h3 className="text-lg font-semibold text-slate-900 mb-2 flex items-center gap-2">
                                     {activeTab === 'conversion' && <Target className="w-5 h-5 text-orange-600" />}
                                     {activeTab === 'roi' && <TrendingUp className="w-5 h-5 text-orange-600" />}
+                                    {activeTab === 'profit' && <DollarSign className="w-5 h-5 text-orange-600" />}
                                     {activeTab === 'cpl' && <DollarSign className="w-5 h-5 text-orange-600" />}
                                     {activeTab === 'lead' && <Users className="w-5 h-5 text-orange-600" />}
                                     {activeTab === 'cpa' && <Calculator className="w-5 h-5 text-orange-600" />}
@@ -155,6 +187,7 @@ export function MarketingTools() {
                                 <p className="text-slate-600 text-sm leading-relaxed mb-4">
                                     {activeTab === 'conversion' && "Calculate the percentage of visitors who complete a desired action."}
                                     {activeTab === 'roi' && "Determine the profitability of your investment."}
+                                    {activeTab === 'profit' && "Calculate your net profit by subtracting total costs from total revenue."}
                                     {activeTab === 'cpl' && "Find out how much each lead costs you."}
                                     {activeTab === 'lead' && "Estimate potential leads based on traffic and conversion rate."}
                                     {activeTab === 'cpa' && "Calculate the cost to acquire a paying customer."}
@@ -164,6 +197,7 @@ export function MarketingTools() {
                                     <p className="text-slate-600 text-sm">
                                         {activeTab === 'conversion' && "Consider load time and clear CTAs."}
                                         {activeTab === 'roi' && "Focus on high-value activities."}
+                                        {activeTab === 'profit' && "Keep track of all overhead costs."}
                                         {activeTab === 'cpl' && "Target your audience more precisely."}
                                         {activeTab === 'lead' && "Quality traffic converts better."}
                                         {activeTab === 'cpa' && "Retargeting usually lowers CPA."}
@@ -269,6 +303,51 @@ export function MarketingTools() {
                                                             {roi.result}
                                                         </motion.span>
                                                         <span className="text-lg font-medium text-slate-500">%</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Profit Inputs */}
+                                        {activeTab === 'profit' && (
+                                            <div className="space-y-6">
+                                                <div className="grid gap-6 md:grid-cols-2">
+                                                    <div className="space-y-2">
+                                                        <Label className="text-slate-700 font-medium">Total Revenue (THB)</Label>
+                                                        <Input
+                                                            type="number"
+                                                            className="h-10 rounded-lg border-slate-300 focus:ring-orange-500 focus:border-orange-500"
+                                                            placeholder="0"
+                                                            value={profit.revenue}
+                                                            onChange={(e) => calculateProfit('revenue', e.target.value)}
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label className="text-slate-700 font-medium">Total Cost (THB)</Label>
+                                                        <Input
+                                                            type="number"
+                                                            className="h-10 rounded-lg border-slate-300 focus:ring-orange-500 focus:border-orange-500"
+                                                            placeholder="0"
+                                                            value={profit.cost}
+                                                            onChange={(e) => calculateProfit('cost', e.target.value)}
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="p-4 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between">
+                                                    <span className="text-slate-700 font-medium">Net Profit</span>
+                                                    <div className="flex items-baseline gap-1">
+                                                        <span className="text-lg font-medium text-slate-500">฿</span>
+                                                        <motion.span
+                                                            key={profit.result}
+                                                            initial={{ opacity: 0, y: -10 }}
+                                                            animate={{ opacity: 1, y: 0 }}
+                                                            className={cn(
+                                                                "text-3xl font-bold",
+                                                                profit.result >= 0 ? "text-slate-900" : "text-red-600"
+                                                            )}
+                                                        >
+                                                            {profit.result.toLocaleString()}
+                                                        </motion.span>
                                                     </div>
                                                 </div>
                                             </div>

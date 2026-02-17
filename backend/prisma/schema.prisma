@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // RGA Dashboard - Prisma Schema (Phase 1: Sprint 1-4)
 // ============================================================
 // Version: 2.0.0
@@ -20,7 +20,7 @@ datasource db {
 // ENUMS - Type-safe Status Values
 // ============================================================
 
-/// User Roles - กำหนดระดับสิทธิ์การใช้งาน
+/// User Roles - α╕üα╕│α╕½α╕Öα╕öα╕úα╕░α╕öα╕▒α╕Üα╕¬α╕┤α╕ùα╕ÿα╕┤α╣îα╕üα╕▓α╕úα╣âα╕èα╣ëα╕çα╕▓α╕Ö
 enum UserRole {
   SUPER_ADMIN @map("super_admin")
   ADMIN       @map("admin")
@@ -31,7 +31,7 @@ enum UserRole {
   @@map("user_role")
 }
 
-/// Campaign Status - สถานะของแคมเปญโฆษณา
+/// Campaign Status - α╕¬α╕ûα╕▓α╕Öα╕░α╕éα╕¡α╕çα╣üα╕äα╕íα╣Çα╕¢α╕ìα╣éα╕åα╕⌐α╕ôα╕▓
 enum CampaignStatus {
   ACTIVE    @map("active")
   PAUSED    @map("paused")
@@ -44,7 +44,7 @@ enum CampaignStatus {
   @@map("campaign_status")
 }
 
-/// Ad Platform - แพลตฟอร์มโฆษณาที่รองรับ
+/// Ad Platform - α╣üα╕₧α╕Ñα╕òα╕ƒα╕¡α╕úα╣îα╕íα╣éα╕åα╕⌐α╕ôα╕▓α╕ùα╕╡α╣êα╕úα╕¡α╕çα╕úα╕▒α╕Ü
 enum AdPlatform {
   GOOGLE_ADS       @map("google_ads")
   FACEBOOK         @map("facebook")
@@ -58,7 +58,7 @@ enum AdPlatform {
   @@map("ad_platform")
 }
 
-/// Notification Channel - ช่องทางการแจ้งเตือน
+/// Notification Channel - α╕èα╣êα╕¡α╕çα╕ùα╕▓α╕çα╕üα╕▓α╕úα╣üα╕êα╣ëα╕çα╣Çα╕òα╕╖α╕¡α╕Ö
 enum NotificationChannel {
   IN_APP  @map("in_app")
   EMAIL   @map("email")
@@ -69,7 +69,7 @@ enum NotificationChannel {
   @@map("notification_channel")
 }
 
-/// Alert Severity - ระดับความรุนแรงของ Alert
+/// Alert Severity - α╕úα╕░α╕öα╕▒α╕Üα╕äα╕ºα╕▓α╕íα╕úα╕╕α╕Öα╣üα╕úα╕çα╕éα╕¡α╕ç Alert
 enum AlertSeverity {
   INFO     @map("info")
   WARNING  @map("warning")
@@ -78,7 +78,7 @@ enum AlertSeverity {
   @@map("alert_severity")
 }
 
-/// Alert Status - สถานะของ Alert
+/// Alert Status - α╕¬α╕ûα╕▓α╕Öα╕░α╕éα╕¡α╕ç Alert
 enum AlertStatus {
   OPEN         @map("open")
   ACKNOWLEDGED @map("acknowledged")
@@ -87,7 +87,7 @@ enum AlertStatus {
   @@map("alert_status")
 }
 
-/// Sync Status - สถานะการ Sync ข้อมูล
+/// Sync Status - α╕¬α╕ûα╕▓α╕Öα╕░α╕üα╕▓α╕ú Sync α╕éα╣ëα╕¡α╕íα╕╣α╕Ñ
 enum SyncStatus {
   PENDING     @map("pending")
   STARTED     @map("started")
@@ -100,7 +100,7 @@ enum SyncStatus {
   @@map("sync_status")
 }
 
-/// Sync Type - ประเภทการ Sync
+/// Sync Type - α╕¢α╕úα╕░α╣Çα╕áα╕ùα╕üα╕▓α╕ú Sync
 enum SyncType {
   INITIAL   @map("initial")
   SCHEDULED @map("scheduled")
@@ -109,7 +109,7 @@ enum SyncType {
   @@map("sync_type")
 }
 
-/// Alert Rule Type - ประเภทกฎแจ้งเตือน
+/// Alert Rule Type - α╕¢α╕úα╕░α╣Çα╕áα╕ùα╕üα╕Äα╣üα╕êα╣ëα╕çα╣Çα╕òα╕╖α╕¡α╕Ö
 enum AlertRuleType {
   THRESHOLD @map("threshold")
   ANOMALY   @map("anomaly")
@@ -120,7 +120,7 @@ enum AlertRuleType {
   @@map("alert_rule_type")
 }
 
-/// Subscription Plan - แพลนการใช้งาน
+/// Subscription Plan - α╣üα╕₧α╕Ñα╕Öα╕üα╕▓α╕úα╣âα╕èα╣ëα╕çα╕▓α╕Ö
 enum SubscriptionPlan {
   BASIC      @map("basic")
   STANDARD   @map("standard")
@@ -129,7 +129,7 @@ enum SubscriptionPlan {
   @@map("subscription_plan")
 }
 
-/// Subscription Status - สถานะการสมัคร
+/// Subscription Status - α╕¬α╕ûα╕▓α╕Öα╕░α╕üα╕▓α╕úα╕¬α╕íα╕▒α╕äα╕ú
 enum SubscriptionStatus {
   ACTIVE   @map("active")
   INACTIVE @map("inactive")
@@ -139,7 +139,7 @@ enum SubscriptionStatus {
   @@map("subscription_status")
 }
 
-/// Ad Group Status - สถานะของ Ad Group
+/// Ad Group Status - α╕¬α╕ûα╕▓α╕Öα╕░α╕éα╕¡α╕ç Ad Group
 enum AdGroupStatus {
   ACTIVE   @map("active")
   PAUSED   @map("paused")
@@ -153,7 +153,7 @@ enum AdGroupStatus {
 // CORE MODELS - Tenant & User Management
 // ============================================================
 
-/// Tenant - องค์กร/ลูกค้า (Multi-tenant Root)
+/// Tenant - α╕¡α╕çα╕äα╣îα╕üα╕ú/α╕Ñα╕╣α╕üα╕äα╣ëα╕▓ (Multi-tenant Root)
 model Tenant {
   id   String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name String @map("name") @db.VarChar(255)
@@ -214,7 +214,7 @@ model Tenant {
   @@map("tenants")
 }
 
-/// User - ผู้ใช้งานในระบบ
+/// User - α╕£α╕╣α╣ëα╣âα╕èα╣ëα╕çα╕▓α╕Öα╣âα╕Öα╕úα╕░α╕Üα╕Ü
 model User {
   id       String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenantId String @map("tenant_id") @db.Uuid
@@ -274,7 +274,7 @@ model User {
   @@map("users")
 }
 
-/// Role - บทบาทและสิทธิ์แบบ Custom
+/// Role - α╕Üα╕ùα╕Üα╕▓α╕ùα╣üα╕Ñα╕░α╕¬α╕┤α╕ùα╕ÿα╕┤α╣îα╣üα╕Üα╕Ü Custom
 model Role {
   id          String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenantId    String  @map("tenant_id") @db.Uuid
@@ -319,7 +319,7 @@ model Session {
 // INTEGRATION & CONNECTOR MODELS
 // ============================================================
 
-/// Integration - การเชื่อมต่อ Platform (Unified)
+/// Integration - α╕üα╕▓α╕úα╣Çα╕èα╕╖α╣êα╕¡α╕íα╕òα╣êα╕¡ Platform (Unified)
 model Integration {
   id       String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenantId String     @map("tenant_id") @db.Uuid
@@ -504,7 +504,7 @@ model PlatformToken {
 // CAMPAIGN & METRICS MODELS
 // ============================================================
 
-/// Campaign - แคมเปญการตลาด
+/// Campaign - α╣üα╕äα╕íα╣Çα╕¢α╕ìα╕üα╕▓α╕úα╕òα╕Ñα╕▓α╕ö
 model Campaign {
   id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenantId      String         @map("tenant_id") @db.Uuid
@@ -560,7 +560,7 @@ model Campaign {
   @@map("campaigns")
 }
 
-/// AdGroup - กลุ่มโฆษณาภายใต้ Campaign
+/// AdGroup - α╕üα╕Ñα╕╕α╣êα╕íα╣éα╕åα╕⌐α╕ôα╕▓α╕áα╕▓α╕óα╣âα╕òα╣ë Campaign
 model AdGroup {
   id         String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenantId   String        @map("tenant_id") @db.Uuid

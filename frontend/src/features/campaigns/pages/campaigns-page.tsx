@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Progress } from '@/components/ui/progress';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -37,8 +38,8 @@ import type { PeriodEnum } from '@/features/dashboard/schemas';
 // Constants
 // =============================================================================
 
-const DEFAULT_PAGE_SIZE = 10;
-const MAX_SELECTION_LIMIT = 10;
+const DEFAULT_PAGE_SIZE = 20;
+const MAX_SELECTION_LIMIT = 20;
 const GLOBAL_QUERY_LIMIT = 1000;
 
 // =============================================================================
@@ -75,6 +76,32 @@ function getDateRangeFromPeriod(period: PeriodEnum): { startDate: string; endDat
         default:
             return { startDate: endDate, endDate };
     }
+}
+
+// =============================================================================
+// Helper Components
+// =============================================================================
+
+function IndeterminateProgress({ className }: { className?: string }) {
+    const [progress, setProgress] = useState(0);
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setProgress((oldProgress) => {
+                if (oldProgress === 100) {
+                    return 0;
+                }
+                const diff = Math.random() * 10;
+                return Math.min(oldProgress + diff, 100);
+            });
+        }, 100);
+
+        return () => {
+            clearInterval(timer);
+        };
+    }, []);
+
+    return <Progress value={progress} className={className} />;
 }
 
 // =============================================================================
@@ -126,11 +153,18 @@ export function CampaignsPage() {
     // ==========================================================================
     useEffect(() => {
         setPage(1);
-        // Clear selection on filter change
-        setSelectedIds(new Set());
-        // Reset "Only Select" mode when filters change
-        setShowSelectedOnly(false);
+        // Removed: setSelectedIds(new Set()); // Allow keeping selection across filter changes
+        // Removed: setShowSelectedOnly(false); // Allow keeping "Selected Only" mode
     }, [debouncedSearch, status, platform, period, sortBy, sortOrder]);
+
+    // ==========================================================================
+    // Auto-exit "Selected Only" Mode when selection is empty
+    // ==========================================================================
+    useEffect(() => {
+        if (showSelectedOnly && selectedIds.size === 0) {
+            setShowSelectedOnly(false);
+        }
+    }, [selectedIds, showSelectedOnly]);
 
     // ==========================================================================
     // Compute Date Range from Period
@@ -279,6 +313,7 @@ export function CampaignsPage() {
 
     const handleClearSelection = useCallback(() => {
         setSelectedIds(new Set());
+        setShowSelectedOnly(false);
     }, []);
 
     // ==========================================================================
@@ -447,29 +482,25 @@ export function CampaignsPage() {
                             Manage your advertising campaigns across all platforms.
                         </p>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <Button
-                            variant="outline"
-                            onClick={handleExport}
-                            disabled={isExporting}
-                        >
-                            {isExporting ? (
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                                <Download className="mr-2 h-4 w-4" />
-                            )}
-                            Export CSV
-                        </Button>
-
-                    </div>
                 </div>
 
                 {/* Time Window Indicator */}
-                <div className="text-sm text-muted-foreground">
-                    Metrics from <span className="font-medium">{dateRange.startDate}</span> to{' '}
-                    <span className="font-medium">{dateRange.endDate}</span>
+                <div className="flex flex-col gap-1">
+                    <div className="text-sm text-muted-foreground flex items-center gap-2">
+                        Metrics from <span className="font-medium">{dateRange.startDate}</span> to{' '}
+                        <span className="font-medium">{dateRange.endDate}</span>
+                    </div>
+                    {/* Loading Bar for Refetching - Explicit Indeterminate Animation */}
                     {isFetching && !isLoading && (
-                        <span className="ml-2 text-xs">(Updating...)</span>
+                        <div className="w-full max-w-[200px] animate-in fade-in zoom-in duration-300">
+                            {/* We manually override the internal style of Progress to create an infinite loading effect 
+                         by using a value of null (which renders 0%) but adding a custom animation class if we could.
+                         Since we can't easily modify Progress internals, we will use a self-updating value. */}
+                            <IndeterminateProgress className="h-2.5 w-full bg-orange-500/20 [&>[data-slot=progress-indicator]]:bg-gradient-to-r [&>[data-slot=progress-indicator]]:from-orange-500 [&>[data-slot=progress-indicator]]:to-amber-500" />
+                            <div className="flex justify-between items-center mt-1">
+                                <span className="text-[10px] text-muted-foreground">Updating data...</span>
+                            </div>
+                        </div>
                     )}
                 </div>
 
@@ -486,6 +517,7 @@ export function CampaignsPage() {
                     onPeriodChange={setPeriod}
                     showSelectedOnly={showSelectedOnly}
                     onShowSelectedOnlyChange={setShowSelectedOnly}
+                    selectedCount={selectedIds.size}
                 />
 
 
@@ -513,12 +545,10 @@ export function CampaignsPage() {
                     selectedIds={selectedIds}
                     onToggleSelect={handleToggleSelect}
                     onToggleAll={handleToggleAll}
-                    onView={handleView}
                     onEdit={handleEdit}
                     onDelete={handleDeleteClick}
-                    onToggleStatus={handleToggleStatus}
 
-                    page={page}
+                    page={showSelectedOnly ? 1 : page}
                     totalPages={totalPages}
                     totalItems={totalItems}
                     pageSize={DEFAULT_PAGE_SIZE}
@@ -577,6 +607,6 @@ export function CampaignsPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-        </DashboardLayout>
+        </DashboardLayout >
     );
 }
