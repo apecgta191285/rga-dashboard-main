@@ -221,7 +221,7 @@ export function SeoPerformanceChart() {
     }
 
     return (
-        <Card className="h-[400px] flex flex-col shadow-sm">
+        <Card className="flex flex-col shadow-sm h-auto sm:h-[400px]">
             <CardHeader className="flex flex-col gap-4 space-y-0 pb-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex flex-wrap items-center gap-4">
                     <CardTitle className="text-base font-semibold">
@@ -235,62 +235,64 @@ export function SeoPerformanceChart() {
                     onCustomRangeChange={(range) => setCustomRange(range)}
                 />
             </CardHeader>
-            <CardContent className="flex-1 min-h-0 pb-4 pt-2">
+            <CardContent className="flex-1 pb-4 pt-2 min-h-[250px] sm:min-h-0">
                 {!hasData ? (
                     <EmptyState />
                 ) : (
-                    <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart
-                            data={data}
-                            margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-                        >
-                            {gradientDefs}
-                            <CartesianGrid
-                                strokeDasharray="3 3"
-                                className="stroke-muted/30"
-                                vertical={false}
-                                stroke="#ccc" // fallback
-                            />
-                            <XAxis
-                                dataKey="date"
-                                tickFormatter={formatXAxis}
-                                tick={{ fontSize: 11 }}
-                                tickLine={false}
-                                axisLine={false}
-                                className="text-muted-foreground"
-                                dy={10}
-                            />
-                            <YAxis
-                                tickFormatter={(v) => formatCompactNumber(v)}
-                                tick={{ fontSize: 11 }}
-                                tickLine={false}
-                                axisLine={false}
-                                width={45}
-                                orientation="right"
-                                className="text-muted-foreground"
-                            />
-                            <Tooltip
-                                content={<CustomTooltip activeMetrics={activeMetrics} />}
-                                cursor={{ stroke: 'var(--muted-foreground)', strokeWidth: 1, strokeDasharray: '4 4' }}
-                            />
+                    <div className="h-[250px] sm:h-full w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart
+                                data={data}
+                                margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                            >
+                                {gradientDefs}
+                                <CartesianGrid
+                                    strokeDasharray="3 3"
+                                    className="stroke-muted/30"
+                                    vertical={false}
+                                    stroke="#ccc" // fallback
+                                />
+                                <XAxis
+                                    dataKey="date"
+                                    tickFormatter={formatXAxis}
+                                    tick={{ fontSize: 11 }}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    className="text-muted-foreground"
+                                    dy={10}
+                                />
+                                <YAxis
+                                    tickFormatter={(v) => formatCompactNumber(v)}
+                                    tick={{ fontSize: 11 }}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    width={45}
+                                    orientation="right"
+                                    className="text-muted-foreground"
+                                />
+                                <Tooltip
+                                    content={<CustomTooltip activeMetrics={activeMetrics} />}
+                                    cursor={{ stroke: 'var(--muted-foreground)', strokeWidth: 1, strokeDasharray: '4 4' }}
+                                />
 
-                            {activeMetrics.map(metric => {
-                                const config = METRIC_CONFIG[metric];
-                                return (
-                                    <Area
-                                        key={metric}
-                                        type="monotone"
-                                        dataKey={metric}
-                                        stroke={config.color}
-                                        strokeWidth={2}
-                                        fill={`url(#${config.gradientId})`}
-                                        animationDuration={500}
-                                        activeDot={{ r: 4, strokeWidth: 0 }}
-                                    />
-                                );
-                            })}
-                        </AreaChart>
-                    </ResponsiveContainer>
+                                {activeMetrics.map(metric => {
+                                    const config = METRIC_CONFIG[metric];
+                                    return (
+                                        <Area
+                                            key={metric}
+                                            type="monotone"
+                                            dataKey={metric}
+                                            stroke={config.color}
+                                            strokeWidth={2}
+                                            fill={`url(#${config.gradientId})`}
+                                            animationDuration={500}
+                                            activeDot={{ r: 4, strokeWidth: 0 }}
+                                        />
+                                    );
+                                })}
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
                 )}
             </CardContent>
             {/* Metric Toggles - Responsive Grid */}

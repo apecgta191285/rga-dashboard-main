@@ -3,7 +3,7 @@
 // Bulk Action Bar - Displays actions for selected campaigns
 // =============================================================================
 
-import { X, Pause, Play, Trash2 } from 'lucide-react';
+import { X, Pause, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 // =============================================================================
@@ -57,35 +57,7 @@ export function BulkActionBar({
             </div>
 
             {/* Bulk Actions - Wrap on mobile */}
-            <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto justify-start sm:justify-end">
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={onPause}
-                    className="gap-2"
-                >
-                    <Pause className="h-4 w-4" />
-                    <span className="hidden xs:inline">Pause</span>
-                </Button>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={onEnable}
-                    className="gap-2"
-                >
-                    <Play className="h-4 w-4" />
-                    <span className="hidden xs:inline">Enable</span>
-                </Button>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={onDelete}
-                    className="gap-2 text-destructive hover:text-destructive"
-                >
-                    <Trash2 className="h-4 w-4" />
-                    <span className="hidden xs:inline">Delete</span>
-                </Button>
-            </div>
+
         </div>
     );
 }

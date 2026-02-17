@@ -167,13 +167,13 @@ export function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
         <AnimatePresence>
             {isOpen && (
                 <motion.div
-                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                    transition={{ duration: 0.2 }}
-                    className="fixed bottom-24 right-6 w-[300px] z-[60] origin-bottom-right"
+                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                    className="fixed bottom-24 right-6 w-[300px] z-[60] origin-bottom-right will-change-transform"
                 >
-                    <Card className="border-0 shadow-2xl overflow-hidden flex flex-col h-[480px] rounded-2xl bg-white/95 backdrop-blur-xl border-slate-100 ring-1 ring-slate-200">
+                    <Card className="border-0 shadow-2xl overflow-hidden flex flex-col h-[480px] max-h-[calc(100dvh-7rem)] rounded-2xl bg-white/95 backdrop-blur-xl border-slate-100 ring-1 ring-slate-200">
                         {/* Header */}
                         <div className="p-3 border-b border-slate-100 bg-white/60 backdrop-blur flex flex-row items-center justify-between shrink-0">
                             <div className="flex items-center gap-2.5">

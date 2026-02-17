@@ -38,8 +38,8 @@ import type { PeriodEnum } from '@/features/dashboard/schemas';
 // Constants
 // =============================================================================
 
-const DEFAULT_PAGE_SIZE = 10;
-const MAX_SELECTION_LIMIT = 10;
+const DEFAULT_PAGE_SIZE = 20;
+const MAX_SELECTION_LIMIT = 20;
 const GLOBAL_QUERY_LIMIT = 1000;
 
 // =============================================================================
@@ -153,11 +153,18 @@ export function CampaignsPage() {
     // ==========================================================================
     useEffect(() => {
         setPage(1);
-        // Clear selection on filter change
-        setSelectedIds(new Set());
-        // Reset "Only Select" mode when filters change
-        setShowSelectedOnly(false);
+        // Removed: setSelectedIds(new Set()); // Allow keeping selection across filter changes
+        // Removed: setShowSelectedOnly(false); // Allow keeping "Selected Only" mode
     }, [debouncedSearch, status, platform, period, sortBy, sortOrder]);
+
+    // ==========================================================================
+    // Auto-exit "Selected Only" Mode when selection is empty
+    // ==========================================================================
+    useEffect(() => {
+        if (showSelectedOnly && selectedIds.size === 0) {
+            setShowSelectedOnly(false);
+        }
+    }, [selectedIds, showSelectedOnly]);
 
     // ==========================================================================
     // Compute Date Range from Period
@@ -306,6 +313,7 @@ export function CampaignsPage() {
 
     const handleClearSelection = useCallback(() => {
         setSelectedIds(new Set());
+        setShowSelectedOnly(false);
     }, []);
 
     // ==========================================================================
@@ -474,21 +482,6 @@ export function CampaignsPage() {
                             Manage your advertising campaigns across all platforms.
                         </p>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <Button
-                            variant="outline"
-                            onClick={handleExport}
-                            disabled={isExporting}
-                        >
-                            {isExporting ? (
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                                <Download className="mr-2 h-4 w-4" />
-                            )}
-                            Export CSV
-                        </Button>
-
-                    </div>
                 </div>
 
                 {/* Time Window Indicator */}
@@ -524,6 +517,7 @@ export function CampaignsPage() {
                     onPeriodChange={setPeriod}
                     showSelectedOnly={showSelectedOnly}
                     onShowSelectedOnlyChange={setShowSelectedOnly}
+                    selectedCount={selectedIds.size}
                 />
 
 
@@ -551,12 +545,10 @@ export function CampaignsPage() {
                     selectedIds={selectedIds}
                     onToggleSelect={handleToggleSelect}
                     onToggleAll={handleToggleAll}
-                    onView={handleView}
                     onEdit={handleEdit}
                     onDelete={handleDeleteClick}
-                    onToggleStatus={handleToggleStatus}
 
-                    page={page}
+                    page={showSelectedOnly ? 1 : page}
                     totalPages={totalPages}
                     totalItems={totalItems}
                     pageSize={DEFAULT_PAGE_SIZE}
@@ -615,6 +607,6 @@ export function CampaignsPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-        </DashboardLayout>
+        </DashboardLayout >
     );
 }

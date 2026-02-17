@@ -186,7 +186,7 @@ export default function Users() {
           value={formData.role}
           onValueChange={(value) => handleFieldChange('role', value)}
         >
-          <SelectTrigger className={formErrors.role ? 'border-destructive' : ''}>
+          <SelectTrigger id="role" className={formErrors.role ? 'border-destructive' : ''}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

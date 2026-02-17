@@ -438,8 +438,7 @@ export function CampaignsTable({
                                     </TableHead>
                                 ))}
 
-                                {/* 5. ACTIONS (Fixed) */}
-                                <TableHead className="w-[50px]"></TableHead>
+
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -479,36 +478,7 @@ export function CampaignsTable({
                                             </TableCell>
                                         ))}
 
-                                        {/* 5. ACTIONS */}
-                                        <TableCell>
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                        <MoreHorizontal className="h-4 w-4" />
-                                                        <span className="sr-only">Open menu</span>
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem onClick={() => onView?.(campaign)}>
-                                                        <Eye className="mr-2 h-4 w-4" /> View Details
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => onEdit?.(campaign)}>
-                                                        <Edit className="mr-2 h-4 w-4" /> Edit Campaign
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => onToggleStatus?.(campaign)}>
-                                                        {campaign.status === 'active' ? (
-                                                            <><Pause className="mr-2 h-4 w-4" /> Pause Campaign</>
-                                                        ) : (
-                                                            <><Play className="mr-2 h-4 w-4" /> Activate Campaign</>
-                                                        )}
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuSeparator />
-                                                    <DropdownMenuItem onClick={() => onDelete?.(campaign)} className="text-destructive focus:text-destructive">
-                                                        <Trash2 className="mr-2 h-4 w-4" /> Delete Campaign
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </TableCell>
+
                                     </TableRow>
                                 );
                             })}
