@@ -1,12 +1,6 @@
-<<<<<<< HEAD
-import { Controller, Get, UseGuards, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../../modules/auth/guards/jwt-auth.guard';
-=======
 import { Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
->>>>>>> origin/wip/salvage-stash-seo-db-fix
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { SeoService } from './seo.service';
 
@@ -17,7 +11,8 @@ import { SeoService } from './seo.service';
 export class SeoController {
     constructor(private readonly seoService: SeoService) { }
 
-<<<<<<< HEAD
+    // --- Endpoints from HEAD (Current) ---
+
     @Get('summary')
     @ApiOperation({ summary: 'Get SEO summary metrics' })
     async getSummary(@CurrentUser() user: any) {
@@ -40,7 +35,10 @@ export class SeoController {
     @ApiOperation({ summary: 'Get SEO traffic by location' })
     async getTrafficByLocation(@CurrentUser() user: any) {
         return this.seoService.getSeoTrafficByLocation(user.tenantId);
-=======
+    }
+
+    // --- Endpoints from Incoming (WIP) ---
+
     @Get('overview')
     @ApiOperation({ summary: 'Get SEO overview (GA4 + GSC)' })
     @ApiQuery({ name: 'period', required: false, description: 'Time period (7d, 14d, 30d, 90d). Default: 30d' })
@@ -73,6 +71,5 @@ export class SeoController {
     ) {
         const daysNum = days ? Math.max(1, parseInt(days, 10) || 30) : 30;
         return this.seoService.syncGscForTenant(tenantId, { days: daysNum });
->>>>>>> origin/wip/salvage-stash-seo-db-fix
     }
 }
