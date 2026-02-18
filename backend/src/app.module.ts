@@ -29,6 +29,7 @@ import { NotificationModule } from './modules/notification/notification.module';
 import { envValidationSchema } from './config/env.validation';
 import { CommonModule } from './common/common.module';
 import { ChatModule } from './modules/chat/chat.module';
+import { AiModule } from './modules/ai/ai.module';
 
 
 
@@ -88,8 +89,8 @@ import { ChatModule } from './modules/chat/chat.module';
     SeoModule,
     HealthModule, // Health Check
     NotificationModule, // Notification System (Sprint 4)
-    SeoModule, // SEO System
     ChatModule, // Chat Persistence System
+    AiModule, // AI Analytics & History
     CommonModule, // Shared Services (Encryption, etc.)
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires
