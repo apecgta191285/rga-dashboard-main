@@ -77,6 +77,8 @@ export class MetricsService {
         startDate: Date,
         endDate: Date,
     ) {
+        const hideMockData = process.env.HIDE_MOCK_DATA === 'true';
+
         const result = await this.prisma.metric.aggregate({
             where: {
                 campaign: { tenantId },
@@ -84,6 +86,7 @@ export class MetricsService {
                     gte: startDate,
                     lte: endDate,
                 },
+                ...(hideMockData ? { isMockData: false } : {}),
             },
             _sum: {
                 impressions: true,
@@ -107,6 +110,7 @@ export class MetricsService {
                     gte: startDate,
                     lte: endDate,
                 },
+                ...(hideMockData ? { isMockData: false } : {}),
             },
             _sum: {
                 sessions: true,
@@ -168,6 +172,8 @@ export class MetricsService {
         const days = DateRangeUtil.parsePeriodDays(period);
         const { startDate, endDate } = DateRangeUtil.getDateRange(days);
 
+        const hideMockData = process.env.HIDE_MOCK_DATA === 'true';
+
         const metrics = await this.prisma.metric.groupBy({
             by: ['date'],
             where: {
@@ -176,6 +182,7 @@ export class MetricsService {
                     gte: startDate,
                     lte: endDate,
                 },
+                ...(hideMockData ? { isMockData: false } : {}),
             },
             _sum: {
                 impressions: true,
@@ -211,6 +218,178 @@ export class MetricsService {
                     roas: spend > 0 ? revenue / spend : 0,
                 };
             }),
+        };
+    }
+
+    async getTimeSeries(
+        tenantId: string,
+        metric: 'impressions' | 'clicks' | 'spend' | 'conversions' | 'revenue' | 'sessions',
+        startDate: Date,
+        endDate: Date,
+    ) {
+        const hideMockData = process.env.HIDE_MOCK_DATA === 'true';
+
+        if (metric === 'sessions') {
+            const rows = await this.prisma.webAnalyticsDaily.groupBy({
+                by: ['date'],
+                where: {
+                    tenantId,
+                    date: {
+                        gte: startDate,
+                        lte: endDate,
+                    },
+                    ...(hideMockData ? { isMockData: false } : {}),
+                },
+                _sum: {
+                    sessions: true,
+                },
+                orderBy: {
+                    date: 'asc',
+                },
+            });
+
+            return {
+                metric,
+                startDate,
+                endDate,
+                data: rows.map((r) => ({
+                    date: r.date.toISOString().split('T')[0],
+                    value: r._sum.sessions ?? 0,
+                })),
+            };
+        }
+
+        if (metric === 'impressions') {
+            const rows = await this.prisma.metric.groupBy({
+                by: ['date'],
+                where: {
+                    tenantId,
+                    date: {
+                        gte: startDate,
+                        lte: endDate,
+                    },
+                    ...(hideMockData ? { isMockData: false } : {}),
+                },
+                _sum: { impressions: true },
+                orderBy: {
+                    date: 'asc',
+                },
+            });
+            return {
+                metric,
+                startDate,
+                endDate,
+                data: rows.map((r) => ({
+                    date: r.date.toISOString().split('T')[0],
+                    value: r._sum.impressions ?? 0,
+                })),
+            };
+        }
+
+        if (metric === 'clicks') {
+            const rows = await this.prisma.metric.groupBy({
+                by: ['date'],
+                where: {
+                    tenantId,
+                    date: {
+                        gte: startDate,
+                        lte: endDate,
+                    },
+                    ...(hideMockData ? { isMockData: false } : {}),
+                },
+                _sum: { clicks: true },
+                orderBy: {
+                    date: 'asc',
+                },
+            });
+            return {
+                metric,
+                startDate,
+                endDate,
+                data: rows.map((r) => ({
+                    date: r.date.toISOString().split('T')[0],
+                    value: r._sum.clicks ?? 0,
+                })),
+            };
+        }
+
+        if (metric === 'conversions') {
+            const rows = await this.prisma.metric.groupBy({
+                by: ['date'],
+                where: {
+                    tenantId,
+                    date: {
+                        gte: startDate,
+                        lte: endDate,
+                    },
+                    ...(hideMockData ? { isMockData: false } : {}),
+                },
+                _sum: { conversions: true },
+                orderBy: {
+                    date: 'asc',
+                },
+            });
+            return {
+                metric,
+                startDate,
+                endDate,
+                data: rows.map((r) => ({
+                    date: r.date.toISOString().split('T')[0],
+                    value: r._sum.conversions ?? 0,
+                })),
+            };
+        }
+
+        if (metric === 'spend') {
+            const rows = await this.prisma.metric.groupBy({
+                by: ['date'],
+                where: {
+                    tenantId,
+                    date: {
+                        gte: startDate,
+                        lte: endDate,
+                    },
+                    ...(hideMockData ? { isMockData: false } : {}),
+                },
+                _sum: { spend: true },
+                orderBy: {
+                    date: 'asc',
+                },
+            });
+            return {
+                metric,
+                startDate,
+                endDate,
+                data: rows.map((r) => ({
+                    date: r.date.toISOString().split('T')[0],
+                    value: toNumber(r._sum.spend),
+                })),
+            };
+        }
+
+        const rows = await this.prisma.metric.groupBy({
+            by: ['date'],
+            where: {
+                tenantId,
+                date: {
+                    gte: startDate,
+                    lte: endDate,
+                },
+                ...(hideMockData ? { isMockData: false } : {}),
+            },
+            _sum: { revenue: true },
+            orderBy: {
+                date: 'asc',
+            },
+        });
+        return {
+            metric,
+            startDate,
+            endDate,
+            data: rows.map((r) => ({
+                date: r.date.toISOString().split('T')[0],
+                value: toNumber(r._sum.revenue),
+            })),
         };
     }
 

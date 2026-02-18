@@ -9,6 +9,8 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+import VerifyEmail from "./pages/VerifyEmail";
 // ✅ NEW: Import from feature module (replaces legacy pages/Dashboard)
 import { DashboardPage } from "@/features/dashboard";
 // ✅ NEW: Import from feature module (replaces legacy pages/Campaigns)
@@ -17,6 +19,8 @@ import { CampaignsPage, CampaignDetailsPage } from "@/features/campaigns";
 import { DataSourcesPage } from "@/features/data-sources";
 // ✅ NEW: Import from feature module (replaces legacy pages/SeoWebAnalytics)
 import { SeoPage } from "@/features/seo";
+import { AiInsightsPage } from "@/features/ai-insights";
+import { EcommerceLandingPage } from '@/features/ecommerce-landing';
 import Users from "./pages/Users";
 import Integrations from "./pages/Integrations";
 import Settings from "./pages/Settings";
@@ -33,7 +37,14 @@ function Router() {
     <Switch>
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
+      <Route path="/verify-email" component={VerifyEmail} />
       <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/reset-password" component={ResetPassword} />
+      <Route path="/landing/ecommerce" component={EcommerceLandingPage} />
+      {/* ✅ NEW: AI Insights Page */}
+      <Route path="/ai-insights">
+        {() => <ProtectedRoute><AiInsightsPage /></ProtectedRoute>}
+      </Route>
       {/* ✅ NEW: Use feature-based DashboardPage with ProtectedRoute wrapper */}
       <Route path="/dashboard">
         {() => <ProtectedRoute><DashboardPage /></ProtectedRoute>}
