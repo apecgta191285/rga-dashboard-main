@@ -57,6 +57,7 @@ const NAV_GROUPS: NavGroup[] = [
     {
         title: 'Intelligence',
         items: [
+            { label: 'AI Insights', href: '/ai-insights', icon: Zap, comingSoon: true },
             { label: 'SEO & Web', href: '/seo-web-analytics', icon: Search },
             { label: 'AI Insights & Tools', href: '/ai-insights', icon: Sparkles },
             { label: 'E-commerce Insights', href: '/ecommerce-insights', icon: TrendingUp },
