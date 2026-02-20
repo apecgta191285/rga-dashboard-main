@@ -80,8 +80,8 @@ export function NotificationWindow({
                     initial={{ opacity: 0, scale: 0.9, y: -10 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.9, y: -10 }}
-                    transition={{ duration: 0.2 }}
-                    className="fixed top-16 right-6 w-[340px] z-50 origin-top-right"
+                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                    className="fixed top-16 right-6 w-[calc(100vw-3rem)] max-w-[340px] z-50 origin-top-right"
                 >
                     <Card className="shadow-xl border-border/60">
                         <CardHeader className="p-4 border-b flex flex-row items-center justify-between space-y-0 bg-slate-50/50">
@@ -109,7 +109,7 @@ export function NotificationWindow({
                             </div>
                         </CardHeader>
 
-                        <ScrollArea className="h-[300px]">
+                        <ScrollArea className="h-[300px] max-h-[calc(100vh-16rem)]">
                             {notifications.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center h-full text-center p-6 text-muted-foreground">
                                     <Bell className="h-10 w-10 mb-2 opacity-20" />

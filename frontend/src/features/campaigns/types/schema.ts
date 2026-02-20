@@ -21,7 +21,7 @@ export const createCampaignSchema = z.object({
     }),
 
     // Status selection - required enum
-    status: z.enum(['active', 'draft', 'paused'], {
+    status: z.enum(['active', 'draft', 'paused', 'completed'], {
         required_error: 'Please select a status',
     }),
 
@@ -62,7 +62,7 @@ export type CreateCampaignFormData = z.infer<typeof createCampaignSchema>;
 export const defaultCampaignValues: Partial<CreateCampaignFormData> = {
     name: '',
     platform: undefined,
-    status: 'draft',
+    status: 'completed',
     budget: undefined,
     startDate: undefined,
     endDate: undefined,

@@ -67,7 +67,7 @@ const METRIC_CONFIG: Record<MetricKey, MetricConfig> = {
         isCurrency: true
     },
     avgPosition: {
-        label: 'Position',
+        label: 'Avg. Position',
         color: '#f59e0b', // Amber-500
         gradientId: 'gradientAvgPosition',
         formatValue: (v) => v.toFixed(1)
@@ -82,8 +82,8 @@ const METRIC_CONFIG: Record<MetricKey, MetricConfig> = {
     dr: { label: 'Domain Rating', color: '#64748b', gradientId: 'gDr', formatValue: (v) => v.toString() },
     ur: { label: 'URL Rating', color: '#64748b', gradientId: 'gUr', formatValue: (v) => v.toString() },
     organicTrafficValue: { label: 'Organic Traffic Value', color: '#f97316', gradientId: 'gOtv', formatValue: (v) => `฿${formatCompactNumber(v)}` },
-    organicPages: { label: 'Organic Pages', color: '#10b981', gradientId: 'gOp', formatValue: formatCompactNumber, isComingSoon: true },
-    crawledPages: { label: 'Crawled Pages', color: '#8b5cf6', gradientId: 'gCp', formatValue: formatCompactNumber, isComingSoon: true },
+    organicPages: { label: 'Organic Pages', color: '#10b981', gradientId: 'gOp', formatValue: formatCompactNumber },
+    crawledPages: { label: 'Crawled Pages', color: '#8b5cf6', gradientId: 'gCp', formatValue: formatCompactNumber },
 };
 
 interface CustomTooltipProps {
@@ -107,8 +107,8 @@ function CustomTooltip({ active, payload, activeMetrics }: CustomTooltipProps) {
             <div className="flex flex-col gap-1.5">
                 {activeMetrics.map(metricKey => {
                     const config = METRIC_CONFIG[metricKey];
-                    // Skip if metric is placeholder/coming soon and not in payload
-                    if (config.isComingSoon || data.payload[metricKey] === undefined) return null;
+                    // Skip if metric is not in payload
+                    if (data.payload[metricKey] === undefined) return null;
 
                     const item = payload.find((p: any) => p.dataKey === metricKey);
                     const value = item ? item.value : 0;
@@ -143,7 +143,7 @@ function EmptyState() {
 }
 
 export function SeoPerformanceChart() {
-    const [period, setPeriod] = useState<PeriodEnum>('7d');
+    const [period, setPeriod] = useState<PeriodEnum>('30d');
     const [customRange, setCustomRange] = useState<{ from: Date; to: Date } | undefined>();
     const [activeMetrics, setActiveMetrics] = useState<MetricKey[]>(['organicTraffic', 'avgPosition']);
 
@@ -171,8 +171,7 @@ export function SeoPerformanceChart() {
     });
 
     const toggleMetric = (metric: MetricKey) => {
-        const config = METRIC_CONFIG[metric];
-        if (config.isComingSoon) return;
+        // All metrics are now available - no coming soon check needed
 
         setActiveMetrics((prev) => {
             if (prev.includes(metric)) {
@@ -221,7 +220,7 @@ export function SeoPerformanceChart() {
     }
 
     return (
-        <Card className="h-[400px] flex flex-col shadow-sm">
+        <Card className="flex flex-col shadow-sm h-auto sm:h-[400px]">
             <CardHeader className="flex flex-col gap-4 space-y-0 pb-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex flex-wrap items-center gap-4">
                     <CardTitle className="text-base font-semibold">
@@ -235,62 +234,64 @@ export function SeoPerformanceChart() {
                     onCustomRangeChange={(range) => setCustomRange(range)}
                 />
             </CardHeader>
-            <CardContent className="flex-1 min-h-0 pb-4 pt-2">
+            <CardContent className="flex-1 pb-4 pt-2 min-h-[250px] sm:min-h-0">
                 {!hasData ? (
                     <EmptyState />
                 ) : (
-                    <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart
-                            data={data}
-                            margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-                        >
-                            {gradientDefs}
-                            <CartesianGrid
-                                strokeDasharray="3 3"
-                                className="stroke-muted/30"
-                                vertical={false}
-                                stroke="#ccc" // fallback
-                            />
-                            <XAxis
-                                dataKey="date"
-                                tickFormatter={formatXAxis}
-                                tick={{ fontSize: 11 }}
-                                tickLine={false}
-                                axisLine={false}
-                                className="text-muted-foreground"
-                                dy={10}
-                            />
-                            <YAxis
-                                tickFormatter={(v) => formatCompactNumber(v)}
-                                tick={{ fontSize: 11 }}
-                                tickLine={false}
-                                axisLine={false}
-                                width={45}
-                                orientation="right"
-                                className="text-muted-foreground"
-                            />
-                            <Tooltip
-                                content={<CustomTooltip activeMetrics={activeMetrics} />}
-                                cursor={{ stroke: 'var(--muted-foreground)', strokeWidth: 1, strokeDasharray: '4 4' }}
-                            />
+                    <div className="h-[250px] sm:h-full w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart
+                                data={data}
+                                margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                            >
+                                {gradientDefs}
+                                <CartesianGrid
+                                    strokeDasharray="3 3"
+                                    className="stroke-muted/30"
+                                    vertical={false}
+                                    stroke="#ccc" // fallback
+                                />
+                                <XAxis
+                                    dataKey="date"
+                                    tickFormatter={formatXAxis}
+                                    tick={{ fontSize: 11 }}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    className="text-muted-foreground"
+                                    dy={10}
+                                />
+                                <YAxis
+                                    tickFormatter={(v) => formatCompactNumber(v)}
+                                    tick={{ fontSize: 11 }}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    width={45}
+                                    orientation="right"
+                                    className="text-muted-foreground"
+                                />
+                                <Tooltip
+                                    content={<CustomTooltip activeMetrics={activeMetrics} />}
+                                    cursor={{ stroke: 'var(--muted-foreground)', strokeWidth: 1, strokeDasharray: '4 4' }}
+                                />
 
-                            {activeMetrics.map(metric => {
-                                const config = METRIC_CONFIG[metric];
-                                return (
-                                    <Area
-                                        key={metric}
-                                        type="monotone"
-                                        dataKey={metric}
-                                        stroke={config.color}
-                                        strokeWidth={2}
-                                        fill={`url(#${config.gradientId})`}
-                                        animationDuration={500}
-                                        activeDot={{ r: 4, strokeWidth: 0 }}
-                                    />
-                                );
-                            })}
-                        </AreaChart>
-                    </ResponsiveContainer>
+                                {activeMetrics.map(metric => {
+                                    const config = METRIC_CONFIG[metric];
+                                    return (
+                                        <Area
+                                            key={metric}
+                                            type="monotone"
+                                            dataKey={metric}
+                                            stroke={config.color}
+                                            strokeWidth={2}
+                                            fill={`url(#${config.gradientId})`}
+                                            animationDuration={500}
+                                            activeDot={{ r: 4, strokeWidth: 0 }}
+                                        />
+                                    );
+                                })}
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
                 )}
             </CardContent>
             {/* Metric Toggles - Responsive Grid */}
@@ -299,20 +300,17 @@ export function SeoPerformanceChart() {
                     {(Object.keys(METRIC_CONFIG) as MetricKey[]).map((key) => {
                         const config = METRIC_CONFIG[key];
                         const isActive = activeMetrics.includes(key);
-                        const isComingSoon = config.isComingSoon;
 
                         return (
                             <button
                                 key={key}
                                 onClick={() => toggleMetric(key)}
-                                disabled={isComingSoon}
                                 className={`
                                     flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all duration-200 border whitespace-nowrap
                                     ${isActive
                                         ? 'bg-primary/10 border-primary/20 text-foreground shadow-sm'
                                         : 'bg-transparent border-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
                                     }
-                                    ${isComingSoon ? 'opacity-40 cursor-not-allowed bg-muted/20' : ''}
                                 `}
                                 style={isActive ? {
                                     borderColor: config.color,
@@ -324,7 +322,7 @@ export function SeoPerformanceChart() {
                                     className={`h-2 w-2 rounded-full transition-all ${isActive ? 'opacity-100' : 'opacity-40 grayscale'}`}
                                     style={{ backgroundColor: config.color }}
                                 />
-                                {config.label} {isComingSoon && '(Soon)'}
+                                {config.label}
                             </button>
                         );
                     })}

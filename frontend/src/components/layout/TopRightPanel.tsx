@@ -1,5 +1,5 @@
 import { NotificationWidget } from '@/features/notifications';
-import { ContactButton } from '@/components/layout/ContactButton';
+import { ContactButton } from '@/components/ui/ContactButton';
 
 /**
  * TopRightPanel - Container for top-right floating action widgets
