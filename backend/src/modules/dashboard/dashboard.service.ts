@@ -43,6 +43,20 @@ export class DashboardService {
     private prisma: PrismaService,
   ) { }
 
+  private async getConnectedAdPlatforms(tenantId: string): Promise<AdPlatform[]> {
+    const integrations = await this.prisma.integration.findMany({
+      where: {
+        tenantId,
+        isActive: true,
+        status: 'CONNECTED',
+        type: { in: [AdPlatform.GOOGLE_ADS, AdPlatform.FACEBOOK, AdPlatform.TIKTOK, AdPlatform.LINE_ADS] },
+      },
+      select: { type: true },
+    });
+
+    return integrations.map((i) => i.type as AdPlatform);
+  }
+
   async getSummary(tenantId: string, days: number = 30) {
     const hideMockData = process.env.HIDE_MOCK_DATA === 'true';
     const { startDate: currentStartDate, endDate: today } = DateRangeUtil.getDateRange(days);
@@ -560,6 +574,9 @@ export class DashboardService {
       endDate = dateRange.endDate;
     }
 
+    const connectedPlatforms = await this.getConnectedAdPlatforms(tenantId);
+    const platformWhere = connectedPlatforms.length > 0 ? { platform: { in: connectedPlatforms } } : undefined;
+
     // Get previous period for comparison
     const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     const previousPeriod = {
@@ -572,6 +589,7 @@ export class DashboardService {
       where: {
         tenantId,
         date: { gte: startDate, lte: endDate },
+        ...(platformWhere ?? {}),
         ...(hideMockData ? { isMockData: false } : {}),
         // Include all data (real + mock)
       },
@@ -589,6 +607,7 @@ export class DashboardService {
       where: {
         tenantId,
         date: { gte: previousPeriod.startDate, lte: previousPeriod.endDate },
+        ...(platformWhere ?? {}),
         ...(hideMockData ? { isMockData: false } : {}),
         // Include all data (real + mock)
       },
@@ -607,6 +626,7 @@ export class DashboardService {
       where: {
         tenantId,
         date: { gte: startDate, lte: endDate },
+        ...(platformWhere ?? {}),
         ...(hideMockData ? { isMockData: false } : {}),
         // Include all data (real + mock)
       },
@@ -629,6 +649,7 @@ export class DashboardService {
       where: {
         campaign: { tenantId },
         date: { gte: startDate, lte: endDate },
+        ...(platformWhere ?? {}),
         ...(hideMockData ? { isMockData: false } : {}),
       },
       _sum: {
@@ -651,13 +672,20 @@ export class DashboardService {
 
     if (campaignIds.length > 0) {
       campaignDetails = await this.prisma.campaign.findMany({
-        where: { id: { in: campaignIds }, tenantId },
+        where: {
+          id: { in: campaignIds },
+          tenantId,
+          ...(connectedPlatforms.length > 0 ? { platform: { in: connectedPlatforms } } : {}),
+        },
         select: { id: true, name: true, status: true, platform: true, budget: true }
       });
     } else {
       // Fallback: 5 most recently updated campaigns
       campaignDetails = await this.prisma.campaign.findMany({
-        where: { tenantId },
+        where: {
+          tenantId,
+          ...(connectedPlatforms.length > 0 ? { platform: { in: connectedPlatforms } } : {}),
+        },
         orderBy: { updatedAt: 'desc' },
         take: 5,
         select: { id: true, name: true, status: true, platform: true, budget: true }
