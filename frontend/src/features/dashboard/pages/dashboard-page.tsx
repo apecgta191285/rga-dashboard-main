@@ -20,6 +20,7 @@ import { RecentCampaigns } from '../components/widgets/recent-campaigns';
 import { ConversionFunnel } from '../components/widgets/conversion-funnel';
 import { FinancialOverview } from '../components/widgets/financial-overview';
 import { useDashboardOverview } from '../hooks/use-dashboard';
+import { useEmptyState } from '../hooks/use-empty-state';
 import type { AdPlatform, PeriodEnum, RecentCampaign } from '../schemas';
 
 // =============================================================================
@@ -209,6 +210,17 @@ export function DashboardPage() {
     const estimatedRevenue = totalCost * roas;
     const estimatedProfit = estimatedRevenue - totalCost;
 
+    // Empty state detection for new users
+    const { isEmpty, handleEmptyStateClick } = useEmptyState(data);
+
+    // Handlers for empty state - redirect to pricing when clicked
+    const onMetricsClick = handleEmptyStateClick(undefined);
+    const onAiSummariesClick = handleEmptyStateClick(undefined);
+    const onTrendChartClick = handleEmptyStateClick(undefined);
+    const onRecentCampaignsClick = handleEmptyStateClick(undefined);
+    const onFinancialOverviewClick = handleEmptyStateClick(undefined);
+    const onConversionFunnelClick = handleEmptyStateClick(undefined);
+
     return (
         <DashboardLayout>
             <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
@@ -233,11 +245,13 @@ export function DashboardPage() {
                 {/* Metrics Grid */}
                 <section>
                     <h3 className="sr-only">Key Performance Metrics</h3>
-                    <DashboardMetrics
-                        summary={data?.summary}
-                        growth={data?.growth}
-                        loading={isLoading}
-                    />
+                    <div onClick={onMetricsClick} className={isEmpty ? 'cursor-pointer' : ''}>
+                        <DashboardMetrics
+                            summary={data?.summary}
+                            growth={data?.growth}
+                            loading={isLoading}
+                        />
+                    </div>
                 </section>
 
                 {/* AI Summaries */}
@@ -246,7 +260,9 @@ export function DashboardPage() {
                     {isLoading ? (
                         <Skeleton className="h-[160px] w-full rounded-3xl" />
                     ) : (
-                        <AiSummaries summary={data?.summary} growth={data?.growth} />
+                        <div onClick={onAiSummariesClick} className={isEmpty ? 'cursor-pointer' : ''}>
+                            <AiSummaries summary={data?.summary} growth={data?.growth} />
+                        </div>
                     )}
                 </section>
 
@@ -259,13 +275,15 @@ export function DashboardPage() {
                             {isLoading ? (
                                 <Skeleton className="h-[400px] w-full rounded-lg" />
                             ) : (
-                                <TrendChart
-                                    data={data?.trends ?? []}
-                                    period={period}
-                                    onPeriodChange={setPeriod}
-                                    customRange={customRange}
-                                    onCustomRangeChange={setCustomRange}
-                                />
+                                <div onClick={onTrendChartClick} className={isEmpty ? 'cursor-pointer h-full' : 'h-full'}>
+                                    <TrendChart
+                                        data={data?.trends ?? []}
+                                        period={period}
+                                        onPeriodChange={setPeriod}
+                                        customRange={customRange}
+                                        onCustomRangeChange={setCustomRange}
+                                    />
+                                </div>
                             )}
                         </div>
 
@@ -274,7 +292,9 @@ export function DashboardPage() {
                             {isLoading ? (
                                 <Skeleton className="h-[400px] w-full rounded-lg" />
                             ) : (
-                                <RecentCampaigns campaigns={data?.recentCampaigns ?? []} />
+                                <div onClick={onRecentCampaignsClick} className={isEmpty ? 'cursor-pointer h-full' : 'h-full'}>
+                                    <RecentCampaigns campaigns={data?.recentCampaigns ?? []} />
+                                </div>
                             )}
                         </div>
                     </div>
@@ -287,39 +307,43 @@ export function DashboardPage() {
                         {isLoading ? (
                             <Skeleton className="h-[400px] w-full rounded-3xl" />
                         ) : (
-                            <FinancialOverview
-                                subtitle="ROAS"
-                                roi={data?.summary.averageRoas ?? 0}
-                                total={totalCost}
-                                currency="THB"
-                                breakdown={financialBreakdown}
-                                summary={[
-                                    {
-                                        label: 'Revenue',
-                                        value: estimatedRevenue,
-                                        deltaLabel: formatPercentDelta(combineGrowth(data?.growth.costGrowth, data?.growth.roasGrowth)),
-                                        deltaClassName: deltaClassName(combineGrowth(data?.growth.costGrowth, data?.growth.roasGrowth)),
-                                    },
-                                    {
-                                        label: 'Profit',
-                                        value: estimatedProfit,
-                                        deltaLabel: formatPercentDelta(combineGrowth(data?.growth.costGrowth, data?.growth.roiGrowth)),
-                                        deltaClassName: deltaClassName(combineGrowth(data?.growth.costGrowth, data?.growth.roiGrowth)),
-                                    },
-                                    {
-                                        label: 'Cost',
-                                        value: totalCost,
-                                        deltaLabel: formatPercentDelta(data?.growth.costGrowth),
-                                        deltaClassName: deltaClassName(data?.growth.costGrowth),
-                                    },
-                                ]}
-                            />
+                            <div onClick={onFinancialOverviewClick} className={isEmpty ? 'cursor-pointer' : ''}>
+                                <FinancialOverview
+                                    subtitle="ROAS"
+                                    roi={data?.summary.averageRoas ?? 0}
+                                    total={totalCost}
+                                    currency="THB"
+                                    breakdown={financialBreakdown}
+                                    summary={[
+                                        {
+                                            label: 'Revenue',
+                                            value: estimatedRevenue,
+                                            deltaLabel: formatPercentDelta(combineGrowth(data?.growth.costGrowth, data?.growth.roasGrowth)),
+                                            deltaClassName: deltaClassName(combineGrowth(data?.growth.costGrowth, data?.growth.roasGrowth)),
+                                        },
+                                        {
+                                            label: 'Profit',
+                                            value: estimatedProfit,
+                                            deltaLabel: formatPercentDelta(combineGrowth(data?.growth.costGrowth, data?.growth.roiGrowth)),
+                                            deltaClassName: deltaClassName(combineGrowth(data?.growth.costGrowth, data?.growth.roiGrowth)),
+                                        },
+                                        {
+                                            label: 'Cost',
+                                            value: totalCost,
+                                            deltaLabel: formatPercentDelta(data?.growth.costGrowth),
+                                            deltaClassName: deltaClassName(data?.growth.costGrowth),
+                                        },
+                                    ]}
+                                />
+                            </div>
                         )}
 
                         {isLoading ? (
                             <Skeleton className="h-[400px] w-full rounded-3xl" />
                         ) : (
-                            <ConversionFunnel stages={funnelStages} platformStages={platformFunnelStages} />
+                            <div onClick={onConversionFunnelClick} className={isEmpty ? 'cursor-pointer' : ''}>
+                                <ConversionFunnel stages={funnelStages} platformStages={platformFunnelStages} />
+                            </div>
                         )}
                     </div>
                 </section>

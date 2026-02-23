@@ -1,5 +1,5 @@
 ﻿import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { setupTestContext, cleanupTestContext, TestContext } from './test-utils';
 
 describe('Users E2E Tests', () => {

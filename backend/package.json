@@ -14,7 +14,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
-    "test:e2e": "cross-env NODE_OPTIONS=--max-old-space-size=4096 jest --testRegex='.e2e.spec.ts$' --runInBand --forceExit"
+    "test:e2e": "cross-env NODE_OPTIONS=--max-old-space-size=4096 jest --testRegex='.e2e.spec.ts$' --runInBand --forceExit",
+    "toolkit:smoke": "node scripts/toolkit/smoke-local.js"
   },
   "dependencies": {
     "@faker-js/faker": "^10.2.0",
@@ -67,6 +68,7 @@
     "@types/express": "^4.17.17",
     "@types/jest": "^30.0.0",
     "@types/node": "^20.3.1",
+    "@types/nodemailer": "^7.0.11",
     "@types/passport-jwt": "^3.0.13",
     "@types/supertest": "^6.0.3",
     "cross-env": "^7.0.3",

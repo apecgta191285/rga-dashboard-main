@@ -30,7 +30,7 @@ import { envValidationSchema } from './config/env.validation';
 import { CommonModule } from './common/common.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { AiModule } from './modules/ai/ai.module';
-
+import { EntitlementsModule } from './modules/entitlements/entitlements.module';
 
 
 @Module({
@@ -92,6 +92,7 @@ import { AiModule } from './modules/ai/ai.module';
     ChatModule, // Chat Persistence System
     AiModule, // AI Analytics & History
     CommonModule, // Shared Services (Encryption, etc.)
+    EntitlementsModule,
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     ...(process.env.NODE_ENV !== 'production' ? [require('./modules/debug/debug.module').DebugModule] : []),

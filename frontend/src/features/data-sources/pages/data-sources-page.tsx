@@ -10,6 +10,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { DataSourceCard } from '../components/data-source-card';
 import { AccountSelectionDialog } from '../components/account-selection-dialog';
 import { useIntegrationAuth } from '../hooks/use-integration-auth';
+import { useRedirectEmptyState } from '@/features/shared/hooks/use-redirect-empty-state';
 import { PLATFORM_CONFIGS, type PlatformId } from '../types';
 import {
     AlertDialog,
@@ -36,6 +37,14 @@ export default function DataSourcesPage() {
         isPending,
         accountSelectionDialog,
     } = useIntegrationAuth();
+
+    // Empty State Detection - check if no platforms are connected
+    const { getEmptyStateProps } = useRedirectEmptyState();
+    const connectedCount = Object.values(statuses || {}).filter(
+        (s) => s?.isConnected === true
+    ).length;
+    const isEmptyState = connectedCount === 0 && !isLoadingStatuses;
+    const emptyStateProps = getEmptyStateProps(isEmptyState);
 
     // Disconnect confirmation state
     const [disconnectConfirm, setDisconnectConfirm] = useState<{
@@ -75,7 +84,7 @@ export default function DataSourcesPage() {
                 </div>
 
                 {/* Platform Cards Grid */}
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3" {...emptyStateProps}>
                     {DISPLAY_PLATFORMS.map((platform) => (
                         <DataSourceCard
                             key={platform}

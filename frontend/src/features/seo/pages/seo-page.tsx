@@ -6,14 +6,20 @@ import { SeoPerformanceChart } from '../components/seo-performance-chart';
 import { useSeoSummary } from '../hooks';
 import { SeoMetricSummary } from '../types';
 import { OrganicKeywordsByIntent } from '../components/organic-keywords-by-intent';
-
-
 import { SeoAnchorText } from '../components/seo-anchor-text';
 import { TopOrganicKeywords } from '../components/top-organic-keywords';
 import { SeoOffPageMetrics } from '../components/seo-offpage-metrics';
+import { useRedirectEmptyState } from '@/features/shared/hooks/use-redirect-empty-state';
 
 export function SeoPage() {
     const { data, isLoading } = useSeoSummary();
+
+    // Empty State Detection - SEO is empty when all metrics are 0/null
+    const { getEmptyStateProps } = useRedirectEmptyState();
+    const isEmptyState = !isLoading && data && 
+        data.organicSessions === 0 && 
+        (data.keywords === null || data.keywords === 0);
+    const emptyStateProps = getEmptyStateProps(isEmptyState || false);
 
     // Default fallback data if API fails or is loading (to prevent crash)
     const displayData: SeoMetricSummary = data || {
@@ -46,14 +52,17 @@ export function SeoPage() {
                 </div>
 
                 {/* Standard Summary Cards */}
-                <SeoSummaryCards data={displayData} isLoading={isLoading} />
+                <div {...emptyStateProps}>
+                    <SeoSummaryCards data={displayData} isLoading={isLoading} />
+                </div>
 
                 {/* Premium SEO Metrics (Ahrefs Style) */}
-                <SeoPremiumCards data={displayData} isLoading={isLoading} />
-
+                <div {...emptyStateProps}>
+                    <SeoPremiumCards data={displayData} isLoading={isLoading} />
+                </div>
 
                 {/* Charts Area */}
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7 items-start">
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7 items-start" {...emptyStateProps}>
                     <div className="col-span-5 space-y-6">
                         <SeoPerformanceChart />
                         <TopOrganicKeywords />
@@ -66,7 +75,9 @@ export function SeoPage() {
                 </div>
 
                 {/* Off-page Metrics */}
-                <SeoOffPageMetrics />
+                <div {...emptyStateProps}>
+                    <SeoOffPageMetrics />
+                </div>
             </div>
         </DashboardLayout>
     );
