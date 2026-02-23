@@ -14,7 +14,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
-    "test:e2e": "cross-env NODE_OPTIONS=--max-old-space-size=4096 jest --testRegex='.e2e.spec.ts$' --runInBand --forceExit"
+    "test:e2e": "cross-env NODE_OPTIONS=--max-old-space-size=4096 jest --testRegex='.e2e.spec.ts$' --runInBand --forceExit",
+    "toolkit:smoke": "node scripts/toolkit/smoke-local.js"
   },
   "dependencies": {
     "@faker-js/faker": "^10.2.0",
