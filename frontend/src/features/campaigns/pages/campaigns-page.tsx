@@ -31,6 +31,7 @@ import { useFileDownload } from '@/hooks/use-file-download';
 import { useCampaigns } from '../hooks/use-campaigns';
 import { useDeleteCampaign, useToggleCampaignStatus } from '../hooks/use-campaign-mutations';
 import { exportService } from '@/features/dashboard/services/export-service';
+import { useRedirectEmptyState } from '@/features/shared/hooks/use-redirect-empty-state';
 import type { Campaign } from '../types';
 import type { PeriodEnum } from '@/features/dashboard/schemas';
 
@@ -253,6 +254,13 @@ export function CampaignsPage() {
 
     // Full list for Charts
     const displayedGlobalCampaigns = globalCampaigns;
+
+    // ==========================================================================
+    // Empty State Detection for New Users
+    // ==========================================================================
+    const { getEmptyStateProps } = useRedirectEmptyState();
+    const isEmptyState = campaigns.length === 0 && !isLoading && !isError;
+    const emptyStateProps = getEmptyStateProps(isEmptyState);
 
     // ==========================================================================
     // Sort Handler
@@ -543,41 +551,47 @@ export function CampaignsPage() {
                 {/* Pagination Header (Removed - Moved to Table) */}
 
                 {/* Campaigns Table with Sorting and Selection */}
-                <CampaignsTable
-                    campaigns={displayedCampaigns}
-                    isLoading={isFetching}
-                    sortBy={sortBy}
-                    sortOrder={sortOrder}
-                    onSort={handleSort}
-                    selectedIds={selectedIds}
-                    onToggleSelect={handleToggleSelect}
-                    onToggleAll={handleToggleAll}
-                    onEdit={handleEdit}
-                    onDelete={handleDeleteClick}
+                <div {...emptyStateProps}>
+                    <CampaignsTable
+                        campaigns={displayedCampaigns}
+                        isLoading={isFetching}
+                        sortBy={sortBy}
+                        sortOrder={sortOrder}
+                        onSort={handleSort}
+                        selectedIds={selectedIds}
+                        onToggleSelect={handleToggleSelect}
+                        onToggleAll={handleToggleAll}
+                        onEdit={handleEdit}
+                        onDelete={handleDeleteClick}
 
-                    page={showSelectedOnly ? 1 : page}
-                    totalPages={totalPages}
-                    totalItems={totalItems}
-                    pageSize={DEFAULT_PAGE_SIZE}
-                    onPageChange={handlePageChange}
-                />
-
-
+                        page={showSelectedOnly ? 1 : page}
+                        totalPages={totalPages}
+                        totalItems={totalItems}
+                        pageSize={DEFAULT_PAGE_SIZE}
+                        onPageChange={handlePageChange}
+                    />
+                </div>
 
                 {/* Campaign Summary Dashboard (Middle Section) */}
-                <CampaignSummary summary={campaignsResponse?.summary} isLoading={isLoading} />
+                <div {...emptyStateProps}>
+                    <CampaignSummary summary={campaignsResponse?.summary} isLoading={isLoading} />
+                </div>
 
                 {/* Visualization Panel (Bottom) */}
                 {!isLoading && campaignsResponse?.summary && (
                     <>
-                        <CampaignVisualization
-                            campaigns={displayedGlobalCampaigns}
-                            summary={campaignsResponse.summary}
-                            onDownload={handleExport}
-                        />
+                        <div {...emptyStateProps}>
+                            <CampaignVisualization
+                                campaigns={displayedGlobalCampaigns}
+                                summary={campaignsResponse.summary}
+                                onDownload={handleExport}
+                            />
+                        </div>
 
                         {/* Campaign Analytics (Conversion Rate) */}
-                        <CampaignAnalytics campaigns={displayedGlobalCampaigns} />
+                        <div {...emptyStateProps}>
+                            <CampaignAnalytics campaigns={displayedGlobalCampaigns} />
+                        </div>
                     </>
                 )}
             </div>

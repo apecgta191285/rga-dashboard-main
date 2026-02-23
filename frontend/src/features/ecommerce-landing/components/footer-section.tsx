@@ -12,8 +12,8 @@ export function FooterSection() {
                     {/* Brand & Description */}
                     <div className="space-y-4 lg:border-r lg:border-slate-400 lg:pr-12">
                         <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold">N</div>
-                            <span className="text-lg font-bold tracking-tight text-slate-900">NovaPulse</span>
+                            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-xs">RGA</div>
+                            <span className="text-lg font-bold tracking-tight text-slate-900">Rise Group Asia</span>
                         </div>
                         <p className="text-slate-600 text-sm leading-relaxed">
                             Comprehensive marketing analytics platform to help your business grow with precise and fast data.

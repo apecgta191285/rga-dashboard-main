@@ -88,27 +88,29 @@ export default function EcommerceLandingPage() {
             return null;
         };
 
-        // Defer to ensure layout is painted (and DashboardLayout scroll container exists)
+        // Defer to ensure layout is painted
         window.setTimeout(() => {
             const scrollParent = getScrollParent(el.parentElement);
 
             if (!scrollParent) {
-                el.scrollIntoView({ behavior: 'auto', block: 'start' });
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 return;
             }
 
             const jumpToPricing = () => {
                 const parentRect = scrollParent.getBoundingClientRect();
                 const elRect = el.getBoundingClientRect();
-                const top = scrollParent.scrollTop + (elRect.top - parentRect.top) - 16;
+                const top = scrollParent.scrollTop + (elRect.top - parentRect.top) - 80; // Offset for header
 
-                // Instant jump (no smooth scroll)
-                scrollParent.scrollTop = top;
+                // Smooth scroll to pricing section
+                scrollParent.scrollTo({ top, behavior: 'smooth' });
             };
 
             jumpToPricing();
-            window.requestAnimationFrame(jumpToPricing);
-        }, 0);
+            // Double-check scroll position after animation
+            window.setTimeout(jumpToPricing, 100);
+            window.setTimeout(jumpToPricing, 300);
+        }, 100);
     }, [location]);
 
     return (

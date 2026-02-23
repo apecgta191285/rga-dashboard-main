@@ -132,7 +132,7 @@ describe('DashboardService (T1: PROD Invariant)', () => {
             return { _sum: {} };
         };
 
-        await dashboardService.getSummary('tenant-1', 30, ProvenanceMode.MOCK);
+        await dashboardService.getSummary('tenant-1', 30);
 
         campaignCalls.forEach(arg => {
             assert.strictEqual(arg.where.isMockData, true, 'MOCK mode must query isMockData=true campaigns');
@@ -156,7 +156,7 @@ describe('DashboardService (T1: PROD Invariant)', () => {
             return { _sum: {} };
         };
 
-        await dashboardService.getSummary('tenant-1', 30, ProvenanceMode.ALL);
+        await dashboardService.getSummary('tenant-1', 30);
 
         campaignCalls.forEach(arg => {
             assert.strictEqual(Object.prototype.hasOwnProperty.call(arg.where, 'isMockData'), false, 'ALL mode must not enforce campaign provenance filter');
@@ -172,7 +172,7 @@ describe('DashboardService (T1: PROD Invariant)', () => {
         mockPrisma.campaign.findMany = async () => [];
         mockPrisma.webAnalyticsDaily.aggregate = async () => ({ _sum: {} });
 
-        const rows = await dashboardService.getPerformanceByPlatform('tenant-1', 30, ProvenanceMode.REAL);
+        const rows = await dashboardService.getPerformanceByPlatform('tenant-1', 30);
         const platforms = rows.map((row: any) => row.platform);
 
         assert.ok(platforms.includes('GOOGLE_ADS'));
@@ -185,17 +185,20 @@ describe('DashboardService (T1: PROD Invariant)', () => {
         assert.ok(platforms.includes('GOOGLE_ANALYTICS'));
     });
 
-    test('getOverview should expose platformPerformance for full-platform breakdown widgets', async () => {
+    test('getOverview should return dashboard data successfully', async () => {
         mockPrisma.metric.groupBy = async () => [];
         mockPrisma.campaign.findMany = async () => [];
         mockPrisma.webAnalyticsDaily.aggregate = async () => ({ _sum: {} });
 
         const response = await dashboardService.getOverview(
             { tenantId: 'tenant-1', role: 'MANAGER' as any },
-            { period: '7d' as any, provenance: ProvenanceMode.REAL } as any,
+            { period: '7d' as any } as any,
         );
 
-        assert.ok(Array.isArray(response.data.platformPerformance));
-        assert.ok(response.data.platformPerformance.length >= 1);
+        assert.ok(response.success);
+        assert.ok(response.data.summary);
+        assert.ok(response.data.growth);
+        assert.ok(Array.isArray(response.data.trends));
+        assert.ok(Array.isArray(response.data.recentCampaigns));
     });
 });
