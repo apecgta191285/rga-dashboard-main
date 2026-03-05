@@ -42,6 +42,8 @@ async function bootstrap() {
 
     });
 
+
+
     console.log('🔴 Sentry initialized');
 
   }
@@ -125,7 +127,8 @@ async function bootstrap() {
   app.enableCors({
 
     origin: [
-
+      "https://saddlebrown-eagle-972006.hostingersite.com",
+      "https://wheat-cassowary-760257.hostingersite.com",
       ...originList,
 
       /^https:\/\/.*\.manus-asia\.computer$/,
