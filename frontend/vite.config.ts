@@ -8,6 +8,7 @@ const plugins = [react(), tailwindcss(), vitePluginManusRuntime()];
 
 export default defineConfig({
   plugins,
+  base: './',
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "src"),
