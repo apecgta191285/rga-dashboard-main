@@ -1,4 +1,12 @@
-﻿import { NestFactory } from '@nestjs/core';
+// Polyfill for crypto.randomUUID (required for some older Node versions or restricted environments)
+import * as crypto from 'crypto';
+if (typeof globalThis.crypto === 'undefined') {
+  (globalThis as any).crypto = crypto;
+} else if (!globalThis.crypto.randomUUID) {
+  (globalThis.crypto as any).randomUUID = crypto.randomUUID.bind(crypto);
+}
+
+import { NestFactory } from '@nestjs/core';
 
 import { ValidationPipe } from '@nestjs/common';
 

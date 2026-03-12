@@ -8,13 +8,14 @@
   "engines": {
     "node": ">=18.0.0"
   },
+  "main": "dist/main.js",
   "scripts": {
-    "build": "echo \"Build skipped: already compiled locally\"",
+    "build": "nest build",
     "postinstall": "node ./node_modules/prisma/build/index.js generate",
-    "start": "node --require ./polyfill.js dist/main.js",
-    "start:dev": "node --require ./polyfill.js dist/main.js",
-    "start:dev:prod": "node --require ./polyfill.js dist/main.js",
-    "start:prod": "node --require ./polyfill.js dist/main.js",
+    "start": "node dist/main.js",
+    "start:dev": "nest start --watch",
+    "start:dev:prod": "node dist/main.js",
+    "start:prod": "node dist/main.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
