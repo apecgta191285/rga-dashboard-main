@@ -8,17 +8,17 @@ export declare class ChatService {
     createSession(tenantId: string, userId: string | null, createSessionDto: CreateChatSessionDto): Promise<{
         messages: {
             id: string;
-            sessionId: string;
+            createdAt: Date;
             role: string;
             content: string;
-            createdAt: Date;
+            sessionId: string;
         }[];
     } & {
         id: string;
-        userId: string | null;
-        title: string;
         createdAt: Date;
         updatedAt: Date;
+        title: string;
+        userId: string | null;
     }>;
     getSessions(userId: string | null): Promise<({
         _count: {
@@ -26,45 +26,45 @@ export declare class ChatService {
         };
     } & {
         id: string;
-        userId: string | null;
-        title: string;
         createdAt: Date;
         updatedAt: Date;
+        title: string;
+        userId: string | null;
     })[]>;
     getSession(id: string): Promise<{
         messages: {
             id: string;
-            sessionId: string;
+            createdAt: Date;
             role: string;
             content: string;
-            createdAt: Date;
+            sessionId: string;
         }[];
     } & {
         id: string;
-        userId: string | null;
-        title: string;
         createdAt: Date;
         updatedAt: Date;
+        title: string;
+        userId: string | null;
     }>;
     addMessage(tenantId: string, sessionId: string, createMessageDto: CreateChatMessageDto): Promise<{
         id: string;
-        sessionId: string;
+        createdAt: Date;
         role: string;
         content: string;
-        createdAt: Date;
+        sessionId: string;
     }>;
     updateSessionTitle(id: string, title: string): Promise<{
         id: string;
-        userId: string | null;
-        title: string;
         createdAt: Date;
         updatedAt: Date;
+        title: string;
+        userId: string | null;
     }>;
     deleteSession(id: string): Promise<{
         id: string;
-        userId: string | null;
-        title: string;
         createdAt: Date;
         updatedAt: Date;
+        title: string;
+        userId: string | null;
     }>;
 }

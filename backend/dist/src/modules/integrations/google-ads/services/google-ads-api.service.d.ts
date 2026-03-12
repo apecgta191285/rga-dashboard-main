@@ -12,7 +12,7 @@ export declare class GoogleAdsApiService {
     private createOAuthClient;
     private decryptRefreshToken;
     refreshTokenIfNeeded(account: any): Promise<void>;
-    fetchCampaigns(account: any): Promise<import("google-ads-node/build/protos/protos").google.ads.googleads.v21.services.IGoogleAdsRow[]>;
-    fetchCampaignMetrics(account: any, campaignId: string, startDate: Date, endDate: Date): Promise<import("google-ads-node/build/protos/protos").google.ads.googleads.v21.services.IGoogleAdsRow[]>;
+    fetchCampaigns(account: any): Promise<import("google-ads-node/build/protos/protos").google.ads.googleads.v14.services.IGoogleAdsRow[]>;
+    fetchCampaignMetrics(account: any, campaignId: string, startDate: Date, endDate: Date): Promise<import("google-ads-node/build/protos/protos").google.ads.googleads.v14.services.IGoogleAdsRow[]>;
     private handleApiError;
 }

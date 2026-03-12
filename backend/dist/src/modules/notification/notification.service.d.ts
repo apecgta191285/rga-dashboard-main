@@ -16,7 +16,7 @@ export declare class NotificationService {
             type: string;
             title: string;
             campaignId: string;
-            metadata: import(".prisma/client").Prisma.JsonValue;
+            metadata: import("@prisma/client/runtime/client").JsonValue;
             message: string;
             channel: import(".prisma/client").$Enums.NotificationChannel;
             priority: string;

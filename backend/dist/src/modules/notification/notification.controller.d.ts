@@ -10,7 +10,7 @@ export declare class NotificationController {
             type: string;
             title: string;
             campaignId: string;
-            metadata: import(".prisma/client").Prisma.JsonValue;
+            metadata: import("@prisma/client/runtime/client").JsonValue;
             message: string;
             channel: import(".prisma/client").$Enums.NotificationChannel;
             priority: string;
@@ -30,45 +30,45 @@ export declare class NotificationController {
     }>;
     markAsRead(id: string, req: any): Promise<{
         id: string;
+        createdAt: Date;
         tenantId: string;
-        userId: string;
         type: string;
         title: string;
+        expiresAt: Date | null;
+        userId: string;
+        campaignId: string | null;
+        metadata: import("@prisma/client/runtime/client").JsonValue | null;
         message: string;
         channel: import(".prisma/client").$Enums.NotificationChannel;
         priority: string;
-        metadata: import(".prisma/client").Prisma.JsonValue | null;
+        alertId: string | null;
         isRead: boolean;
         readAt: Date | null;
         isDismissed: boolean;
-        alertId: string | null;
-        campaignId: string | null;
         scheduledAt: Date | null;
         sentAt: Date | null;
-        expiresAt: Date | null;
-        createdAt: Date;
     }>;
     markAllAsRead(req: any): Promise<{
         count: number;
     }>;
     dismiss(id: string, req: any): Promise<{
         id: string;
+        createdAt: Date;
         tenantId: string;
-        userId: string;
         type: string;
         title: string;
+        expiresAt: Date | null;
+        userId: string;
+        campaignId: string | null;
+        metadata: import("@prisma/client/runtime/client").JsonValue | null;
         message: string;
         channel: import(".prisma/client").$Enums.NotificationChannel;
         priority: string;
-        metadata: import(".prisma/client").Prisma.JsonValue | null;
+        alertId: string | null;
         isRead: boolean;
         readAt: Date | null;
         isDismissed: boolean;
-        alertId: string | null;
-        campaignId: string | null;
         scheduledAt: Date | null;
         sentAt: Date | null;
-        expiresAt: Date | null;
-        createdAt: Date;
     }>;
 }

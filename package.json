@@ -22,5 +22,6 @@
     "react"
   ],
   "author": "RGA Team",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {}
 }

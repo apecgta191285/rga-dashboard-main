@@ -7,52 +7,52 @@ export declare class AiController {
     private readonly aiService;
     constructor(aiService: AiService);
     createBehavior(dto: CreateUserBehaviorDto, req: any): Promise<{
+        data: import("@prisma/client/runtime/client").JsonValue | null;
         id: string;
         tenantId: string;
         userId: string;
         action: string;
-        data: import(".prisma/client").Prisma.JsonValue | null;
         timestamp: Date;
     }>;
     listBehavior(query: ListUserBehaviorQuery, req: any): Promise<{
         items: {
+            data: import("@prisma/client/runtime/client").JsonValue | null;
             id: string;
             tenantId: string;
             userId: string;
             action: string;
-            data: import(".prisma/client").Prisma.JsonValue | null;
             timestamp: Date;
         }[];
         nextCursor: string;
     }>;
     createRecommendation(dto: CreateAiRecommendationDto, req: any): Promise<{
         id: string;
-        tenantId: string;
-        type: string;
-        title: string;
-        description: string;
-        priority: string;
-        confidence: import("@prisma/client/runtime/library").Decimal;
-        status: string;
-        payload: import(".prisma/client").Prisma.JsonValue | null;
-        executedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
+        tenantId: string;
+        type: string;
+        status: string;
+        description: string;
+        title: string;
+        priority: string;
+        payload: import("@prisma/client/runtime/client").JsonValue | null;
+        confidence: import("@prisma/client-runtime-utils").Decimal;
+        executedAt: Date | null;
     }>;
     listRecommendations(query: ListAiRecommendationsQuery, req: any): Promise<{
         items: {
             id: string;
-            tenantId: string;
-            type: string;
-            title: string;
-            description: string;
-            priority: string;
-            confidence: import("@prisma/client/runtime/library").Decimal;
-            status: string;
-            payload: import(".prisma/client").Prisma.JsonValue | null;
-            executedAt: Date | null;
             createdAt: Date;
             updatedAt: Date;
+            tenantId: string;
+            type: string;
+            status: string;
+            description: string;
+            title: string;
+            priority: string;
+            payload: import("@prisma/client/runtime/client").JsonValue | null;
+            confidence: import("@prisma/client-runtime-utils").Decimal;
+            executedAt: Date | null;
         }[];
         nextCursor: string;
     }>;

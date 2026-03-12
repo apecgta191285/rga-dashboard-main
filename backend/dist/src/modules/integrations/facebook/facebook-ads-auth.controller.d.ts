@@ -14,26 +14,26 @@ export declare class FacebookAdsAuthController {
     getTempAccounts(tempToken: string): Promise<any>;
     completeConnection(req: any, tempToken: string, accountId: string): Promise<{
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
         tenantId: string;
-        accountId: string;
+        status: string;
+        lastSyncAt: Date | null;
         accountName: string | null;
         accessToken: string;
         tokenExpiresAt: Date | null;
-        status: string;
-        lastSyncAt: Date | null;
-        createdAt: Date;
-        updatedAt: Date;
+        accountId: string;
     }>;
     getConnectedAccounts(req: any): Promise<{
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
         tenantId: string;
-        accountId: string;
+        status: string;
+        lastSyncAt: Date | null;
         accountName: string | null;
         accessToken: string;
         tokenExpiresAt: Date | null;
-        status: string;
-        lastSyncAt: Date | null;
-        createdAt: Date;
-        updatedAt: Date;
+        accountId: string;
     }[]>;
 }

@@ -7,17 +7,17 @@ export declare class ChatController {
     createSession(createSessionDto: CreateChatSessionDto, req: any): Promise<({
         messages: {
             id: string;
-            sessionId: string;
+            createdAt: Date;
             role: string;
             content: string;
-            createdAt: Date;
+            sessionId: string;
         }[];
     } & {
         id: string;
-        userId: string | null;
-        title: string;
         createdAt: Date;
         updatedAt: Date;
+        title: string;
+        userId: string | null;
     }) | {
         message: string;
     }>;
@@ -27,46 +27,46 @@ export declare class ChatController {
         };
     } & {
         id: string;
-        userId: string | null;
-        title: string;
         createdAt: Date;
         updatedAt: Date;
+        title: string;
+        userId: string | null;
     })[]>;
     getSession(id: string): Promise<{
         messages: {
             id: string;
-            sessionId: string;
+            createdAt: Date;
             role: string;
             content: string;
-            createdAt: Date;
+            sessionId: string;
         }[];
     } & {
         id: string;
-        userId: string | null;
-        title: string;
         createdAt: Date;
         updatedAt: Date;
+        title: string;
+        userId: string | null;
     }>;
     updateSessionTitle(id: string, title: string): Promise<{
         id: string;
-        userId: string | null;
-        title: string;
         createdAt: Date;
         updatedAt: Date;
+        title: string;
+        userId: string | null;
     }>;
     deleteSession(id: string): Promise<{
         id: string;
-        userId: string | null;
-        title: string;
         createdAt: Date;
         updatedAt: Date;
+        title: string;
+        userId: string | null;
     }>;
     addMessage(createMessageDto: CreateChatMessageDto, req: any): Promise<{
         id: string;
-        sessionId: string;
+        createdAt: Date;
         role: string;
         content: string;
-        createdAt: Date;
+        sessionId: string;
     } | {
         message: string;
     }>;

@@ -203,7 +203,7 @@ export declare class SeoController {
         source: string;
         title: string;
         message: string;
-        payload: import(".prisma/client").Prisma.JsonValue;
+        payload: import("@prisma/client/runtime/client").JsonValue;
         status: string;
         occurredAt: string;
         createdAt: string;

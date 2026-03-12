@@ -25,27 +25,27 @@ export declare class FacebookAdsOAuthService {
     getTempAccounts(tempToken: string): Promise<any>;
     completeConnection(tempToken: string, accountId: string, tenantId: string): Promise<{
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
         tenantId: string;
-        accountId: string;
+        status: string;
+        lastSyncAt: Date | null;
         accountName: string | null;
         accessToken: string;
         tokenExpiresAt: Date | null;
-        status: string;
-        lastSyncAt: Date | null;
-        createdAt: Date;
-        updatedAt: Date;
+        accountId: string;
     }>;
     getConnectedAccounts(tenantId: string): Promise<{
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
         tenantId: string;
-        accountId: string;
+        status: string;
+        lastSyncAt: Date | null;
         accountName: string | null;
         accessToken: string;
         tokenExpiresAt: Date | null;
-        status: string;
-        lastSyncAt: Date | null;
-        createdAt: Date;
-        updatedAt: Date;
+        accountId: string;
     }[]>;
     disconnect(tenantId: string): Promise<boolean>;
 }

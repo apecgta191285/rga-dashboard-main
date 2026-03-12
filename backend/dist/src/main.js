@@ -49,6 +49,8 @@ async function bootstrap() {
     const originList = corsOrigins.split(',').map(o => o.trim());
     app.enableCors({
         origin: [
+            "https://saddlebrown-eagle-972006.hostingersite.com",
+            "https://wheat-cassowary-760257.hostingersite.com",
             ...originList,
             /^https:\/\/.*\.manus-asia\.computer$/,
             /^https:\/\/.*\.manus\.space$/,

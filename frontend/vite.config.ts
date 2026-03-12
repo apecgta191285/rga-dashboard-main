@@ -8,7 +8,7 @@ const plugins = [react(), tailwindcss(), vitePluginManusRuntime()];
 
 export default defineConfig({
   plugins,
-  base: './',
+  base: '/',
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "src"),
@@ -19,6 +19,9 @@ export default defineConfig({
   envDir: path.resolve(import.meta.dirname),
   root: path.resolve(import.meta.dirname),
   build: {
+    rollupOptions: {
+      input: path.resolve(import.meta.dirname, "index.html"),
+    },
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
   },
@@ -38,6 +41,18 @@ export default defineConfig({
     fs: {
       strict: true,
       deny: ["**/.*"],
+    },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/auth': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
 });

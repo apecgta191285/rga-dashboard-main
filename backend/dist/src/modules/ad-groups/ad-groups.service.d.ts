@@ -10,15 +10,15 @@ export declare class AdGroupsService {
         budget: number;
         bidAmount: number;
         id: string;
-        tenantId: string;
-        campaignId: string;
-        externalId: string | null;
         name: string;
-        status: import(".prisma/client").$Enums.AdGroupStatus;
-        bidType: string | null;
-        targeting: Prisma.JsonValue | null;
         createdAt: Date;
         updatedAt: Date;
+        tenantId: string;
+        status: import(".prisma/client").$Enums.AdGroupStatus;
+        externalId: string | null;
+        campaignId: string;
+        bidType: string | null;
+        targeting: Prisma.JsonValue | null;
         campaign?: unknown;
     }>;
     findAll(tenantId: string, query: QueryAdGroupsDto): Promise<{
@@ -26,15 +26,15 @@ export declare class AdGroupsService {
             budget: number;
             bidAmount: number;
             id: string;
-            tenantId: string;
-            campaignId: string;
-            externalId: string | null;
             name: string;
-            status: import(".prisma/client").$Enums.AdGroupStatus;
-            bidType: string | null;
-            targeting: Prisma.JsonValue | null;
             createdAt: Date;
             updatedAt: Date;
+            tenantId: string;
+            status: import(".prisma/client").$Enums.AdGroupStatus;
+            externalId: string | null;
+            campaignId: string;
+            bidType: string | null;
+            targeting: Prisma.JsonValue | null;
             campaign?: unknown;
         }[];
         meta: {
@@ -48,15 +48,15 @@ export declare class AdGroupsService {
         budget: number;
         bidAmount: number;
         id: string;
-        tenantId: string;
-        campaignId: string;
-        externalId: string | null;
         name: string;
-        status: import(".prisma/client").$Enums.AdGroupStatus;
-        bidType: string | null;
-        targeting: Prisma.JsonValue | null;
         createdAt: Date;
         updatedAt: Date;
+        tenantId: string;
+        status: import(".prisma/client").$Enums.AdGroupStatus;
+        externalId: string | null;
+        campaignId: string;
+        bidType: string | null;
+        targeting: Prisma.JsonValue | null;
         campaign?: unknown;
     }>;
     update(tenantId: string, id: string, dto: UpdateAdGroupDto): Promise<{

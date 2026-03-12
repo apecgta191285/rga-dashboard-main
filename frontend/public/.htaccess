@@ -1,0 +1,30 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+  RewriteRule ^index\.html$ - [L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME} !-l
+  RewriteRule . /index.html [L]
+</IfModule>
+
+<IfModule mod_mime.c>
+  AddType application/javascript .js
+  AddType application/javascript .mjs
+  AddType text/css .css
+</IfModule>
+
+<FilesMatch "\.js$">
+    Header set Content-Type "application/javascript"
+    ForceType application/javascript
+</FilesMatch>
+
+<FilesMatch "\.mjs$">
+    Header set Content-Type "application/javascript"
+    ForceType application/javascript
+</FilesMatch>
+
+<FilesMatch "\.css$">
+    Header set Content-Type "text/css"
+    ForceType text/css
+</FilesMatch>

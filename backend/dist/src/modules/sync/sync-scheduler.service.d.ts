@@ -37,20 +37,20 @@ export declare class SyncSchedulerService {
             errorMessage: any;
         };
         recentLogs: {
+            data: import("@prisma/client/runtime/client").JsonValue | null;
             id: string;
+            createdAt: Date;
             tenantId: string;
-            integrationId: string | null;
-            platform: import(".prisma/client").$Enums.AdPlatform;
-            accountId: string | null;
-            syncType: import(".prisma/client").$Enums.SyncType | null;
             status: import(".prisma/client").$Enums.SyncStatus;
+            accountId: string | null;
+            platform: import(".prisma/client").$Enums.AdPlatform;
+            integrationId: string | null;
+            syncType: import(".prisma/client").$Enums.SyncType | null;
             startedAt: Date;
             completedAt: Date | null;
             errorMessage: string | null;
             recordsCount: number | null;
             recordsSync: number;
-            data: import(".prisma/client").Prisma.JsonValue | null;
-            createdAt: Date;
         }[];
     }>;
 }

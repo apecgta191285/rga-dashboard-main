@@ -1,0 +1,5 @@
+src/toolkit/__tests__/phase3/dashboard-service.test.ts(135,59): error TS2554: Expected 1-2 arguments, but got 3.
+src/toolkit/__tests__/phase3/dashboard-service.test.ts(159,59): error TS2554: Expected 1-2 arguments, but got 3.
+src/toolkit/__tests__/phase3/dashboard-service.test.ts(175,86): error TS2554: Expected 1-2 arguments, but got 3.
+src/toolkit/__tests__/phase3/dashboard-service.test.ts(198,47): error TS2339: Property 'platformPerformance' does not exist on type 'DashboardOverviewDataDto'.
+src/toolkit/__tests__/phase3/dashboard-service.test.ts(199,33): error TS2339: Property 'platformPerformance' does not exist on type 'DashboardOverviewDataDto'.
