@@ -20,147 +20,97 @@ import * as Sentry from '@sentry/node';
 
 import * as dotenv from 'dotenv';
 
+// Load .env BEFORE any other local imports to ensure all services get correct config
+dotenv.config();
+
 import { AppModule } from './app.module';
 
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 
 
-
-// Load .env before anything else
-
-dotenv.config();
-
-
-
 async function bootstrap() {
-
-  // Initialize Sentry (before app creation)
-
-  if (process.env.SENTRY_DSN) {
-
-    Sentry.init({
-
-      dsn: process.env.SENTRY_DSN,
-
-      environment: process.env.NODE_ENV || 'development',
-
-      tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
-
-      debug: process.env.NODE_ENV !== 'production',
-
-    });
-
-
-
-    console.log('🔴 Sentry initialized');
-
-  }
-
-
-
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
-  app.useLogger(app.get(Logger));
-
-
-
-  // Prevent conditional GET caching (ETag/304) for API clients (axios treats 304 as an error)
-
-  const httpAdapter = app.getHttpAdapter();
-
-  const instance = httpAdapter.getInstance() as any;
-
-  if (instance?.set) {
-
-    instance.set('etag', false);
-
-  }
-
-
-
-  app.use((req: any, res: any, next: any) => {
-
-    res.setHeader('Cache-Control', 'no-store');
-
-    res.setHeader('Pragma', 'no-cache');
-
-    res.setHeader('Expires', '0');
-
-    next();
-
-  });
-
-
-
-  // Security Headers
-
-  app.use(
-
-    helmet({
-
-      contentSecurityPolicy: {
-
-        directives: {
-
-          defaultSrc: ["'self'"],
-
-          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-
-          styleSrc: ["'self'", "'unsafe-inline'"],
-
-          imgSrc: ["'self'", 'data:', 'https:'],
-
-          connectSrc: ["'self'", 'https://accounts.google.com'],
-
-        },
-
-      },
-
-      crossOriginEmbedderPolicy: false,
-
-    }),
-
-  );
-
-
-
-  // CORS - Read from environment with fallback to development defaults
-
-  const corsOrigins = process.env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:3000,http://localhost:3001';
-
-  const originList = corsOrigins.split(',').map(o => o.trim());
-
-
+  // 1. CORS - MUST be first to handle Preflight (OPTIONS) requests correctly
+  const corsOrigins = process.env.CORS_ORIGINS || '';
+  const originList = corsOrigins.split(',').map(o => o.trim()).filter(Boolean);
 
   app.enableCors({
-
-    origin: [
-      "https://saddlebrown-eagle-972006.hostingersite.com",
-      "https://wheat-cassowary-760257.hostingersite.com",
-      ...originList,
-
-      /^https:\/\/.*\.manus-asia\.computer$/,
-
-      /^https:\/\/.*\.manus\.space$/,
-
-    ],
-
+    origin: (origin, callback) => {
+      // Allow if no origin (like mobile apps or curl) or matches our list/patterns
+      if (!origin ||
+          origin.includes('localhost') ||
+          origin.includes('hostingersite.com') ||
+          origin.includes('manus-asia.computer') ||
+          origin.includes('manus.space') ||
+          originList.some(allowed => origin.startsWith(allowed))) {
+        callback(null, true);
+      } else {
+        console.warn(`[CORS] Rejected Origin: ${origin}`);
+        callback(null, false);
+      }
+    },
     credentials: true,
-
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders: [
       'Content-Type',
       'Authorization',
+      'X-Requested-With',
+      'Accept',
+      'Origin',
       'Cache-Control',
       'Pragma',
       'Expires',
       'If-None-Match',
       'If-Modified-Since',
     ],
-
+    exposedHeaders: ['Content-Range', 'X-Content-Range'],
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   });
 
+  app.useLogger(app.get(Logger));
+
+  // Prevent conditional GET caching
+  const httpAdapter = app.getHttpAdapter();
+  const instance = httpAdapter.getInstance() as any;
+  if (instance?.set) {
+    instance.set('etag', false);
+  }
+
+  app.use((req: any, res: any, next: any) => {
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    next();
+  });
+
+  // Security Headers
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:', 'https:'],
+          connectSrc: ["'self'", 'https://accounts.google.com', '*'], // Allow connecting to anywhere (less secure, but better for API)
+        },
+      },
+      crossOriginEmbedderPolicy: false,
+    }),
+  );
+
+  // Initialize Sentry
+  if (process.env.SENTRY_DSN) {
+    Sentry.init({
+      dsn: process.env.SENTRY_DSN,
+      environment: process.env.NODE_ENV || 'development',
+      tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
+      debug: false,
+    });
+    console.log('🔴 Sentry initialized');
+  }
 
 
   // Global prefix

@@ -23,5 +23,8 @@
   ],
   "author": "RGA Team",
   "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "dependencies": {}
 }

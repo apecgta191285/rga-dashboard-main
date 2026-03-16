@@ -14,8 +14,9 @@ import {
   Prisma,
 } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+import { prismaConfig } from '../src/modules/prisma/prisma.config';
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient(prismaConfig);
 
 // ==========================================
 // 1. Embedded Mock Data & Generators
