@@ -136,63 +136,36 @@ async function bootstrap() {
       'auth/tiktok/callback',
 
     ],
-
   });
 
-
-
   // Validation
-
   app.useGlobalPipes(
-
     new ValidationPipe({
-
       whitelist: true,
-
       forbidNonWhitelisted: true,
-
       transform: true,
-
     }),
-
   );
 
-
-
   // Global Exception Filter (Standardized Error Responses)
-
   app.useGlobalFilters(new GlobalExceptionFilter());
 
-
-
   // Swagger
-
   const config = new DocumentBuilder()
-
     .setTitle(process.env.SWAGGER_TITLE || 'RGA Dashboard API')
-
     .setDescription(process.env.SWAGGER_DESCRIPTION || 'RGA Marketing Dashboard Backend API')
-
     .setVersion(process.env.SWAGGER_VERSION || '1.0')
-
     .addBearerAuth()
-
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-
   SwaggerModule.setup('api/docs', app, document);
 
-
-
   const port = process.env.PORT || 3000;
-
   await app.listen(port);
 
   console.log(`🚀 Server is running on http://localhost:${port}`);
-
   console.log(`📚 Swagger docs available at http://localhost:${port}/api/docs`);
-
 }
 
 bootstrap();

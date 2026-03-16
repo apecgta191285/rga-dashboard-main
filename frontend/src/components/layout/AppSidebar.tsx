@@ -23,7 +23,7 @@ import {
     ChevronRight,
     Sparkles
 } from 'lucide-react';
-import logo from '@/components/layout/LOGO-RGA-B2.png';
+import logo from '@/assets/logo.png';
 import type { LucideIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -161,7 +161,7 @@ export function AppSidebar() {
                                             {active && (
                                                 <motion.div
                                                     layoutId="sidebar-active-bg"
-                                                    className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500"
+                                                    className="absolute inset-0 rounded-xl bg-linear-to-r from-orange-500 to-amber-500"
                                                     initial={false}
                                                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
                                                 />
@@ -211,7 +211,7 @@ export function AppSidebar() {
                     <div className="flex items-center gap-3 px-2">
                         {/* Avatar */}
                         <div className="relative">
-                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-medium text-sm shadow-md shadow-indigo-500/20 ring-2 ring-white">
+                            <div className="w-9 h-9 rounded-full bg-linear-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-medium text-sm shadow-md shadow-indigo-500/20 ring-2 ring-white">
                                 {user?.name?.charAt(0) || 'U'}
                             </div>
                             <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />

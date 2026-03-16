@@ -1,0 +1,2 @@
+﻿src/features/dashboard/components/ui/N8nChatWidget.tsx(2,28): error TS2307: Cannot find module '@n8n/chat' or its corresponding type declarations.
+

@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ParticleCanvas } from '@/components/ui/particle-canvas';
 import { Starfield } from '@/components/ui/starfield';
-import logo from '@/components/layout/LOGO-RGA-B2.png';
+import logo from '@/assets/logo.png';
 import { apiClient } from '@/services/api-client';
 
 // Inline field error component with smooth animation
@@ -24,7 +24,7 @@ function FieldError({ message }: { message?: string }) {
           transition={{ duration: 0.2 }}
           className="text-[11px] text-red-500 mt-1 pl-0.5 flex items-center gap-1"
         >
-          <span className="inline-block w-1 h-1 rounded-full bg-red-400 flex-shrink-0" />
+          <span className="inline-block w-1 h-1 rounded-full bg-red-400 shrink-0" />
           {message}
         </motion.p>
       )}
@@ -202,7 +202,7 @@ export default function Login() {
         <div className="bg-white/95 rounded-2xl shadow-2xl shadow-slate-900/10 border border-slate-100/80 overflow-hidden">
 
           {/* Top accent bar */}
-          <div className="h-1 bg-gradient-to-r from-orange-500 via-amber-400 to-orange-500" />
+          <div className="h-1 bg-linear-to-r from-orange-500 via-amber-400 to-orange-500" />
 
           <div className="px-8 pt-10 pb-8">
 
