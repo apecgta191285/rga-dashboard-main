@@ -1,0 +1,35 @@
+import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../../prisma/prisma.service';
+import { Cache } from 'cache-manager';
+import { EncryptionService } from '../../../common/services/encryption.service';
+import { OAuthProvider, OAuthCallbackResult, OAuthConnectionResult, OAuthAccount, SandboxSupport } from '../common/oauth-provider.interface';
+export declare class TikTokAdsOAuthService implements OAuthProvider, SandboxSupport {
+    private readonly configService;
+    private readonly prisma;
+    private readonly encryptionService;
+    private cacheManager;
+    private readonly logger;
+    private readonly appId;
+    private readonly appSecret;
+    private readonly redirectUri;
+    private readonly authUrl;
+    private readonly tokenUrl;
+    private readonly refreshUrl;
+    private readonly apiBaseUrl;
+    private readonly useSandbox;
+    private readonly sandboxAccessToken;
+    private readonly sandboxAdvertiserId;
+    private readonly CACHE_TTL;
+    constructor(configService: ConfigService, prisma: PrismaService, encryptionService: EncryptionService, cacheManager: Cache);
+    isSandboxMode(): boolean;
+    connectSandbox(tenantId: string): Promise<OAuthConnectionResult>;
+    generateAuthUrl(userId: string, tenantId: string): string;
+    handleCallback(code: string, state: string): Promise<OAuthCallbackResult>;
+    private fetchAdvertiserDetails;
+    getTempAccounts(tempToken: string): Promise<OAuthAccount[]>;
+    completeConnection(tempToken: string, accountId: string, tenantId: string): Promise<OAuthConnectionResult>;
+    refreshAccessToken(accountId: string, tenantId: string): Promise<string>;
+    getConnectedAccounts(tenantId: string): Promise<any[]>;
+    disconnect(tenantId: string): Promise<boolean>;
+    getAccessToken(accountId: string, tenantId: string): Promise<string>;
+}

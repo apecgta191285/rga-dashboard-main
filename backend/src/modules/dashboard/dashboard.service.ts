@@ -7,6 +7,7 @@ import {
   DashboardOverviewResponseDto,
   GetDashboardOverviewDto,
 } from './dto/dashboard-overview.dto';
+import { ProvenanceMode } from 'src/common/provenance.constants';
 
 // ============================================================
 // Helper: Safe Decimal to Number conversion with null coalescing
@@ -43,7 +44,7 @@ export class DashboardService {
     private prisma: PrismaService,
   ) { }
 
-  async getSummary(tenantId: string, days: number = 30) {
+  async getSummary(tenantId: string, days: number = 30, MOCK?: ProvenanceMode) {
     const hideMockData = process.env.HIDE_MOCK_DATA === 'true';
     const { startDate: currentStartDate, endDate: today } = DateRangeUtil.getDateRange(days);
     const { startDate: previousStartDate } = DateRangeUtil.getPreviousPeriodDateRange(currentStartDate, days);
@@ -407,7 +408,7 @@ export class DashboardService {
     };
   }
 
-  async getPerformanceByPlatform(tenantId: string, days = 30) {
+  async getPerformanceByPlatform(tenantId: string, days = 30, REAL?: ProvenanceMode) {
     const hideMockData = process.env.HIDE_MOCK_DATA === 'true';
     const { startDate, endDate: today } = DateRangeUtil.getDateRange(days);
 

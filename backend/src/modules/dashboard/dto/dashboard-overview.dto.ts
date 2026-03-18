@@ -196,6 +196,7 @@ export class ResponseMetaDto {
  * Dashboard overview data payload
  */
 export class DashboardOverviewDataDto {
+    [x: string]: any;
     @ApiProperty({ type: SummaryMetricsDto })
     summary: SummaryMetricsDto;
 

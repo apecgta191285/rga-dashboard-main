@@ -26,5 +26,8 @@
   "engines": {
     "node": ">=20.0.0"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@nestjs/cache-manager": "^2.0.0",
+    "cache-manager": "^5.2.1"
+  }
 }

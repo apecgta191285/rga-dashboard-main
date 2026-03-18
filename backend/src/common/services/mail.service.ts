@@ -6,14 +6,17 @@ import * as nodemailer from 'nodemailer';
 export class MailService {
   private readonly logger = new Logger(MailService.name);
 
-  constructor(private readonly config: ConfigService) {}
+  constructor(private readonly config: ConfigService) { }
 
   private createTransport() {
     const host = this.config.get<string>('SMTP_HOST');
     const port = this.config.get<number>('SMTP_PORT');
     const secure = this.config.get<boolean>('SMTP_SECURE');
     const user = this.config.get<string>('SMTP_USER');
-    const pass = this.config.get<string>('SMTP_PASS');
+    const pass = this.config.get<string>('SMTP_PASSWORD');
+    if (!host || !port || secure === undefined || !user || !pass) {
+      throw new Error('SMTP is not configured...');
+    }
 
     if (!host || !port || secure === undefined || !user || !pass) {
       throw new Error('SMTP is not configured. Please set SMTP_HOST/SMTP_PORT/SMTP_SECURE/SMTP_USER/SMTP_PASS');
