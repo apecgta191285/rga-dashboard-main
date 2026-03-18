@@ -275,7 +275,7 @@ export default function Register() {
         <div className="bg-white/95 rounded-2xl shadow-2xl shadow-slate-900/10 border border-slate-100/80 overflow-hidden">
 
           {/* Top accent bar */}
-          <div className="h-1 bg-gradient-to-r from-orange-500 via-amber-400 to-orange-500" />
+          <div className="h-1 bg-linear-to-r from-orange-500 via-amber-400 to-orange-500" />
 
           <div className="px-8 pt-8 pb-7">
 

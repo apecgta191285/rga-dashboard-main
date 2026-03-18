@@ -175,7 +175,7 @@ describe('DashboardService (T1: PROD Invariant)', () => {
         const rows = await dashboardService.getPerformanceByPlatform('tenant-1', 30, ProvenanceMode.REAL);
         const platforms = rows.map((row: any) => row.platform);
 
-        assert.ok(platforms.includes('GOOGLE_ADS'));
+        assert.ok(platforms.includes('GOOGLE_ADS'));    
         assert.ok(platforms.includes('FACEBOOK'));
         assert.ok(platforms.includes('TIKTOK'));
         assert.ok(platforms.includes('LINE_ADS'));

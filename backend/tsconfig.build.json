@@ -11,6 +11,7 @@
     "dist",
     "test",
     "**/*.spec.ts",
-    "**/*.test.ts"
+    "**/*.test.ts",
+    "*.ts"
   ]
 }

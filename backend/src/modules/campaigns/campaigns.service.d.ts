@@ -1,0 +1,144 @@
+import { CampaignsRepository } from './campaigns.repository';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
+import { CreateCampaignDto, UpdateCampaignDto, QueryCampaignsDto } from './dto';
+export declare class CampaignsService {
+    private readonly repository;
+    private readonly auditLogsService;
+    constructor(repository: CampaignsRepository, auditLogsService: AuditLogsService);
+    private safe;
+    private toDate;
+    create(tenantId: string, dto: CreateCampaignDto): Promise<{
+        id: string;
+        name: string;
+        platform: import(".prisma/client").$Enums.AdPlatform;
+        status: import(".prisma/client").$Enums.CampaignStatus;
+        budget: number;
+        startDate: Date;
+        endDate: Date;
+        externalId: string;
+        spend: number;
+        revenue: number;
+        clicks: number;
+        impressions: number;
+        conversions: number;
+        roas: number;
+        roi: number;
+        ctr: number;
+        cpc: number;
+        cpm: number;
+        createdAt: Date;
+        updatedAt: Date;
+    }>;
+    findAll(tenantId: string, query: QueryCampaignsDto): Promise<{
+        data: {
+            id: string;
+            name: string;
+            platform: import(".prisma/client").$Enums.AdPlatform;
+            status: import(".prisma/client").$Enums.CampaignStatus;
+            budget: number;
+            startDate: Date;
+            endDate: Date;
+            externalId: string;
+            spend: number;
+            revenue: number;
+            clicks: number;
+            impressions: number;
+            conversions: number;
+            roas: number;
+            roi: number;
+            ctr: number;
+            cpc: number;
+            cpm: number;
+            createdAt: Date;
+            updatedAt: Date;
+        }[];
+        meta: {
+            endDate: string;
+            startDate: string;
+            page: number;
+            limit: number;
+            total: number;
+            totalPages: number;
+        };
+        summary: {
+            spend: number;
+            budget: number;
+            impressions: number;
+            clicks: number;
+            revenue: number;
+            conversions: number;
+            roas: number;
+            roi: number;
+            ctr: number;
+            cpc: number;
+            cpm: number;
+        };
+    }>;
+    findOne(tenantId: string, id: string): Promise<{
+        id: string;
+        name: string;
+        platform: import(".prisma/client").$Enums.AdPlatform;
+        status: import(".prisma/client").$Enums.CampaignStatus;
+        budget: number;
+        startDate: Date;
+        endDate: Date;
+        externalId: string;
+        spend: number;
+        revenue: number;
+        clicks: number;
+        impressions: number;
+        conversions: number;
+        roas: number;
+        roi: number;
+        ctr: number;
+        cpc: number;
+        cpm: number;
+        createdAt: Date;
+        updatedAt: Date;
+    }>;
+    update(tenantId: string, id: string, dto: UpdateCampaignDto): Promise<{
+        id: string;
+        name: string;
+        platform: import(".prisma/client").$Enums.AdPlatform;
+        status: import(".prisma/client").$Enums.CampaignStatus;
+        budget: number;
+        startDate: Date;
+        endDate: Date;
+        externalId: string;
+        spend: number;
+        revenue: number;
+        clicks: number;
+        impressions: number;
+        conversions: number;
+        roas: number;
+        roi: number;
+        ctr: number;
+        cpc: number;
+        cpm: number;
+        createdAt: Date;
+        updatedAt: Date;
+    }>;
+    remove(tenantId: string, id: string): Promise<{
+        message: string;
+    }>;
+    getCampaignMetrics(tenantId: string, id: string, startDate?: string, endDate?: string): Promise<{
+        campaign: {
+            id: string;
+            name: string;
+            platform: import(".prisma/client").$Enums.AdPlatform;
+        };
+        metrics: {
+            date: Date;
+            impressions: number;
+            clicks: number;
+            spend: number;
+            conversions: number;
+            revenue: number;
+            ctr: number;
+            cpc: number;
+            cpm: number;
+            roas: number;
+        }[];
+    }>;
+    private normalizeCampaign;
+}
