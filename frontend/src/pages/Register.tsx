@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ParticleCanvas } from '@/components/ui/particle-canvas';
 import { Starfield } from '@/components/ui/starfield';
-import logo from '@/assets/logo.png';
+import logo from '@/components/layout/LOGO-RGA-B2.png';
 import { apiClient } from '@/services/api-client';
 import { Checkbox } from '@/components/ui/checkbox';
 
