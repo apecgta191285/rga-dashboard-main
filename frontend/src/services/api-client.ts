@@ -270,11 +270,11 @@ apiClient.interceptors.request.use(
 
         config.headers = (config.headers ?? {}) as any;
 
+        // Skip token attachment for auth/public endpoints
+        const isAuthRequest = config.url?.includes('/auth/');
+
         if (token) {
-            // console.log('Attaching Token:', token.substring(0, 10) + '...');
             (config.headers as any).Authorization = `Bearer ${token}`;
-        } else {
-            console.warn('No token found in token-manager');
         }
 
 

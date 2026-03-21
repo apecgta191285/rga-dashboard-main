@@ -117,6 +117,7 @@ export const envValidationSchema = Joi.object({
     SMTP_USER: Joi.string().optional(),
     SMTP_PASSWORD: Joi.string().optional(),
     SMTP_FROM: Joi.string().optional(),
+    EMAIL_FROM: Joi.string().optional(),
     // ============================================
     // Rate Limiting
     // ============================================
