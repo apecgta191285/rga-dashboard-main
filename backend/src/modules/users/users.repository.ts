@@ -46,7 +46,7 @@ export class PrismaUsersRepository implements UsersRepository {
 
         const orderByField = sortBy || 'createdAt';
         const orderByDirection = sortOrder || 'desc';
-        const orderBy: Prisma.UserOrderByWithRelationInput = {};
+        const orderBy: any = {};
         orderBy[orderByField] = orderByDirection;
 
         return Promise.all([

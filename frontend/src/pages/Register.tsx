@@ -4,12 +4,12 @@ import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, AlertCircle, ArrowRight } from 'lucide-react';
+import { Loader2, AlertCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ParticleCanvas } from '@/components/ui/particle-canvas';
 import { Starfield } from '@/components/ui/starfield';
-import logo from '@/components/layout/LOGO-RGA-B2.png';
+import logo from '@/assets/logo.png';
 import { apiClient } from '@/services/api-client';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -25,7 +25,7 @@ function FieldError({ message }: { message?: string }) {
           transition={{ duration: 0.2 }}
           className="text-[11px] text-red-500 mt-1 pl-0.5 flex items-center gap-1"
         >
-          <span className="inline-block w-1 h-1 rounded-full bg-red-400 flex-shrink-0" />
+          <span className="inline-block w-1 h-1 rounded-full bg-red-400 shrink-0" />
           {message}
         </motion.p>
       )}
@@ -49,6 +49,8 @@ export default function Register() {
   const [canResendVerification, setCanResendVerification] = useState(false);
   const [autoResendEmail, setAutoResendEmail] = useState<string | null>(null);
   const [focused, setFocused] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [passwordIssues, setPasswordIssues] = useState<string[]>([]);
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -275,7 +277,7 @@ export default function Register() {
         <div className="bg-white/95 rounded-2xl shadow-2xl shadow-slate-900/10 border border-slate-100/80 overflow-hidden">
 
           {/* Top accent bar */}
-          <div className="h-1 bg-gradient-to-r from-orange-500 via-amber-400 to-orange-500" />
+          <div className="h-1 bg-linear-to-r from-orange-500 via-amber-400 to-orange-500" />
 
           <div className="px-8 pt-8 pb-7">
 
@@ -394,8 +396,24 @@ export default function Register() {
                 <div className="space-y-1.5">
                   <label htmlFor="password" className="block text-[13px] font-medium text-slate-600">Password</label>
                   <div className="relative">
-                    <Input id="password" name="password" type="password" placeholder="••••••••" value={formData.password} onChange={handleChange} onFocus={() => setFocused('password')} onBlur={() => setFocused(null)} disabled={isBusy} autoComplete="new-password" className={fieldErrors.password ? inputErr : inputOk} />
-                    <FocusDot field="password" />
+                    <Input id="password" name="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={formData.password} onChange={handleChange} onFocus={() => setFocused('password')} onBlur={() => setFocused(null)} disabled={isBusy} autoComplete="new-password" className={fieldErrors.password ? inputErr : inputOk} />
+
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(s => !s)}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      disabled={isBusy}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md text-slate-400 hover:text-slate-700 focus:outline-none"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+
+                    <motion.div
+                      className="absolute right-10 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-orange-500"
+                      initial={false}
+                      animate={{ scale: focused === 'password' ? 1 : 0, opacity: focused === 'password' ? 1 : 0 }}
+                      transition={{ duration: 0.2 }}
+                    />
                   </div>
                   <FieldError message={fieldErrors.password} />
                   {passwordIssues.length > 0 ? (
@@ -416,8 +434,24 @@ export default function Register() {
                 <div className="space-y-1.5">
                   <label htmlFor="confirmPassword" className="block text-[13px] font-medium text-slate-600">Confirm Password</label>
                   <div className="relative">
-                    <Input id="confirmPassword" name="confirmPassword" type="password" placeholder="••••••••" value={formData.confirmPassword} onChange={handleChange} onFocus={() => setFocused('confirm')} onBlur={() => setFocused(null)} disabled={isBusy} autoComplete="new-password" className={fieldErrors.confirmPassword ? inputErr : inputOk} />
-                    <FocusDot field="confirm" />
+                    <Input id="confirmPassword" name="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} placeholder="••••••••" value={formData.confirmPassword} onChange={handleChange} onFocus={() => setFocused('confirm')} onBlur={() => setFocused(null)} disabled={isBusy} autoComplete="new-password" className={fieldErrors.confirmPassword ? inputErr : inputOk} />
+
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(s => !s)}
+                      aria-label={showConfirmPassword ? 'Hide confirmation password' : 'Show confirmation password'}
+                      disabled={isBusy}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md text-slate-400 hover:text-slate-700 focus:outline-none"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+
+                    <motion.div
+                      className="absolute right-10 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-orange-500"
+                      initial={false}
+                      animate={{ scale: focused === 'confirm' ? 1 : 0, opacity: focused === 'confirm' ? 1 : 0 }}
+                      transition={{ duration: 0.2 }}
+                    />
                   </div>
                   <FieldError message={fieldErrors.confirmPassword} />
                 </div>

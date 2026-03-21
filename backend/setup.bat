@@ -13,8 +13,8 @@ if errorlevel 1 (
 )
 echo.
 
-echo [2/6] Installing Prisma 5.7.1...
-call npm install prisma@5.7.1 @prisma/client@5.7.1 --save-exact
+echo [2/6] Installing Prisma 5.22.0...
+call npm install prisma@5.22.0 @prisma/client@5.22.0 --save-exact
 if errorlevel 1 (
     echo ERROR: Prisma installation failed
     pause

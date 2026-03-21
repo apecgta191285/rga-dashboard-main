@@ -3,10 +3,12 @@ import { DebugController } from './debug.controller';
 import { DebugService } from './debug.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AlertModule } from '../alerts/alert.module';
+import { VerificationController } from './verification.controller';
+import { VerificationSeeder } from '../mock-data/generators/verification-seeder';
 
 @Module({
     imports: [PrismaModule, AlertModule],
-    controllers: [DebugController],
-    providers: [DebugService],
+    controllers: [DebugController, VerificationController],
+    providers: [DebugService, VerificationSeeder],
 })
 export class DebugModule { }

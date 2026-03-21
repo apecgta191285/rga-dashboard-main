@@ -245,7 +245,7 @@ export function AiAssistant() {
             let responseText = "";
 
             if (webhookUrl) {
-                const response = await fetch(webhookUrl, {
+                const response = await fetch('/api/ai/webhook/general', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

@@ -4,12 +4,12 @@ import { useLocation, useSearch } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, AlertCircle, AlertTriangle, ArrowRight, Mail } from 'lucide-react';
+import { Loader2, AlertCircle, AlertTriangle, ArrowRight, Mail, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ParticleCanvas } from '@/components/ui/particle-canvas';
 import { Starfield } from '@/components/ui/starfield';
-import logo from '@/components/layout/LOGO-RGA-B2.png';
+import logo from '@/assets/logo.png';
 import { apiClient } from '@/services/api-client';
 
 // Inline field error component with smooth animation
@@ -24,7 +24,7 @@ function FieldError({ message }: { message?: string }) {
           transition={{ duration: 0.2 }}
           className="text-[11px] text-red-500 mt-1 pl-0.5 flex items-center gap-1"
         >
-          <span className="inline-block w-1 h-1 rounded-full bg-red-400 flex-shrink-0" />
+          <span className="inline-block w-1 h-1 rounded-full bg-red-400 shrink-0" />
           {message}
         </motion.p>
       )}
@@ -40,6 +40,7 @@ export default function Login() {
   const [isResending, setIsResending] = useState(false);
   const [sessionExpired, setSessionExpired] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
@@ -161,6 +162,8 @@ export default function Login() {
     }
   };
 
+  const toggleShowPassword = () => setShowPassword((s) => !s);
+
   const displayError = localError || storeError;
 
   return (
@@ -202,7 +205,7 @@ export default function Login() {
         <div className="bg-white/95 rounded-2xl shadow-2xl shadow-slate-900/10 border border-slate-100/80 overflow-hidden">
 
           {/* Top accent bar */}
-          <div className="h-1 bg-gradient-to-r from-orange-500 via-amber-400 to-orange-500" />
+          <div className="h-1 bg-linear-to-r from-orange-500 via-amber-400 to-orange-500" />
 
           <div className="px-8 pt-10 pb-8">
 
@@ -313,7 +316,7 @@ export default function Login() {
                 <div className="relative">
                   <Input
                     id="password"
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => { setPassword(e.target.value); if (fieldErrors.password) setFieldErrors(prev => { const c = { ...prev }; delete c.password; return c; }); }}
@@ -323,8 +326,19 @@ export default function Login() {
                     autoComplete="current-password"
                     className={`h-10 rounded-lg bg-slate-50/80 focus-visible:ring-orange-500/20 focus-visible:border-orange-400 placeholder:text-slate-300 transition-all duration-200 ${fieldErrors.password ? 'border-red-300 focus-visible:border-red-400 focus-visible:ring-red-500/20' : 'border-slate-200'}`}
                   />
+
+                  <button
+                    type="button"
+                    onClick={toggleShowPassword}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    disabled={isLoading}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md text-slate-400 hover:text-slate-700 focus:outline-none"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+
                   <motion.div
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-orange-500"
+                    className="absolute right-10 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-orange-500"
                     initial={false}
                     animate={{ scale: focused === 'password' ? 1 : 0, opacity: focused === 'password' ? 1 : 0 }}
                     transition={{ duration: 0.2 }}

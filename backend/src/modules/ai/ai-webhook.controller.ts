@@ -1,0 +1,41 @@
+// backend/src/modules/ai/ai-webhook.controller.ts
+import { HttpService } from '@nestjs/axios';
+import { Controller, Post, Body } from '@nestjs/common';
+
+@Controller('api/ai/webhook')
+export class AiWebhookController {
+    constructor(private http: HttpService) { }
+
+    @Post('general')
+    async proxyWebhook(@Body() body: any) {
+        const webhookUrl = process.env.N8N_WEBHOOK_URL_GENERAL;
+
+        if (!webhookUrl) {
+            throw new Error('N8N_WEBHOOK_URL_GENERAL is not configured');
+        }
+
+        try {
+            const response = await this.http
+                .post(webhookUrl, body)
+                .toPromise();
+
+            // Extract reply/output from N8N response
+            const n8nData = response.data;
+            console.log('N8N Response:', JSON.stringify(n8nData, null, 2));
+
+            // N8N sends output in 'output' field
+            const reply = n8nData?.output || n8nData?.reply || n8nData?.message || n8nData?.text || 'No response';
+
+            // Return as-is so ResponseTransformInterceptor won't double-wrap
+            return {
+                success: true,
+                message: reply,
+                data: n8nData,
+                timestamp: new Date(),
+            };
+        } catch (error) {
+            console.error('Webhook error:', error.message);
+            throw new Error(`Webhook error: ${error.message}`);
+        }
+    }
+}

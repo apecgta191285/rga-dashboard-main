@@ -186,19 +186,19 @@ export function DashboardPage() {
             {
                 label: 'Impressions',
                 value: impressions,
-                barClassName: 'bg-gradient-to-r from-blue-400 to-blue-500',
+                barClassName: 'bg-linear-to-r from-blue-400 to-blue-500',
                 dotClassName: 'bg-blue-500',
             },
             {
                 label: 'Clicks',
                 value: clicks,
-                barClassName: 'bg-gradient-to-r from-emerald-400 to-emerald-500',
+                barClassName: 'bg-linear-to-r from-emerald-400 to-emerald-500',
                 dotClassName: 'bg-emerald-500',
             },
             {
                 label: 'Conversions',
                 value: conversions,
-                barClassName: 'bg-gradient-to-r from-violet-400 to-violet-500',
+                barClassName: 'bg-linear-to-r from-violet-400 to-violet-500',
                 dotClassName: 'bg-violet-500',
             },
         ];
