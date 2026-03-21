@@ -1,9 +1,10 @@
-import { Body, Controller, ForbiddenException, Get, Logger, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, ForbiddenException, Get, Logger, Post, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { VerificationSeeder } from '../mock-data/generators/verification-seeder';
 import { AlertSchedulerService } from '../alerts/alert-scheduler.service';
+import { MailService } from '../../common/services/mail.service';
 
 @ApiTags('Verification')
 @ApiBearerAuth()
@@ -15,6 +16,7 @@ export class VerificationController {
     constructor(
         private readonly verificationSeeder: VerificationSeeder,
         private readonly alertSchedulerService: AlertSchedulerService,
+        private readonly mailService: MailService,
     ) { }
 
     private ensureNotProduction() {
@@ -66,5 +68,26 @@ export class VerificationController {
     @ApiOperation({ summary: 'Return Node.js process memory usage' })
     async memoryCheck() {
         return process.memoryUsage();
+    }
+
+    @Get('test-mail')
+    @ApiOperation({ summary: 'Test SMTP/Email configuration (returns full error if failed). REQUIRES AUTH BUT REVEALS ERRORS ON HOSTINGER.' })
+    @ApiQuery({ name: 'to', required: true, example: 'test@example.com' })
+    async testMail(@Query('to') to: string, @CurrentUser('email') userEmail: string) {
+        const target = to || userEmail;
+        this.logger.log(`[VERIFY] test-mail → ${target} (requested by ${userEmail})`);
+        
+        try {
+            const result = await this.mailService.sendMail({
+                to: target,
+                subject: 'RGA Dashboard SMTP Test',
+                html: `<h1>SMTP Test Success</h1><p>Sent at: ${new Date().toISOString()}</p><p>Requested by: ${userEmail}</p>`,
+            });
+
+            return { success: true, message: 'Mail sent successfully', messageId: (result as any).messageId };
+        } catch (err: any) {
+            this.logger.error(`[VERIFY] test-mail FAILED: ${err?.message || err}`);
+            return { success: false, error: err?.message || 'Unknown SMTP error', configSource: 'env' };
+        }
     }
 }

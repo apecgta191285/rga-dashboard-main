@@ -1,8 +1,0 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.TOOLKIT_INTERNAL_CONFIG = exports.TOOLKIT_INTERNAL_COMMAND_REGISTRY = exports.TOOLKIT_INTERNAL_UI_PRINTER = exports.TOOLKIT_INTERNAL_LOGGER = void 0;
-exports.TOOLKIT_INTERNAL_LOGGER = Symbol('TOOLKIT_INTERNAL_LOGGER');
-exports.TOOLKIT_INTERNAL_UI_PRINTER = Symbol('TOOLKIT_INTERNAL_UI_PRINTER');
-exports.TOOLKIT_INTERNAL_COMMAND_REGISTRY = Symbol('TOOLKIT_INTERNAL_COMMAND_REGISTRY');
-exports.TOOLKIT_INTERNAL_CONFIG = Symbol('TOOLKIT_INTERNAL_CONFIG');
-//# sourceMappingURL=toolkit-internal.tokens.js.map
