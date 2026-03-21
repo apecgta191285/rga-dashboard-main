@@ -39,11 +39,11 @@ async function bootstrap() {
     origin: (origin, callback) => {
       // Allow if no origin (like mobile apps or curl) or matches our list/patterns
       if (!origin ||
-          origin.includes('localhost') ||
-          origin.includes('hostingersite.com') ||
-          origin.includes('manus-asia.computer') ||
-          origin.includes('manus.space') ||
-          originList.some(allowed => origin.startsWith(allowed))) {
+        origin.includes('localhost') ||
+        origin.includes('hostingersite.com') ||
+        origin.includes('manus-asia.computer') ||
+        origin.includes('manus.space') ||
+        originList.some(allowed => origin.startsWith(allowed))) {
         callback(null, true);
       } else {
         console.warn(`[CORS] Rejected Origin: ${origin}`);
@@ -134,6 +134,10 @@ async function bootstrap() {
       'auth/line/callback',
 
       'auth/tiktok/callback',
+
+      'api/ai/webhook/general',
+
+      'api/ai/webhook/*',
 
     ],
   });
