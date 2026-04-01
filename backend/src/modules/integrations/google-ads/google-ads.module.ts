@@ -7,6 +7,7 @@ import { CommonModule } from '../../../common/common.module';
 import { GoogleAdsAuthController } from './google-ads-auth.controller';
 import { GoogleAdsCampaignController } from './google-ads-campaign.controller';
 import { GoogleAdsIntegrationController } from './google-ads-integration.controller';
+import { GoogleAdsDebugController } from './google-ads-debug.controller'; // 🔎 New Debug Controller
 import { GoogleAdsOAuthService } from './google-ads-oauth.service';
 import { GoogleAdsCampaignService } from './google-ads-campaign.service';
 import { GoogleAdsClientService } from './services/google-ads-client.service';
@@ -21,14 +22,15 @@ import { DashboardModule } from '../../dashboard/dashboard.module';
     ConfigModule,
     PrismaModule,
     HttpModule,
-    CommonModule, // 🔑 Provides EncryptionService for token decryption
+    CommonModule,
     forwardRef(() => SyncModule),
     DashboardModule,
   ],
   controllers: [
     GoogleAdsAuthController,
     GoogleAdsCampaignController,
-    GoogleAdsIntegrationController
+    GoogleAdsIntegrationController,
+    GoogleAdsDebugController, // 🚀 Registering the Debug Controller
   ],
   providers: [
     GoogleAdsOAuthService,

@@ -74,7 +74,7 @@ export class GoogleAdsOAuthService {
       // --- DIAGNOSTIC TRAP START ---
       try {
         if (tokens.refresh_token) {
-          this.logger.log(`[OAuth Trap] ✅ Received Refresh Token: ${tokens.refresh_token.substring(0, 5)}...`);
+          this.logger.log(`[OAuth Trap] ✅ Received Refresh Token`);
         } else {
           this.logger.warn(`[OAuth Trap] ⚠️ WARNING: No refresh_token received! Google did not send one.`);
         }
@@ -83,8 +83,11 @@ export class GoogleAdsOAuthService {
       }
       // --- DIAGNOSTIC TRAP END ---
 
-      if (!tokens.access_token || !tokens.refresh_token) {
-        throw new BadRequestException('Failed to get tokens from Google');
+      if (!tokens.access_token) {
+        throw new BadRequestException('Failed to get access token from Google');
+      }
+      if (!tokens.refresh_token) {
+        throw new BadRequestException('ไม่ได้รับ Refresh Token จาก Google. กรุณาไปที่ Google Account -\u003E Security -\u003E Third-party apps และกด Remove Access ก่อนลองเชื่อมต่อใหม่อีกครั้ง');
       }
 
       // Fetch all selectable accounts using Option B (flatten all accessible accounts)
@@ -130,6 +133,12 @@ export class GoogleAdsOAuthService {
       };
     } catch (error) {
       this.logger.error('Error in handleCallback:', error);
+      
+      // DEBUG: Write error to a file so we can see what exactly failed for the user
+      try {
+        require('fs').appendFileSync('oauth_error.log', new Date().toISOString() + ' | OAuth Error: ' + error.stack + '\n');
+      } catch (e) {}
+
       // Re-throw BadRequestException as-is, wrap others
       if (error instanceof BadRequestException) {
         throw error;

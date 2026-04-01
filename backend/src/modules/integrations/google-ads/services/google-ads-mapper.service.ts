@@ -1,33 +1,26 @@
 import { Injectable } from '@nestjs/common';
-import { CampaignStatus, AdPlatform } from '@prisma/client';
+import { AdPlatform, CampaignStatus } from '@prisma/client';
 
 @Injectable()
 export class GoogleAdsMapperService {
     /**
-     * Map Google Ads campaign status to our CampaignStatus enum
+     * Map Google Ads status string/number to internal CampaignStatus enum
      */
-    mapCampaignStatus(googleStatus: number | string): CampaignStatus {
-        // If status is already a string (from some API versions or manual mapping)
-        if (typeof googleStatus === 'string') {
-            const statusMap: Record<string, CampaignStatus> = {
-                ENABLED: CampaignStatus.ACTIVE,
-                PAUSED: CampaignStatus.PAUSED,
-                REMOVED: CampaignStatus.DELETED,
-            };
-            return statusMap[googleStatus] || CampaignStatus.PAUSED;
-        }
+    mapCampaignStatus(status: string | number): CampaignStatus {
+        const statusMap: Record<string, CampaignStatus> = {
+            ENABLED: CampaignStatus.ACTIVE,
+            PAUSED: CampaignStatus.PAUSED,
+            REMOVED: CampaignStatus.DELETED,
+            UNKNOWN: CampaignStatus.PAUSED,
+            UNSPECIFIED: CampaignStatus.PAUSED,
+            // also handle numeric status if provided by some libraries
+            '2': CampaignStatus.ACTIVE,
+            '3': CampaignStatus.PAUSED,
+            '4': CampaignStatus.DELETED,
+        };
 
-        // Map numeric status from Google Ads API
-        switch (googleStatus) {
-            case 2:
-                return CampaignStatus.ACTIVE; // ENABLED
-            case 3:
-                return CampaignStatus.PAUSED; // PAUSED
-            case 4:
-                return CampaignStatus.DELETED; // REMOVED
-            default:
-                return CampaignStatus.PENDING;
-        }
+        const statusStr = status.toString().toUpperCase();
+        return statusMap[statusStr] || CampaignStatus.PAUSED;
     }
 
     /**
