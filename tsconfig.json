@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "baseUrl": "./backend",
+    "paths": {
+      "*": ["src/*"]
+    }
+  },
+  "extends": "./backend/tsconfig.json"
+}

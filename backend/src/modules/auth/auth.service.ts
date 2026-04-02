@@ -153,8 +153,9 @@ export class AuthService {
       throw new InvalidCredentialsException();
     }
 
+    const normalizedEmail = (email || '').trim().toLowerCase();
     const user = await this.prisma.user.findFirst({
-      where: { email },
+      where: { email: normalizedEmail },
     });
 
     if (!user) {
@@ -197,9 +198,11 @@ export class AuthService {
    * - Track session with IP and UserAgent
    */
   async login(dto: LoginDto, request?: Request) {
+    const normalizedEmail = (dto.email || '').trim().toLowerCase();
+
     // For login, we look up user by email globally (email is unique across system)
     const user = await this.prisma.user.findFirst({
-      where: { email: dto.email },
+      where: { email: normalizedEmail },
       include: { tenant: true },
     }) as UserWithTenant;
 
@@ -450,8 +453,9 @@ export class AuthService {
   }
 
   async forgotPassword(dto: ForgotPasswordDto) {
+    const normalizedEmail = (dto.email || '').trim().toLowerCase();
     const user = await this.prisma.user.findFirst({
-      where: { email: dto.email },
+      where: { email: normalizedEmail },
     });
 
     if (!user) {
@@ -461,7 +465,7 @@ export class AuthService {
 
     // Generate password reset token
     const { token, tokenHash, expiresAt } = this.generatePasswordResetToken();
-    
+
     await this.prisma.user.update({
       where: { id: user.id },
       data: {
@@ -487,7 +491,7 @@ export class AuthService {
 
   async resetPassword(dto: ResetPasswordDto) {
     const tokenHash = this.hashToken(dto.token);
-    
+
     const user = await this.prisma.user.findFirst({
       where: {
         passwordResetTokenHash: tokenHash,
