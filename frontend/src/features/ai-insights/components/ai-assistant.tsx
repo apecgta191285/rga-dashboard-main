@@ -245,13 +245,16 @@ export function AiAssistant() {
             let responseText = "";
 
             if (webhookUrl) {
-                const response = await fetch('/api/ai/webhook/general', {
+                const route = activeRole === 'ads' ? 'ads' : activeRole === 'seo' ? 'seo' : 'general';
+                const response = await fetch(`/api/ai/webhook/${route}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         message: savedQuery,
                         role: activeRole,
                         timestamp: new Date().toISOString(),
+                        userId: user?.id,
+                        tenantId: user?.tenantId,
                     }),
                 });
 

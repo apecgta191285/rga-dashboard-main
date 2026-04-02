@@ -22,6 +22,11 @@ export class CreateUserDto {
   @IsOptional()
   lastName?: string;
 
+  @ApiPropertyOptional({ example: 'John Doe' })
+  @IsString()
+  @IsOptional()
+  name?: string;
+
   @ApiPropertyOptional({ enum: UserRole, example: 'CLIENT' })
   @IsEnum(UserRole)
   @IsOptional()

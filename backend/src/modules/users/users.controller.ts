@@ -8,6 +8,7 @@
   Param,
   Query,
   UseGuards,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
@@ -67,11 +68,15 @@ export class UsersController {
 
   @Delete(':id')
   @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'Soft delete a user (Admin only)' })
+  @ApiOperation({ summary: 'Delete a user and related data (Admin only)' })
   remove(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') currentUserId: string,
     @Param('id') id: string,
   ) {
+    if (currentUserId === id) {
+      throw new ForbiddenException('You cannot delete your own account');
+    }
     return this.usersService.remove(tenantId, id);
   }
 }
