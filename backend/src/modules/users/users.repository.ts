@@ -87,9 +87,23 @@ export class PrismaUsersRepository implements UsersRepository {
     }
 
     async remove(tenantId: string, id: string): Promise<User> {
-        return this.prisma.user.update({
-            where: { id },
-            data: { isActive: false },
+        // Hard delete user and preserve constraints for optional relations
+        return this.prisma.$transaction(async (tx) => {
+            // unlink from optional relations that don't cascade automatically
+            await tx.auditLog.updateMany({
+                where: { userId: id },
+                data: { userId: null },
+            });
+
+            await tx.report.updateMany({
+                where: { createdBy: id },
+                data: { createdBy: null },
+            });
+
+            // delete user record (cascade deletes connected entities with onDelete: Cascade)
+            return tx.user.delete({
+                where: { id },
+            });
         });
     }
 }
