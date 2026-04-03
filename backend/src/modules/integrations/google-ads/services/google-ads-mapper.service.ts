@@ -32,11 +32,11 @@ export class GoogleAdsMapperService {
             name: row.campaign.name,
             status: this.mapCampaignStatus(row.campaign.status),
             platform: AdPlatform.GOOGLE_ADS,
-            channelType: row.campaign.advertising_channel_type,
+            channelType: row.campaign.advertisingChannelType || row.campaign.advertising_channel_type,
             metrics: {
                 clicks: row.metrics?.clicks || 0,
                 impressions: row.metrics?.impressions || 0,
-                cost: (row.metrics?.cost_micros || 0) / 1000000, // Convert micros to dollars
+                cost: (row.metrics?.costMicros || row.metrics?.cost_micros || 0) / 1000000, // Convert micros to dollars
                 conversions: row.metrics?.conversions || 0,
                 ctr: row.metrics?.ctr || 0,
             },
@@ -54,11 +54,11 @@ export class GoogleAdsMapperService {
             campaignName: row.campaign.name,
             impressions: parseInt(row.metrics?.impressions || '0'),
             clicks: parseInt(row.metrics?.clicks || '0'),
-            cost: (row.metrics?.cost_micros || 0) / 1000000, // Convert micros to currency
+            cost: (row.metrics?.costMicros || row.metrics?.cost_micros || 0) / 1000000, // Convert micros to currency
             conversions: parseFloat(row.metrics?.conversions || '0'),
-            conversionValue: parseFloat(row.metrics?.conversions_value || '0'),
+            conversionValue: parseFloat(row.metrics?.conversionsValue || row.metrics?.conversions_value || '0'),
             ctr: parseFloat(row.metrics?.ctr || '0') * 100, // Convert to percentage
-            cpc: (row.metrics?.average_cpc || 0) / 1000000, // Convert micros to currency
+            cpc: (row.metrics?.averageCpc || row.metrics?.average_cpc || 0) / 1000000, // Convert micros to currency
             cpm: 0, // CPM not available in this report type
         }));
     }

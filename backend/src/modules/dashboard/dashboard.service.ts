@@ -756,12 +756,37 @@ export class DashboardService {
       conversions: m._sum.conversions ?? 0,
     }));
 
+    // 8. Platform Breakdown
+    const platformBreakdownGroup = await this.prisma.metric.groupBy({
+      by: ['platform'],
+      where: {
+        tenantId,
+        date: { gte: startDate, lte: endDate },
+        ...(hideMockData ? { isMockData: false } : {}),
+      },
+      _sum: {
+        spend: true,
+        impressions: true,
+        clicks: true,
+        conversions: true,
+      },
+    });
+
+    const platformBreakdown = platformBreakdownGroup.map(m => ({
+      platform: m.platform,
+      spend: toNumber(m._sum.spend),
+      impressions: m._sum.impressions ?? 0,
+      clicks: m._sum.clicks ?? 0,
+      conversions: m._sum.conversions ?? 0,
+    }));
+
     return {
       success: true,
       data: {
         summary,
         growth,
         trends,
+        platformBreakdown,
         recentCampaigns,
       },
       meta: {
