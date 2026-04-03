@@ -1,6 +1,6 @@
 // backend/src/modules/ai/ai-webhook.controller.ts
 import { HttpService } from '@nestjs/axios';
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, HttpException, HttpStatus } from '@nestjs/common';
 
 @Controller('api/ai/webhook')
 export class AiWebhookController {
@@ -10,7 +10,7 @@ export class AiWebhookController {
         const webhookUrl = process.env[webhookEnv];
 
         if (!webhookUrl) {
-            throw new Error(`${webhookEnv} is not configured`);
+            throw new HttpException('N8N_WEBHOOK_URL_GENERAL is not configured', HttpStatus.SERVICE_UNAVAILABLE);
         }
 
         try {
@@ -33,9 +33,15 @@ export class AiWebhookController {
                 data: n8nData,
                 timestamp: new Date(),
             };
-        } catch (error) {
-            console.error(`${webhookEnv} error:`, (error as any)?.message || error);
-            throw new Error(`Webhook error: ${(error as any)?.message || 'Unknown error'}`);
+        } catch (error: any) {
+            // Try to forward upstream status and message when available (e.g., 429)
+            const upstreamStatus = error?.response?.status || HttpStatus.BAD_GATEWAY;
+            const upstreamData = error?.response?.data;
+            const message = (upstreamData && (upstreamData.message || upstreamData.error || JSON.stringify(upstreamData)))
+                || error?.message || 'Webhook error';
+
+            console.error('Webhook error:', message);
+            throw new HttpException({ error: message }, upstreamStatus);
         }
     }
 

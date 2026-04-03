@@ -32,6 +32,20 @@ type Session = {
     messages: Message[];
 };
 
+const normalizeText = (text: string): string => text.replace(/\s+/g, ' ').trim();
+
+const dedupeMessages = (messages: Message[]): Message[] => {
+    const seen = new Set<string>();
+    return messages.filter((message) => {
+        const key = `${message.role}:${normalizeText(message.content)}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+};
+
+const getNewId = (): string => `${Date.now()}-${Math.random().toString(36).slice(2,11)}`;
+
 const ROLE_OPTIONS = [
     { id: 'general', label: 'ทั่วไป' },
     { id: 'ads', label: 'Ads' },
@@ -56,13 +70,13 @@ export function AiAssistant() {
     const updateMessages = (updater: (prev: Message[]) => Message[]) => {
         setMessagesByRole((prev) => ({
             ...prev,
-            [activeRole]: updater(prev[activeRole] || []),
+            [activeRole]: dedupeMessages(updater(prev[activeRole] || [])),
         }));
     };
     const setMessagesForRole = (next: Message[]) => {
         setMessagesByRole((prev) => ({
             ...prev,
-            [activeRole]: next,
+            [activeRole]: dedupeMessages(next),
         }));
     };
 
@@ -80,6 +94,7 @@ export function AiAssistant() {
     const scrollRef = useRef<HTMLDivElement>(null);
     const recognitionRef = useRef<any>(null); // Ref to store recognition instance
     const isProcessingRef = useRef(false); // Sync guard against duplicate sends
+    const lastSentQueryRef = useRef({ query: '', time: 0 });
     const streamIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     // Rename State
@@ -88,12 +103,13 @@ export function AiAssistant() {
 
     const { user, isAuthenticated } = useAuthStore();
     const queryClient = useQueryClient();
+    const defaultWebhook = 'https://kitsana.app.n8n.cloud/webhook/chat-general';
     const envWebhookGeneral =
-        (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHATBOT_WEBHOOK_URL_GENERAL : '') || '';
+        (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHATBOT_WEBHOOK_URL_GENERAL : '') || defaultWebhook;
     const envWebhookAds =
-        (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHATBOT_WEBHOOK_URL_ADS : '') || '';
+        (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHATBOT_WEBHOOK_URL_ADS : '') || defaultWebhook;
     const envWebhookSeo =
-        (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHATBOT_WEBHOOK_URL_SEO : '') || '';
+        (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHATBOT_WEBHOOK_URL_SEO : '') || defaultWebhook;
     const webhookUrl =
         activeRole === 'ads' ? envWebhookAds : activeRole === 'seo' ? envWebhookSeo : envWebhookGeneral;
     const activeSessionId = activeSessionIdByRole[activeRole];
@@ -195,6 +211,18 @@ export function AiAssistant() {
 
         // 1. 🔒 Sync guard: block duplicate calls instantly
         if (isProcessingRef.current) return;
+
+        // 1b. Avoid rapid duplicate queries from the same input
+        const normalizedQuery = q.trim();
+        const now = Date.now();
+        if (
+            normalizedQuery === lastSentQueryRef.current.query &&
+            now - lastSentQueryRef.current.time < 2000
+        ) {
+            return;
+        }
+        lastSentQueryRef.current = { query: normalizedQuery, time: now };
+
         isProcessingRef.current = true;
         setIsThinking(true); // Disable UI immediately
 
@@ -240,62 +268,83 @@ export function AiAssistant() {
                     content: savedQuery
                 });
             }
-            // 5. Determine Response Logic (Webhook preferred, fallback to mock)
-            const lowerQ = savedQuery.toLowerCase();
+            // 5. Determine Response Logic (Webhook only - no fallback)
             let responseText = "";
 
-            if (webhookUrl) {
-                const route = activeRole === 'ads' ? 'ads' : activeRole === 'seo' ? 'seo' : 'general';
-                const response = await fetch(`/api/ai/webhook/${route}`, {
+            // Prefer explicit role webhook, but fallback to backend proxy so SEO works without env config.
+            const targetWebhookUrl = webhookUrl || '/api/v1/chatbot';
+
+            if (targetWebhookUrl) {
+                const response = await fetch(targetWebhookUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        message: savedQuery,
-                        role: activeRole,
-                        timestamp: new Date().toISOString(),
-                        userId: user?.id,
-                        tenantId: user?.tenantId,
+                        id: currentSessionId,
+                        tenant_id: user?.tenantId || '',
+                        question: savedQuery,
                     }),
                 });
 
                 const contentType = response.headers.get('content-type') || '';
-                if (contentType.includes('application/json')) {
-                    const data = await response.json();
+                
+                // Check if response has a body
+                const bodyText = await response.text();
+                if (!bodyText || bodyText.trim() === '') {
                     if (!response.ok) {
-                        throw new Error(data?.error || data?.message || `HTTP ${response.status}`);
+                        throw new Error(`HTTP ${response.status}`);
                     }
-                    responseText = data.reply || data.response || data.message || data.output || '';
+                    // Don't set fallback - only Gemini response
+                    responseText = '';
+                } else if (contentType.includes('application/json')) {
+                    try {
+                        const data = JSON.parse(bodyText);
+                        if (!response.ok) {
+                            throw new Error(data?.error || data?.message || `HTTP ${response.status}`);
+                        }
+                        responseText = data.reply || data.response || data.message || data.output || '';
+                    } catch (parseErr) {
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}`);
+                        }
+                        responseText = bodyText;
+                    }
                 } else {
-                    const text = await response.text();
                     if (!response.ok) {
-                        throw new Error(text || `HTTP ${response.status}`);
+                        throw new Error(bodyText || `HTTP ${response.status}`);
                     }
-                    responseText = text;
+                    responseText = bodyText;
                 }
             }
 
-            if (!responseText) {
-                if (lowerQ.includes('caption')) {
-                    responseText = "Here are a few caption options:\n\n1. Boost your ROI with AI!\n2. Stop guessing, start scaling.\n3. Connect better with smart targeting.";
-                } else if (lowerQ.includes('performance')) {
-                    responseText = "Recent data:\n\n- CTR +15%\n- CPC $1.35\n- Suggestion: Pause 'Mobile_Feed_B'.";
-                } else if (lowerQ.includes('trend')) {
-                    responseText = "Trending:\n\n1. Short-form video (2x engagement)\n2. Sustainability messaging\n3. Interactive polls";
-                } else if (lowerQ.includes('lead') || lowerQ.includes('summarize') || lowerQ.includes('summary')) {
-                    responseText = "AI Summary Report:\n\n- Overall Performance: Strong growth in Q3.\n- Key Driver: Organic traffic increased by 22%.\n- Risk: CPA is trending up in paid channels.\n- Recommendation: Reallocate budget to high-performing ad sets.";
-                } else {
-                    responseText = `Analyzed "${savedQuery}". Metrics stable.\nRecommendation: Improve ad relevance to lower CPA.`;
-                }
+            // 6. Only show message if we have actual Gemini response
+            if (!responseText || responseText.trim().length === 0) {
+                // No response from Gemini - remove the user message and don't show anything
+                updateMessages(prev => prev.filter(m => m.id !== tempUserMsgId));
+                setIsThinking(false);
+                isProcessingRef.current = false;
+                return;
             }
 
-            // 6. Simulate AI Thinking (reduced delay 400ms)
+            // 6b. Deduplicate same assistant answer (prevent multi-response duplication)
+            const normalizedResponse = normalizeText(responseText);
+            const existingAssistant = (messagesByRole[activeRole] || []).find(
+                (m) => m.role === 'assistant' && normalizeText(m.content) === normalizedResponse
+            );
+            if (existingAssistant) {
+                console.debug('[AiAssistant] duplicate assistant response suppressed', { activeRole, normalizedResponse });
+                setIsThinking(false);
+                isProcessingRef.current = false;
+                return;
+            }
+
+            // Simulate AI Thinking (reduced delay 400ms)
             await new Promise(resolve => setTimeout(resolve, 400));
 
             setIsStreaming(true); // Lock useEffect
             setIsThinking(false);
 
             // 7. Optimistic AI Message & Streaming Effect
-            const aiMsgId = (Date.now() + 1).toString();
+            const aiMsgId = getNewId();
             const aiMsg: Message = {
                 id: aiMsgId,
                 role: 'assistant',
