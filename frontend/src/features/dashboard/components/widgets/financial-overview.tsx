@@ -105,6 +105,11 @@ export function FinancialOverview({
     const cardRef = useRef<HTMLDivElement>(null);
     const [activeIndex, setActiveIndex] = useState<number | null>(null);
     const computedTotal = total ?? breakdown.reduce((acc, cur) => acc + cur.value, 0);
+    const hasData = breakdown.some(item => item.value > 0);
+
+    const chartData = hasData
+        ? breakdown
+        : [{ name: 'No Data', value: 1, color: 'var(--muted, #e2e8f0)' }];
 
     const handleExportCsv = () => {
         downloadCsv(
@@ -159,7 +164,7 @@ export function FinancialOverview({
                                 <ResponsiveContainer width="100%" height="100%">
                                     <PieChart>
                                         <Pie
-                                            data={breakdown}
+                                            data={chartData}
                                             dataKey="value"
                                             nameKey="name"
                                             cx="50%"
@@ -178,7 +183,7 @@ export function FinancialOverview({
                                             )}
                                             onMouseLeave={() => setActiveIndex(null)}
                                         >
-                                            {breakdown.map((entry, index) => (
+                                            {chartData.map((entry, index) => (
                                                 <Cell
                                                     key={entry.name}
                                                     fill={entry.color}
@@ -192,6 +197,7 @@ export function FinancialOverview({
                                             position={{ x: 8, y: 8 }}
                                             formatter={(value: number | string, name: string | number) => {
                                                 const label = typeof name === 'string' ? name : String(name ?? '');
+                                                if (label === 'No Data') return ['0', label];
                                                 return [formatCurrencyFull(Number(value), currency), label];
                                             }}
                                             contentStyle={{
@@ -217,7 +223,7 @@ export function FinancialOverview({
                         </div>
 
                         <div className="w-full md:flex-1 space-y-2 text-xs">
-                            {breakdown.map((item, index) => (
+                            {chartData.map((item, index) => (
                                 <div
                                     key={item.name}
                                     className={cn(
@@ -248,8 +254,8 @@ export function FinancialOverview({
                                         className="font-semibold theme-text whitespace-nowrap text-xs"
                                         style={{ color: 'var(--theme-text, var(--foreground))' }}
                                     >
-                                        <span className="md:hidden">{formatCompactCurrency(item.value, currency)}</span>
-                                        <span className="hidden md:inline">{formatCurrencyFull(item.value, currency)}</span>
+                                        <span className="md:hidden">{item.name === 'No Data' ? '0' : formatCompactCurrency(item.value, currency)}</span>
+                                        <span className="hidden md:inline">{item.name === 'No Data' ? '0' : formatCurrencyFull(item.value, currency)}</span>
                                     </span>
                                 </div>
                             ))}

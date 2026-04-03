@@ -22,7 +22,8 @@ import { User } from '@/types/api';
 
 const DEFAULT_FORM_DATA = {
   email: '',
-  name: '',
+  firstName: '',
+  lastName: '',
   password: '',
   role: 'CLIENT',
 };
@@ -65,10 +66,12 @@ export default function Users() {
       if (!data.email.trim()) errors.email = 'Email is required';
       else if (!emailRegex.test(data.email)) errors.email = 'Please enter a valid email address';
 
-      // Name validation
-      if (!data.name.trim()) errors.name = 'Name is required';
-      else if (data.name.length < 2) errors.name = 'Name must be at least 2 characters';
-      else if (data.name.length > 100) errors.name = 'Name must be less than 100 characters';
+      // First and last name validation
+      if (!data.firstName?.trim()) errors.firstName = 'First name is required';
+      else if (data.firstName.length < 2) errors.firstName = 'First name must be at least 2 characters';
+      else if (data.firstName.length > 100) errors.firstName = 'First name must be less than 100 characters';
+
+      if (data.lastName && data.lastName.length > 100) errors.lastName = 'Last name must be less than 100 characters';
 
       // Password validation
       if (!isEdit) {
@@ -130,9 +133,16 @@ export default function Users() {
     ];
   }, [users, meta]);
 
-  const getInitials = (name: string | undefined | null) => {
-    if (!name) return '??';
-    return name.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase().substring(0, 2);
+  const getInitials = (firstName?: string | null, lastName?: string | null) => {
+    const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
+    if (!fullName) return '??';
+    return fullName
+      .split(' ')
+      .filter(Boolean)
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
   };
 
   const renderUserForm = (isEdit: boolean = false) => (
@@ -152,16 +162,29 @@ export default function Users() {
         {isEdit && <p className="text-xs text-muted-foreground">Email cannot be changed</p>}
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="name">Name <span className="text-destructive">*</span></Label>
-        <Input
-          id="name"
-          value={formData.name}
-          onChange={(e) => handleFieldChange('name', e.target.value)}
-          placeholder="Enter full name"
-          className={formErrors.name ? 'border-destructive' : ''}
-        />
-        {formErrors.name && <p className="text-sm text-destructive">{formErrors.name}</p>}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="firstName">First Name <span className="text-destructive">*</span></Label>
+          <Input
+            id="firstName"
+            value={formData.firstName}
+            onChange={(e) => handleFieldChange('firstName', e.target.value)}
+            placeholder="Enter first name"
+            className={formErrors.firstName ? 'border-destructive' : ''}
+          />
+          {formErrors.firstName && <p className="text-sm text-destructive">{formErrors.firstName}</p>}
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="lastName">Last Name</Label>
+          <Input
+            id="lastName"
+            value={formData.lastName}
+            onChange={(e) => handleFieldChange('lastName', e.target.value)}
+            placeholder="Enter last name"
+            className={formErrors.lastName ? 'border-destructive' : ''}
+          />
+          {formErrors.lastName && <p className="text-sm text-destructive">{formErrors.lastName}</p>}
+        </div>
       </div>
 
       <div className="space-y-2">
@@ -304,12 +327,12 @@ export default function Users() {
                             <TableCell className="font-medium">
                               <div className="flex items-center gap-3">
                                 <Avatar className="h-8 w-8">
-                                  <AvatarImage src={user.avatarUrl || undefined} alt={user.name} />
+                                  <AvatarImage src={user.avatarUrl || undefined} alt={`${user.firstName || ''} ${user.lastName || ''}`.trim()} />
                                   <AvatarFallback className="text-xs bg-muted">
-                                    {getInitials(user.name)}
+                                    {getInitials(user.firstName, user.lastName)}
                                   </AvatarFallback>
                                 </Avatar>
-                                <span>{user.name}</span>
+                                <span>{user.firstName || ''} {user.lastName || ''}</span>
                               </div>
                             </TableCell>
                             <TableCell>{user.email}</TableCell>
@@ -326,7 +349,8 @@ export default function Users() {
                                   variant="ghost"
                                   onClick={() => openEditDialog(user, (u) => ({
                                     email: u.email,
-                                    name: u.name,
+                                    firstName: u.firstName || '',
+                                    lastName: u.lastName || '',
                                     password: '',
                                     role: u.role,
                                   }))}
@@ -336,7 +360,7 @@ export default function Users() {
                                 <Button
                                   size="icon-sm"
                                   variant="ghost"
-                                  onClick={() => handleDelete(user.id, user.name)}
+                                  onClick={() => handleDelete(user.id, `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email)}
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>

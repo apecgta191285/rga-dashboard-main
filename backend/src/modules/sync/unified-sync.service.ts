@@ -309,8 +309,8 @@ export class UnifiedSyncService {
             const hour = 0;
             const source = 'sync';
 
-            const spendNum = toNumber(m.spend);
-            const revenueNum = toNumber(m.revenue);
+            const spendNum = toNumber(m.spend ?? m.cost);
+            const revenueNum = toNumber(m.revenue ?? m.conversionValue);
             const roasNum = spendNum > 0 ? revenueNum / spendNum : 0;
 
             const impressions = m.impressions ?? 0;

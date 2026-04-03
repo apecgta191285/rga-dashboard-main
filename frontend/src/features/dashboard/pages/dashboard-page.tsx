@@ -91,27 +91,27 @@ const PLATFORM_ORDER: AdPlatform[] = [
     'LINE_ADS',
 ];
 
-function buildPlatformBreakdown(campaigns: RecentCampaign[] | undefined) {
+function buildPlatformBreakdown(platformDataArray: any[] | undefined) {
     const sums = new Map<AdPlatform, number>();
     for (const key of PLATFORM_ORDER) sums.set(key, 0);
 
-    for (const c of campaigns ?? []) {
+    for (const d of platformDataArray ?? []) {
         // Skip GA4 - it's web analytics, not an ad platform
-        if (c.platform === 'GOOGLE_ANALYTICS') continue;
+        if (d.platform === 'GOOGLE_ANALYTICS') continue;
 
-        const prev = sums.get(c.platform) ?? 0;
-        sums.set(c.platform, prev + (c.spending ?? 0));
+        const prev = sums.get(d.platform) ?? 0;
+        sums.set(d.platform, prev + (d.spend ?? d.spending ?? 0));
     }
 
     return PLATFORM_ORDER.map((platform) => ({
         name: PLATFORM_LABELS[platform] ?? platform,
         value: sums.get(platform) ?? 0,
         color: PLATFORM_COLORS[platform] ?? '#94a3b8',
-    }));
+    })).filter(p => p.value > 0);
 }
 
-function buildPlatformFunnelStages(campaigns: RecentCampaign[] | undefined) {
-    const platformData = new Map<AdPlatform, {
+function buildPlatformFunnelStages(platformDataArray: any[] | undefined) {
+    const platformDataMap = new Map<AdPlatform, {
         impressions: number;
         clicks: number;
         conversions: number;
@@ -119,24 +119,24 @@ function buildPlatformFunnelStages(campaigns: RecentCampaign[] | undefined) {
 
     // Initialize
     for (const platform of PLATFORM_ORDER) {
-        platformData.set(platform, { impressions: 0, clicks: 0, conversions: 0 });
+        platformDataMap.set(platform, { impressions: 0, clicks: 0, conversions: 0 });
     }
 
     // Aggregate by platform
-    for (const campaign of campaigns ?? []) {
-        if (campaign.platform === 'GOOGLE_ANALYTICS') continue;
+    for (const item of platformDataArray ?? []) {
+        if (item.platform === 'GOOGLE_ANALYTICS') continue;
 
-        const current = platformData.get(campaign.platform);
+        const current = platformDataMap.get(item.platform);
         if (current) {
-            current.impressions += campaign.impressions;
-            current.clicks += campaign.clicks;
-            current.conversions += campaign.conversions;
+            current.impressions += item.impressions || 0;
+            current.clicks += item.clicks || 0;
+            current.conversions += item.conversions || 0;
         }
     }
 
     // Convert to funnel stages
     return PLATFORM_ORDER.map((platform) => {
-        const data = platformData.get(platform)!;
+        const data = platformDataMap.get(platform)!;
         return {
             platform: PLATFORM_LABELS[platform] ?? platform,
             impressions: data.impressions,
@@ -164,14 +164,14 @@ export function DashboardPage() {
     });
 
     const financialBreakdown = useMemo(
-        () => buildPlatformBreakdown(data?.recentCampaigns),
-        [data?.recentCampaigns]
+        () => buildPlatformBreakdown(data?.platformBreakdown ?? data?.recentCampaigns),
+        [data?.platformBreakdown, data?.recentCampaigns]
     );
 
     // Calculate platform funnel stages from campaigns
     const platformFunnelStages = useMemo(
-        () => buildPlatformFunnelStages(data?.recentCampaigns),
-        [data?.recentCampaigns]
+        () => buildPlatformFunnelStages(data?.platformBreakdown ?? data?.recentCampaigns),
+        [data?.platformBreakdown, data?.recentCampaigns]
     );
 
     // Calculate funnel stages from data
@@ -290,6 +290,7 @@ export function DashboardPage() {
                             <FinancialOverview
                                 subtitle="ROAS"
                                 roi={data?.summary.averageRoas ?? 0}
+                                roiDelta={data?.growth.roasGrowth ?? 0}
                                 total={totalCost}
                                 currency="THB"
                                 breakdown={financialBreakdown}
