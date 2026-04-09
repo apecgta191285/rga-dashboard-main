@@ -7,7 +7,7 @@ import {
   DashboardOverviewResponseDto,
   GetDashboardOverviewDto,
 } from './dto/dashboard-overview.dto';
-import { ProvenanceMode } from 'src/common/provenance.constants';
+import { ProvenanceMode } from '../../common/provenance.constants';
 
 // ============================================================
 // Helper: Safe Decimal to Number conversion with null coalescing

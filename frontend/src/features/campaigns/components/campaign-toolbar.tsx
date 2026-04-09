@@ -50,6 +50,10 @@ export interface CampaignToolbarProps {
     period: PeriodEnum;
     /** Callback when period filter changes */
     onPeriodChange: (value: PeriodEnum) => void;
+    /** Custom range for 'custom' period */
+    customRange?: { from: Date; to: Date };
+    /** Callback when custom range changes */
+    onCustomRangeChange?: (value: { from: Date; to: Date }) => void;
     /** Toggle to show only selected items */
     showSelectedOnly: boolean;
     /** Callback when show selected only toggle changes */
@@ -91,6 +95,8 @@ export function CampaignToolbar({
     isLoading = false,
     period,
     onPeriodChange,
+    customRange,
+    onCustomRangeChange,
     showSelectedOnly,
     onShowSelectedOnlyChange,
     selectedCount,
@@ -274,7 +280,12 @@ export function CampaignToolbar({
 
                     {/* Date Filter - Wrapped for consistent height */}
                     <div className="h-10 [&>button]:h-10 [&>button]:rounded-lg [&>button]:border-gray-200 [&>button]:shadow-sm">
-                        <DashboardDateFilter value={period} onValueChange={onPeriodChange} />
+                        <DashboardDateFilter
+                            value={period}
+                            onValueChange={onPeriodChange}
+                            customRange={customRange}
+                            onCustomRangeChange={onCustomRangeChange}
+                        />
                     </div>
 
                     {/* Search Button (Mobile/Desktop consistent) */}

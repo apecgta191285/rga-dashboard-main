@@ -92,10 +92,15 @@ export class GoogleAnalyticsAuthController {
     @ApiBody({ schema: { type: 'object', properties: { tempToken: { type: 'string' }, propertyId: { type: 'string' } } } })
     async completeConnection(
         @Req() req: any,
-        @Body('tempToken') tempToken: string,
-        @Body('propertyId') propertyId: string,
+        @Body() body: { tempToken?: string; propertyId?: string },
+        @Query('tempToken') tempTokenQuery?: string,
+        @Query('propertyId') propertyIdQuery?: string,
     ) {
         const tenantId = req.user.tenantId;
+        const tempToken = body?.tempToken || tempTokenQuery;
+        const propertyId = body?.propertyId || propertyIdQuery;
+
+        this.logger.log(`GA4 completeConnection request body=${JSON.stringify(body)} query={tempToken:${tempTokenQuery},propertyId:${propertyIdQuery}}`);
 
         if (!tempToken || !propertyId) {
             throw new BadRequestException('Missing tempToken or propertyId');

@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { AdPlatform, CampaignStatus } from '@prisma/client';
 
 @Injectable()
 export class GoogleAdsMapperService {
+    private readonly logger = new Logger(GoogleAdsMapperService.name);
     /**
      * Map Google Ads status string/number to internal CampaignStatus enum
      */
@@ -27,7 +28,8 @@ export class GoogleAdsMapperService {
      * Transform API campaign results to internal format
      */
     transformCampaigns(results: any[]) {
-        return results.map((row: any) => ({
+        this.logger.log(`[transformCampaigns] Transforming ${results.length} raw results`);
+        const transformed = results.map((row: any) => ({
             externalId: row.campaign.id.toString(),
             name: row.campaign.name,
             status: this.mapCampaignStatus(row.campaign.status),
@@ -42,6 +44,9 @@ export class GoogleAdsMapperService {
             },
             budget: 0, // Initialize budget for type safety
         }));
+        this.logger.log(`[transformCampaigns] Transformed to ${transformed.length} campaigns`);
+        this.logger.log(`[transformCampaigns] Sample transformed: ${JSON.stringify(transformed.slice(0, 1), null, 2)}`);
+        return transformed;
     }
 
     /**

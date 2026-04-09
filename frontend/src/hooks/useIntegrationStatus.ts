@@ -101,6 +101,19 @@ export function useIntegrationStatus() {
         }
     };
 
+    const syncGoogleAnalytics = async () => {
+        try {
+            setIsSyncing(true);
+            await integrationService.syncGoogleAnalytics();
+            await fetchStatus(); // Refresh status to get new lastSyncAt
+            return true;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsSyncing(false);
+        }
+    };
+
     const disconnectGoogleAnalytics = async () => {
         try {
             setIsLoading(true);
@@ -167,6 +180,7 @@ export function useIntegrationStatus() {
         isSyncing,
         refetch: fetchStatus,
         syncGoogleAds,
+        syncGoogleAnalytics,
         disconnectGoogleAds,
         disconnectGoogleAnalytics,
         disconnectLineAds,

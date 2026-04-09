@@ -65,6 +65,7 @@ export class GoogleAdsIntegrationController {
       externalId: account.customerId,
       name: account.accountName || 'Unnamed Account',
       status: account.status,
+      lastSyncAt: account.lastSyncAt ? account.lastSyncAt.toISOString() : null,
     }));
 
     const lastSyncAt = result.accounts.length > 0
@@ -141,19 +142,26 @@ export class GoogleAdsIntegrationController {
   @ApiOperation({ summary: 'Trigger manual sync for Google Ads' })
   async triggerSync(@Request() req) {
     const tenantId = req.user.tenantId;
+    this.logger.log(`[SYNC-TRIGGER] Manual sync triggered for tenant ${tenantId}`);
+
     const result = await this.oauthService.getConnectedAccounts(tenantId);
+    this.logger.log(`[SYNC-TRIGGER] Found ${result.accounts.length} connected accounts`);
 
     if (result.accounts.length === 0) {
+      this.logger.warn(`[SYNC-TRIGGER] No Google Ads account connected for tenant ${tenantId}`);
       throw new BadRequestException('No Google Ads account connected');
     }
 
     const syncResults = [];
     for (const account of result.accounts) {
+      this.logger.log(`[SYNC-TRIGGER] Starting sync for account ${account.id} (${account.customerId})`);
       // 🚀 Force sequential sync for stability on Hostinger
       await this.unifiedSyncService.syncAccount(AdPlatform.GOOGLE_ADS, account.id, tenantId);
       syncResults.push({ accountId: account.id, status: 'COMPLETED' });
+      this.logger.log(`[SYNC-TRIGGER] Completed sync for account ${account.id}`);
     }
 
+    this.logger.log(`[SYNC-TRIGGER] Manual sync completed for tenant ${tenantId}`);
     return {
       success: true,
       message: 'Sync completed for all connected accounts',

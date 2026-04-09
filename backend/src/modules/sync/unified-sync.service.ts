@@ -155,82 +155,123 @@ export class UnifiedSyncService {
      * Sync a specific account using the Adapter Pattern
      */
     async syncAccount(platform: AdPlatform, accountId: string, tenantId: string, accountData?: any) {
-        const adapter = this.integrationFactory.getAdapter(platform);
+        this.logger.log(`[SYNC] ========== SYNC START ==========`);
+        this.logger.log(`[SYNC] platform=${platform}, accountId=${accountId}, tenantId=${tenantId}`);
 
-        // 1. Prepare Credentials
-        if (!accountData) {
-            accountData = await this.fetchAccountData(platform, accountId);
-        }
+        let syncError: Error | null = null;
 
-        const credentials = {
-            accessToken: accountData.accessToken,
-            refreshToken: accountData.refreshToken,
-            accountId: (() => {
-                switch (platform) {
-                    case AdPlatform.GOOGLE_ANALYTICS:
-                        return accountData.propertyId;
-                    case AdPlatform.GOOGLE_ADS:
-                        return accountData.customerId;
-                    case AdPlatform.FACEBOOK:
-                        return accountData.accountId;
-                    case AdPlatform.TIKTOK:
-                        return accountData.advertiserId;
-                    case AdPlatform.LINE_ADS:
-                        return accountData.channelId;
-                    default:
-                        return accountData.accountId;
+        try {
+            const adapter = this.integrationFactory.getAdapter(platform);
+            this.logger.log(`[SYNC] Got adapter for platform=${platform}`);
+
+            // 1. Prepare Credentials
+            if (!accountData) {
+                this.logger.log(`[SYNC] Fetching account data from database...`);
+                accountData = await this.fetchAccountData(platform, accountId);
+                
+                if (!accountData) {
+                    throw new Error(`Account not found in database: ${accountId}`);
                 }
-            })(),
-        };
+                
+                this.logger.log(`[SYNC] Account data fetched: ${JSON.stringify({
+                    id: accountData.id,
+                    customerId: accountData.customerId || accountData.propertyId || accountData.accountId,
+                    status: accountData.status,
+                    hasRefreshToken: !!accountData.refreshToken,
+                })}`);
+            }
 
-        // 2. Fetch Campaigns (if applicable)
-        const campaigns = await adapter.fetchCampaigns(credentials);
-
-        // 3. Save Campaigns to DB
-        for (const campaign of campaigns) {
-            await this.saveCampaign(tenantId, platform, accountId, campaign);
-        }
-
-        // 4. Fetch & Save Metrics
-        if (platform === AdPlatform.GOOGLE_ANALYTICS) {
-            // GA4 Logic: Fetch Account Level Metrics
-            const dateRange = {
-                startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Last 30 days
-                endDate: new Date(),
+            const credentials = {
+                accessToken: accountData.accessToken,
+                refreshToken: accountData.refreshToken,
+                accountId: (() => {
+                    switch (platform) {
+                        case AdPlatform.GOOGLE_ANALYTICS:
+                            return accountData.propertyId;
+                        case AdPlatform.GOOGLE_ADS:
+                            return accountData.customerId;
+                        case AdPlatform.FACEBOOK:
+                            return accountData.accountId;
+                        case AdPlatform.TIKTOK:
+                            return accountData.advertiserId;
+                        case AdPlatform.LINE_ADS:
+                            return accountData.channelId;
+                        default:
+                            return accountData.accountId;
+                    }
+                })(),
             };
 
-            const metrics = await adapter.fetchMetrics(credentials, credentials.accountId, dateRange);
-            await this.saveWebAnalytics(tenantId, credentials.accountId, metrics);
+            this.logger.log(`[SYNC] Credentials prepared: accountId=${credentials.accountId}`);
 
-        } else {
-            // Ads Logic: Fetch Campaign Level Metrics
-            const campaignPlatforms = platform === ('INSTAGRAM' as any as AdPlatform) ? [AdPlatform.FACEBOOK] : [platform];
-            const dbCampaigns = await this.prisma.campaign.findMany({
-                where: {
-                    tenantId,
-                    platform: { in: campaignPlatforms },
-                    OR: [
-                        { googleAdsAccountId: accountId },
-                        { facebookAdsAccountId: accountId }
-                    ]
-                }
-            });
+            // 2. Fetch Campaigns (if applicable)
+            this.logger.log(`[SYNC] Calling adapter.fetchCampaigns()...`);
+            const campaigns = await adapter.fetchCampaigns(credentials);
+            this.logger.log(`[SYNC] ✅ Fetched ${campaigns.length} campaigns`);
 
-            for (const campaign of dbCampaigns) {
-                if (!campaign.externalId) continue;
+            // 3. Save Campaigns to DB
+            this.logger.log(`[SYNC] Saving campaigns to database...`);
+            for (const campaign of campaigns) {
+                await this.saveCampaign(tenantId, platform, accountId, campaign);
+            }
+            this.logger.log(`[SYNC] ✅ Saved ${campaigns.length} campaigns`);
 
+            // 4. Fetch & Save Metrics
+            if (platform === AdPlatform.GOOGLE_ANALYTICS) {
+                // GA4 Logic: Fetch Account Level Metrics
                 const dateRange = {
                     startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Last 30 days
                     endDate: new Date(),
                 };
 
-                const metrics = await adapter.fetchMetrics(credentials, campaign.externalId, dateRange);
-                await this.saveCampaignMetrics(tenantId, platform, campaign.id, metrics);
+                const metrics = await adapter.fetchMetrics(credentials, credentials.accountId, dateRange);
+                await this.saveWebAnalytics(tenantId, credentials.accountId, metrics);
+
+            } else {
+                // Ads Logic: Fetch Campaign Level Metrics
+                const campaignPlatforms = platform === ('INSTAGRAM' as any as AdPlatform) ? [AdPlatform.FACEBOOK] : [platform];
+                const dbCampaigns = await this.prisma.campaign.findMany({
+                    where: {
+                        tenantId,
+                        platform: { in: campaignPlatforms },
+                        OR: [
+                            { googleAdsAccountId: accountId },
+                            { facebookAdsAccountId: accountId }
+                        ]
+                    }
+                });
+
+                this.logger.log(`[SYNC] Fetching metrics for ${dbCampaigns.length} campaigns...`);
+                for (const campaign of dbCampaigns) {
+                    if (!campaign.externalId) continue;
+
+                    const dateRange = {
+                        startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Last 30 days
+                        endDate: new Date(),
+                    };
+
+                    const metrics = await adapter.fetchMetrics(credentials, campaign.externalId, dateRange);
+                    await this.saveCampaignMetrics(tenantId, platform, campaign.id, metrics);
+                }
+                this.logger.log(`[SYNC] ✅ Metrics fetched and saved`);
             }
+
+        } catch (err: any) {
+            syncError = err;
+            this.logger.error(`[SYNC] ❌ Error during sync: ${err.message}`);
+            this.logger.error(`[SYNC] Stack: ${err.stack}`);
         }
 
-        // Update Last Sync Time
+        // IMPORTANT: Always update lastSyncAt, even if there was an error
+        // This way the user knows when the last sync attempt was made
+        this.logger.log(`[SYNC] Updating lastSyncAt for account...`);
         await this.updateLastSync(platform, accountId);
+        this.logger.log(`[SYNC] ========== SYNC COMPLETE ==========`);
+
+        // Re-throw error after updating lastSyncAt
+        if (syncError) {
+            throw syncError;
+        }
     }
 
     private async fetchAccountData(platform: AdPlatform, accountId: string) {
@@ -391,23 +432,35 @@ export class UnifiedSyncService {
 
     private async updateLastSync(platform: AdPlatform, accountId: string) {
         const now = new Date();
-        switch (platform) {
-            case AdPlatform.GOOGLE_ADS:
-                await this.prisma.googleAdsAccount.update({ where: { id: accountId }, data: { lastSyncAt: now } });
-                break;
-            case AdPlatform.FACEBOOK:
-            case 'INSTAGRAM' as any:
-                await this.prisma.facebookAdsAccount.update({ where: { id: accountId }, data: { lastSyncAt: now } });
-                break;
-            case AdPlatform.GOOGLE_ANALYTICS:
-                await this.prisma.googleAnalyticsAccount.update({ where: { id: accountId }, data: { lastSyncAt: now } });
-                break;
-            case AdPlatform.TIKTOK:
-                await this.prisma.tikTokAdsAccount.update({ where: { id: accountId }, data: { lastSyncAt: now } });
-                break;
-            case AdPlatform.LINE_ADS:
-                await this.prisma.lineAdsAccount.update({ where: { id: accountId }, data: { lastSyncAt: now } });
-                break;
+        this.logger.log(`[SYNC] updateLastSync: platform=${platform}, accountId=${accountId}, time=${now.toISOString()}`);
+        
+        try {
+            switch (platform) {
+                case AdPlatform.GOOGLE_ADS:
+                    await this.prisma.googleAdsAccount.update({ where: { id: accountId }, data: { lastSyncAt: now } });
+                    this.logger.log(`[SYNC] ✅ Updated googleAdsAccount.lastSyncAt`);
+                    break;
+                case AdPlatform.FACEBOOK:
+                case 'INSTAGRAM' as any:
+                    await this.prisma.facebookAdsAccount.update({ where: { id: accountId }, data: { lastSyncAt: now } });
+                    this.logger.log(`[SYNC] ✅ Updated facebookAdsAccount.lastSyncAt`);
+                    break;
+                case AdPlatform.GOOGLE_ANALYTICS:
+                    await this.prisma.googleAnalyticsAccount.update({ where: { id: accountId }, data: { lastSyncAt: now } });
+                    this.logger.log(`[SYNC] ✅ Updated googleAnalyticsAccount.lastSyncAt`);
+                    break;
+                case AdPlatform.TIKTOK:
+                    await this.prisma.tikTokAdsAccount.update({ where: { id: accountId }, data: { lastSyncAt: now } });
+                    this.logger.log(`[SYNC] ✅ Updated tikTokAdsAccount.lastSyncAt`);
+                    break;
+                case AdPlatform.LINE_ADS:
+                    await this.prisma.lineAdsAccount.update({ where: { id: accountId }, data: { lastSyncAt: now } });
+                    this.logger.log(`[SYNC] ✅ Updated lineAdsAccount.lastSyncAt`);
+                    break;
+            }
+        } catch (err) {
+            this.logger.error(`[SYNC] ❌ updateLastSync failed: ${err.message}`);
+            throw err;
         }
     }
 }

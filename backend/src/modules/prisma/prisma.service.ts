@@ -2,6 +2,7 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
+import * as path from 'path';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit {
@@ -18,6 +19,9 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
     });
     
     const adapter = new PrismaPg(pool as any);
+
+    // Set schema path for Prisma
+    process.env.PRISMA_SCHEMA_PATH = path.join(process.cwd(), 'prisma', 'schema.prisma');
     
     super({
       adapter,

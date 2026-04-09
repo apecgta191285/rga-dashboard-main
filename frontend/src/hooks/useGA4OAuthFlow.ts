@@ -58,6 +58,11 @@ export function useGA4OAuthFlow({ onSuccess }: UseGA4OAuthFlowProps = {}) {
 
     const completeConnection = useCallback(async (propertyId: string) => {
         if (!tempToken) return;
+        if (!propertyId) {
+            toast.error('Please select a valid Google Analytics property before continuing.');
+            return;
+        }
+
         try {
             setIsConnecting(true);
             await api.post('/auth/google/analytics/complete', {

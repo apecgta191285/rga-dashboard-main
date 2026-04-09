@@ -147,6 +147,13 @@ export class GoogleAnalyticsOAuthService {
         return { success: true, accountId };
     }
 
+    async disconnect(tenantId: string) {
+        await this.prisma.googleAnalyticsAccount.deleteMany({
+            where: { tenantId },
+        });
+        return true;
+    }
+
     private async triggerInitialSync(accountId: string, tenantId: string) {
         try {
             this.logger.log(`[Initial Sync] Starting sync for GA4 account ${accountId}`);
@@ -227,6 +234,7 @@ export class GoogleAnalyticsOAuthService {
                 propertyId: true,
                 propertyName: true,
                 status: true,
+                lastSyncAt: true,
                 createdAt: true,
             }
         });

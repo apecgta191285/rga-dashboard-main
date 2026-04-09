@@ -73,6 +73,8 @@ function getDateRangeFromPeriod(period: PeriodEnum): { startDate: string; endDat
                 endDate: lastDayLastMonth.toISOString().split('T')[0],
             };
         }
+        case 'custom':
+            return { startDate: endDate, endDate };
         default:
             return { startDate: endDate, endDate };
     }
@@ -129,6 +131,7 @@ export function CampaignsPage() {
 
     // Period filter state for time-window metrics
     const [period, setPeriod] = useState<PeriodEnum>('7d');
+    const [customRange, setCustomRange] = useState<{ from: Date; to: Date } | null>(null);
 
     // Search and filter state
     const [search, setSearch] = useState('');
@@ -174,9 +177,24 @@ export function CampaignsPage() {
     }, [selectedIds, showSelectedOnly]);
 
     // ==========================================================================
-    // Compute Date Range from Period
+    // Compute Date Range from Period or Custom Range
     // ==========================================================================
-    const dateRange = useMemo(() => getDateRangeFromPeriod(period), [period]);
+    const dateRange = useMemo(() => {
+        if (period === 'custom' && customRange) {
+            return {
+                startDate: customRange.from.toISOString().split('T')[0],
+                endDate: customRange.to.toISOString().split('T')[0],
+            };
+        }
+        return getDateRangeFromPeriod(period);
+    }, [period, customRange]);
+
+    // Reset custom range if user switches off custom mode
+    useEffect(() => {
+        if (period !== 'custom') {
+            setCustomRange(null);
+        }
+    }, [period]);
 
     // ==========================================================================
     // Data Fetching with All Filters
@@ -522,6 +540,8 @@ export function CampaignsPage() {
                     isLoading={isFetching}
                     period={period}
                     onPeriodChange={setPeriod}
+                    customRange={customRange ?? undefined}
+                    onCustomRangeChange={setCustomRange}
                     showSelectedOnly={showSelectedOnly}
                     onShowSelectedOnlyChange={setShowSelectedOnly}
                     selectedCount={selectedIds.size}

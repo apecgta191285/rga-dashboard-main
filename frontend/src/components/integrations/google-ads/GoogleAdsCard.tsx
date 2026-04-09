@@ -60,14 +60,31 @@ export function GoogleAdsCard({ platform }: GoogleAdsCardProps) {
 
     const isConnected = status.googleAds;
 
+    // Debug logging
+    console.log('GoogleAdsCard Debug:', {
+        isConnected,
+        accountsCount: accounts.length,
+        accounts,
+        status,
+        isSyncing
+    });
+
     const handleSync = async () => {
         try {
-            toast.promise(syncGoogleAds(), {
-                loading: 'Syncing campaigns...',
-                success: 'Sync completed successfully',
-                error: 'Failed to sync campaigns'
-            });
-        } catch (error) {
+            await syncGoogleAds();
+            toast.success('Sync completed successfully');
+            await refetch(); // Refresh status
+        } catch (error: any) {
+            const errorMsg = error?.response?.data?.message || error?.message || 'Failed to sync campaigns';
+            
+            if (errorMsg.includes('unauthorized_client')) {
+                toast.error('Google Ads authentication expired. Please disconnect and reconnect your account.');
+            } else if (errorMsg.includes('expired') || errorMsg.includes('invalid')) {
+                toast.error('Your Google Ads connection needs to be refreshed. Please reconnect.');
+            } else {
+                toast.error(errorMsg);
+            }
+            
             console.error(error);
         }
     };
@@ -75,12 +92,12 @@ export function GoogleAdsCard({ platform }: GoogleAdsCardProps) {
     const handleDisconnect = async () => {
         if (confirm('Are you sure you want to disconnect Google Ads? This will stop data syncing.')) {
             try {
-                toast.promise(disconnectGoogleAds(), {
-                    loading: 'Disconnecting...',
-                    success: 'Disconnected successfully',
-                    error: 'Failed to disconnect'
-                });
-            } catch (error) {
+                await disconnectGoogleAds();
+                toast.success('Disconnected successfully');
+                await refetch();
+            } catch (error: any) {
+                const errorMsg = error?.response?.data?.message || error?.message || 'Failed to disconnect';
+                toast.error(errorMsg);
                 console.error(error);
             }
         }
