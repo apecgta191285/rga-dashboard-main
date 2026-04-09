@@ -53,4 +53,9 @@ export class AiWebhookController {
     async proxySeo(@Body() body: any) {
         return this.proxyToN8n('N8N_WEBHOOK_URL_SEO', body);
     }
+
+    @Post('summary')
+    async proxySummary(@Body() body: any) {
+        return this.proxyToN8n('N8N_WEBHOOK_URL_SUMMARY', body);
+    }
 }

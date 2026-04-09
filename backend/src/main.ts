@@ -141,6 +141,8 @@ async function bootstrap() {
 
       'api/ai/webhook/seo',
 
+      'api/ai/webhook/summary',
+
       'api/ai/webhook/*',
 
     ],

@@ -3,7 +3,7 @@ import { Send, FileText, Sparkles, Plus, Mic, PenTool, TrendingUp, Lightbulb, Us
 import chatbotImage from "../../chat/chatbot.webp";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { AiDetailSummary } from "./ai-detail-summary";
+import { AiDetailSummary, AiDetailSummaryData } from "./ai-detail-summary";
 import { MarketingTools } from "./marketing-tools";
 import { chatService, ChatSession, ChatMessage } from "../services/chat-service";
 import { useAuthStore } from "@/stores/auth-store";
@@ -33,7 +33,7 @@ type Session = {
 };
 
 const ROLE_OPTIONS = [
-    { id: 'general', label: 'ทั่วไป' },
+    { id: 'general', label: 'General' },
     { id: 'ads', label: 'Ads' },
     { id: 'seo', label: 'SEO' },
 ] as const;
@@ -74,7 +74,83 @@ export function AiAssistant() {
     });
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [viewMode, setViewMode] = useState<'chat' | 'summary' | 'tools'>('chat');
+    const [summaryData, setSummaryData] = useState<AiDetailSummaryData | null>(null);
+    const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+    const [summaryLoadingError, setSummaryLoadingError] = useState<string | null>(null);
 
+    const SUMMARY_STORAGE_KEY = 'ai-summary-data';
+    const SUMMARY_DATE_KEY = 'ai-summary-date';
+    const getTodayKey = () => new Date().toDateString();
+
+    const loadSavedSummary = (): AiDetailSummaryData | null => {
+        try {
+            const saved = localStorage.getItem(SUMMARY_STORAGE_KEY);
+            if (!saved) return null;
+            return JSON.parse(saved) as AiDetailSummaryData;
+        } catch (error) {
+            console.error('Failed to load saved AI summary:', error);
+            return null;
+        }
+    };
+
+    const saveSummary = (data: AiDetailSummaryData) => {
+        try {
+            localStorage.setItem(SUMMARY_STORAGE_KEY, JSON.stringify(data));
+            localStorage.setItem(SUMMARY_DATE_KEY, getTodayKey());
+        } catch (error) {
+            console.error('Failed to save AI summary:', error);
+        }
+    };
+
+    const shouldFetchDailySummary = () => {
+        const savedDate = localStorage.getItem(SUMMARY_DATE_KEY);
+        return savedDate !== getTodayKey();
+    };
+
+    const fetchDailySummary = async () => {
+        if (!webhookUrl) return;
+        if (!shouldFetchDailySummary()) return;
+
+        setSummaryLoadingError(null);
+        setIsSummaryLoading(true);
+
+        try {
+            const route = envWebhookSummary ? 'summary' : 'general';
+            const response = await fetch(`/api/ai/webhook/${route}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: 'Create a daily strategic summary for the dashboard. Include summary cards, a key insight with recommendation, and section details for campaigns and performance. Return valid JSON compatible with the AiDetailSummaryData interface.',
+                    role: activeRole,
+                    timestamp: new Date().toISOString(),
+                    userId: user?.id,
+                    tenantId: user?.tenantId,
+                }),
+            });
+
+            const contentType = response.headers.get('content-type') || '';
+            let parsedSummary: AiDetailSummaryData | null = null;
+            if (contentType.includes('application/json')) {
+                const data = await response.json();
+                parsedSummary = tryParseSummaryData(data.data) || tryParseSummaryData(data);
+            } else {
+                const text = await response.text();
+                parsedSummary = tryParseSummaryData(text);
+            }
+
+            if (parsedSummary) {
+                setSummaryData(parsedSummary);
+                saveSummary(parsedSummary);
+            } else {
+                setSummaryLoadingError('Failed to parse AI summary data');
+            }
+        } catch (error: any) {
+            console.error('Failed to fetch daily summary:', error);
+            setSummaryLoadingError(error?.message || 'Failed to load summary');
+        } finally {
+            setIsSummaryLoading(false);
+        }
+    };
 
     // Refs
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -90,13 +166,60 @@ export function AiAssistant() {
     const queryClient = useQueryClient();
     const envWebhookGeneral =
         (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHATBOT_WEBHOOK_URL_GENERAL : '') || '';
+    const envWebhookSummary =
+        (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHATBOT_WEBHOOK_URL_SUMMARY : '') || '';
     const envWebhookAds =
         (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHATBOT_WEBHOOK_URL_ADS : '') || '';
     const envWebhookSeo =
         (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHATBOT_WEBHOOK_URL_SEO : '') || '';
     const webhookUrl =
-        activeRole === 'ads' ? envWebhookAds : activeRole === 'seo' ? envWebhookSeo : envWebhookGeneral;
+        activeRole === 'ads'
+            ? envWebhookAds
+            : activeRole === 'seo'
+                ? envWebhookSeo
+                : envWebhookSummary || envWebhookGeneral;
     const activeSessionId = activeSessionIdByRole[activeRole];
+
+    const tryParseSummaryData = (value: any): AiDetailSummaryData | null => {
+        if (!value) return null;
+        let parsed = value;
+
+        if (typeof parsed === 'string') {
+            try {
+                parsed = JSON.parse(parsed);
+            } catch {
+                return null;
+            }
+        }
+
+        if (parsed && typeof parsed === 'object') {
+            if (parsed.summaryCards && parsed.insight && parsed.sections) {
+                return parsed as AiDetailSummaryData;
+            }
+            if (parsed.data) {
+                return tryParseSummaryData(parsed.data);
+            }
+            if (parsed.output) {
+                return tryParseSummaryData(parsed.output);
+            }
+            if (parsed.reply) {
+                return tryParseSummaryData(parsed.reply);
+            }
+        }
+
+        return null;
+    };
+
+    useEffect(() => {
+        const saved = loadSavedSummary();
+        if (saved) {
+            setSummaryData(saved);
+        }
+
+        if (viewMode === 'summary') {
+            fetchDailySummary();
+        }
+    }, [viewMode, webhookUrl]);
 
     // 1. React Query: Fetch Sessions
     const { data: apiSessions = [] } = useQuery({
@@ -245,7 +368,13 @@ export function AiAssistant() {
             let responseText = "";
 
             if (webhookUrl) {
-                const route = activeRole === 'ads' ? 'ads' : activeRole === 'seo' ? 'seo' : 'general';
+                const route = activeRole === 'ads'
+                    ? 'ads'
+                    : activeRole === 'seo'
+                        ? 'seo'
+                        : envWebhookSummary
+                            ? 'summary'
+                            : 'general';
                 const response = await fetch(`/api/ai/webhook/${route}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -265,6 +394,11 @@ export function AiAssistant() {
                         throw new Error(data?.error || data?.message || `HTTP ${response.status}`);
                     }
                     responseText = data.reply || data.response || data.message || data.output || '';
+                    const parsedSummary = tryParseSummaryData(data.data) || tryParseSummaryData(data);
+                    if (parsedSummary) {
+                        setSummaryData(parsedSummary);
+                        saveSummary(parsedSummary);
+                    }
                 } else {
                     const text = await response.text();
                     if (!response.ok) {
@@ -600,7 +734,30 @@ export function AiAssistant() {
             <div className="flex-1 flex flex-col bg-white/50 backdrop-blur-xl rounded-2xl border border-slate-200/60 shadow-xl overflow-hidden relative">
 
                 {viewMode === 'summary' ? (
-                    <AiDetailSummary onBack={() => setViewMode('chat')} />
+                    isSummaryLoading ? (
+                        <div className="flex-1 flex items-center justify-center p-8">
+                            <div className="text-center space-y-4">
+                                <div className="mx-auto h-16 w-16 rounded-full border-4 border-orange-200 border-t-orange-500 animate-spin" />
+                                <div>
+                                    <h2 className="text-xl font-semibold text-slate-900">Loading AI Summary</h2>
+                                    <p className="text-sm text-slate-500 mt-2">Generating your daily strategic summary. This happens once per day. Please wait...</p>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <AiDetailSummary
+                            onBack={() => setViewMode('chat')}
+                            data={summaryData ?? {
+                                summaryCards: [],
+                                insight: {
+                                    title: "No AI Summary Yet",
+                                    message: "Ask AI to generate a daily summary first. Then refresh this page to see it here.",
+                                    recommendation: "",
+                                },
+                                sections: [],
+                            }}
+                        />
+                    )
                 ) : viewMode === 'tools' ? (
                     <MarketingTools onBack={() => setViewMode('chat')} />
                 ) : (
@@ -650,7 +807,7 @@ export function AiAssistant() {
                                 </div>
                                 {!webhookUrl && (
                                     <div className="mt-2 text-[11px] text-slate-400">
-                                        ยังไม่ได้ตั้งค่า `VITE_CHATBOT_WEBHOOK_URL_GENERAL/ADS/SEO` — ระบบจะใช้ข้อความจำลอง
+                                        Webhook URL not configured. Using mock responses.
                                     </div>
                                 )}
                             </div>
