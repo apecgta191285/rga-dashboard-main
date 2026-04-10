@@ -10,8 +10,10 @@ import { CampaignStatus, AdPlatform } from '@prisma/client';
  * Enum for dashboard period filter
  */
 export enum PeriodEnum {
+    ONE_DAY = '1d',
     SEVEN_DAYS = '7d',
     THIRTY_DAYS = '30d',
+    NINETY_DAYS = '90d',
     THIS_MONTH = 'this_month',
     LAST_MONTH = 'last_month',
 }
@@ -27,7 +29,7 @@ export class GetDashboardOverviewDto {
     })
     @IsOptional()
     @IsEnum(PeriodEnum, {
-        message: 'period must be one of: 7d, 30d, this_month, last_month',
+        message: 'period must be one of: 1d, 7d, 30d, 90d, this_month, last_month',
     })
     period?: PeriodEnum = PeriodEnum.SEVEN_DAYS;
 

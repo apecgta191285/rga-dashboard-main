@@ -235,7 +235,11 @@ export class CampaignsService {
     const campaign = await this.findOne(tenantId, id);
 
     const start = this.toDate(startDate);
-    const end = this.toDate(endDate);
+    let end = this.toDate(endDate);
+    // Set end date to end-of-day (23:59:59) to include all records for that day
+    if (end) {
+      end.setUTCHours(23, 59, 59, 999);
+    }
 
     const metrics = await this.repository.getMetrics(id, start, end);
 

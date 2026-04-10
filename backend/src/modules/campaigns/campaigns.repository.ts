@@ -109,7 +109,11 @@ export class PrismaCampaignsRepository implements CampaignsRepository {
     const page = Number(query.page) || 1;
     const limit = Number(query.limit) || 10;
     const startDate = query.startDate ? new Date(query.startDate) : undefined;
-    const endDate = query.endDate ? new Date(query.endDate) : undefined;
+    let endDate = query.endDate ? new Date(query.endDate) : undefined;
+    // Set endDate to end-of-day (23:59:59) to include all records for that day
+    if (endDate) {
+      endDate.setUTCHours(23, 59, 59, 999);
+    }
 
     const where = this.buildWhereClause(tenantId, query);
 
@@ -199,7 +203,11 @@ export class PrismaCampaignsRepository implements CampaignsRepository {
   async getSummary(tenantId: string, query: QueryCampaignsDto) {
     const where = this.buildWhereClause(tenantId, query);
     const startDate = query.startDate ? new Date(query.startDate) : undefined;
-    const endDate = query.endDate ? new Date(query.endDate) : undefined;
+    let endDate = query.endDate ? new Date(query.endDate) : undefined;
+    // Set endDate to end-of-day (23:59:59) to include all records for that day
+    if (endDate) {
+      endDate.setUTCHours(23, 59, 59, 999);
+    }
 
     // 1. Find all matching campaign IDs first
     const campaigns = await this.prisma.campaign.findMany({

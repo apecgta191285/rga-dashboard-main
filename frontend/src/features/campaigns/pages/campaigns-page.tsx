@@ -51,14 +51,17 @@ function getDateRangeFromPeriod(period: PeriodEnum): { startDate: string; endDat
     const endDate = today.toISOString().split('T')[0];
 
     switch (period) {
+        case '1d': {
+            return { startDate: endDate, endDate };
+        }
         case '7d': {
             const start = new Date(today);
             start.setDate(start.getDate() - 6);
             return { startDate: start.toISOString().split('T')[0], endDate };
         }
-        case '30d': {
+        case '90d': {
             const start = new Date(today);
-            start.setDate(start.getDate() - 29);
+            start.setDate(start.getDate() - 89);
             return { startDate: start.toISOString().split('T')[0], endDate };
         }
         case 'this_month': {

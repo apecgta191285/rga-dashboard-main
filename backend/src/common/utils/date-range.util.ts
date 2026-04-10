@@ -8,6 +8,14 @@ export class DateRangeUtil {
         const now = new Date();
 
         switch (period) {
+            case PeriodEnum.ONE_DAY:
+                return this.getDateRange(1);
+            case PeriodEnum.SEVEN_DAYS:
+                return this.getDateRange(7);
+            case PeriodEnum.THIRTY_DAYS:
+                return this.getDateRange(30);
+            case PeriodEnum.NINETY_DAYS:
+                return this.getDateRange(90);
             case PeriodEnum.THIS_MONTH: {
                 // First day of current month to today
                 const startDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0));
@@ -20,9 +28,6 @@ export class DateRangeUtil {
                 const endDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999));
                 return { startDate, endDate };
             }
-            case PeriodEnum.THIRTY_DAYS:
-                return this.getDateRange(30);
-            case PeriodEnum.SEVEN_DAYS:
             default:
                 return this.getDateRange(7);
         }
