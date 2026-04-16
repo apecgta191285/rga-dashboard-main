@@ -129,13 +129,7 @@ export function useIntegrationAuth() {
                 return;
             }
 
-            // If only one account, auto-connect
-            if (accounts.length === 1) {
-                await handleCompleteConnection(platform, tempToken, accounts[0].id);
-                return;
-            }
-
-            // Multiple accounts - show selection dialog
+            // Always show selection dialog so user can confirm which account to connect
             setCallbackState({
                 platform,
                 tempToken,
