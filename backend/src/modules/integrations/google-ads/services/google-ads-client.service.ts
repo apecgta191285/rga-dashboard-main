@@ -171,7 +171,14 @@ export class GoogleAdsClientService {
     const results = await this.rawRestQuery(loginCustomerId, refreshToken, query, loginCustomerId);
     
     return results.map((row: any) => {
-      const client = row.customerClient || row.customer_client;
+      const client = row?.customerClient || row?.customer_client;
+      if (!client || !client.id) {
+        return {
+          id: 'UNKNOWN',
+          name: 'Unknown Account',
+          status: 'UNKNOWN',
+        };
+      }
       return {
         id: client.id.toString(),
         name: client.descriptiveName || client.descriptive_name || `Account ${client.id}`,
