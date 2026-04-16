@@ -38,9 +38,9 @@ export class GoogleAdsClientService {
           this.logger.debug(`[GoogleAdsAPI] Using dev token starting with: ${devToken.substring(0, 3)}...`);
       }
       
-      // Try v19 and v18 — Google Ads API deprecated v17 and below as of 2025
+      // Try latest versions for 2026 — Google Ads API usually releases 3-4 versions per year
       const hosts = ['googleads.googleapis.com'];
-      const versions = ['v19', 'v18'];
+      const versions = ['v23', 'v22', 'v21', 'v20', 'v19'];
       
       let lastError: any = null;
 
@@ -118,12 +118,9 @@ export class GoogleAdsClientService {
 
     let customers: string[] = [];
 
-    // --- Attempt 1: Direct REST call to v19 ---
-    // ⚠️ IMPORTANT: Do NOT include login-customer-id header here.
-    // customers:listAccessibleCustomers returns ALL accounts the user can access.
-    // Adding login-customer-id scopes results to ONE MCC only, hiding other accounts.
+    // --- Attempt 1: Direct REST call to v23 (Current latest in April 2026) ---
     try {
-      this.logger.log('[GoogleAdsAPI] Attempt 1: REST GET customers:listAccessibleCustomers (v19, no login-customer-id)...');
+      this.logger.log('[GoogleAdsAPI] Attempt 1: REST GET customers:listAccessibleCustomers (v23)...');
       const accessToken = await this.getAccessToken(refreshToken);
       
       const headers: any = {
@@ -131,20 +128,18 @@ export class GoogleAdsClientService {
         'developer-token': developerToken,
         'Content-Type': 'application/json',
       };
-      // ❌ DO NOT add login-customer-id — it scopes the response
 
-      const url = 'https://googleads.googleapis.com/v19/customers:listAccessibleCustomers';
+      const url = 'https://googleads.googleapis.com/v23/customers:listAccessibleCustomers';
       this.logger.log(`[GoogleAdsAPI] GET ${url}`);
       const response = await axios.get(url, { headers, timeout: 15000 });
       const resourceNames: string[] = response.data?.resourceNames || [];
-      this.logger.log(`[GoogleAdsAPI] Attempt 1 SUCCESS: ${resourceNames.length} customers: ${JSON.stringify(resourceNames)}`);
+      this.logger.log(`[GoogleAdsAPI] Attempt 1 SUCCESS: ${resourceNames.length} customers`);
       if (resourceNames.length > 0) {
         customers = resourceNames;
       }
     } catch (restErr: any) {
       const status = restErr.response?.status;
-      const errorData = JSON.stringify(restErr.response?.data);
-      this.logger.warn(`[GoogleAdsAPI] Attempt 1 FAILED: status=${status} | ${errorData} | ${restErr.message}`);
+      this.logger.warn(`[GoogleAdsAPI] Attempt 1 (v23) FAILED: status=${status}`);
     }
 
     // --- Attempt 2: google-ads-api library ---
