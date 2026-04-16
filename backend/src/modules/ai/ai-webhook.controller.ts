@@ -2,7 +2,7 @@
 import { HttpService } from '@nestjs/axios';
 import { Controller, Post, Body, HttpException, HttpStatus } from '@nestjs/common';
 
-@Controller('api/ai/webhook')
+@Controller('ai/webhook')
 export class AiWebhookController {
     constructor(private http: HttpService) { }
 
@@ -124,7 +124,7 @@ export class AiWebhookController {
         const webhookUrl = process.env[webhookEnv];
 
         if (!webhookUrl) {
-            throw new HttpException('N8N_WEBHOOK_URL_GENERAL is not configured', HttpStatus.SERVICE_UNAVAILABLE);
+            throw new HttpException(`${webhookEnv} is not configured`, HttpStatus.SERVICE_UNAVAILABLE);
         }
 
         try {
