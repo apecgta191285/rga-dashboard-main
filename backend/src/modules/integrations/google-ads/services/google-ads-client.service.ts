@@ -118,9 +118,12 @@ export class GoogleAdsClientService {
 
     let customers: string[] = [];
 
-    // --- Attempt 1: Direct REST call to v19 (most reliable, previously working approach) ---
+    // --- Attempt 1: Direct REST call to v19 ---
+    // ⚠️ IMPORTANT: Do NOT include login-customer-id header here.
+    // customers:listAccessibleCustomers returns ALL accounts the user can access.
+    // Adding login-customer-id scopes results to ONE MCC only, hiding other accounts.
     try {
-      this.logger.log('[GoogleAdsAPI] Attempt 1: REST GET customers:listAccessibleCustomers (v19)...');
+      this.logger.log('[GoogleAdsAPI] Attempt 1: REST GET customers:listAccessibleCustomers (v19, no login-customer-id)...');
       const accessToken = await this.getAccessToken(refreshToken);
       
       const headers: any = {
@@ -128,10 +131,7 @@ export class GoogleAdsClientService {
         'developer-token': developerToken,
         'Content-Type': 'application/json',
       };
-      // Only include login-customer-id header when it's set — omitting it is correct for plain accounts
-      if (loginCustomerId) {
-        headers['login-customer-id'] = loginCustomerId;
-      }
+      // ❌ DO NOT add login-customer-id — it scopes the response
 
       const url = 'https://googleads.googleapis.com/v19/customers:listAccessibleCustomers';
       this.logger.log(`[GoogleAdsAPI] GET ${url}`);
@@ -217,75 +217,109 @@ export class GoogleAdsClientService {
 
   /**
    * 🔎 Flatten Accounts Hierarchy
+   * Returns all selectable accounts: both Manager (MCC) accounts and their child accounts
    */
   async getAllSelectableAccounts(refreshToken: string): Promise<any[]> {
     try {
-        const accessibleCustomers = await this.listAccessibleCustomers(refreshToken);
-        const allAccounts: any[] = [];
+      const accessibleCustomers = await this.listAccessibleCustomers(refreshToken);
+      this.logger.log(`[GET-ALL-ACCOUNTS] Processing ${accessibleCustomers.length} accessible customers: ${JSON.stringify(accessibleCustomers)}`);
+      const allAccounts: any[] = [];
 
-        for (const resourceName of accessibleCustomers) {
+      for (const resourceName of accessibleCustomers) {
         const customerId = resourceName.replace('customers/', '');
 
         try {
-            const selfQuery = `SELECT customer.id, customer.descriptive_name, customer.manager, customer.status FROM customer LIMIT 1`;
-            const selfResult = await this.rawRestQuery(customerId, refreshToken, selfQuery, customerId);
+          const selfQuery = `SELECT customer.id, customer.descriptive_name, customer.manager, customer.status FROM customer LIMIT 1`;
+          // For selfQuery, use the customer's own ID as loginCustomerId (required for MCC accounts)
+          const selfResult = await this.rawRestQuery(customerId, refreshToken, selfQuery, customerId);
 
-            if (selfResult.length > 0) {
-              const info = selfResult[0].customer;
-              const isManager = info.manager || false;
+          if (selfResult.length > 0) {
+            const info = selfResult[0].customer;
+            const isManager = info.manager || false;
+            const accountName = info.descriptiveName || info.descriptive_name || `Account ${customerId}`;
+            const accountStatus = info.status || 'ENABLED';
 
-              if (isManager) {
-                const childQuery = `SELECT customer_client.id, customer_client.descriptive_name, customer_client.status FROM customer_client WHERE customer_client.manager = FALSE`;
+            this.logger.log(`[GET-ALL-ACCOUNTS] Customer ${customerId} | name=${accountName} | isManager=${isManager}`);
+
+            if (isManager) {
+              // Add the Manager (MCC) account itself as selectable
+              if (!allAccounts.find(a => a.id === customerId)) {
+                allAccounts.push({
+                  id: customerId,
+                  name: `${accountName} (Manager)`,
+                  type: 'MANAGER',
+                  status: accountStatus,
+                });
+              }
+
+              // Also fetch and add all child (non-manager) accounts under this MCC
+              try {
+                const childQuery = `SELECT customer_client.id, customer_client.descriptive_name, customer_client.status, customer_client.manager FROM customer_client WHERE customer_client.manager = FALSE AND customer_client.status != 'CANCELLED'`;
+                // ⚠️ Must use MCC id as loginCustomerId to query its children
                 const children = await this.rawRestQuery(customerId, refreshToken, childQuery, customerId);
-                
+                this.logger.log(`[GET-ALL-ACCOUNTS] MCC ${customerId} has ${children.length} child accounts`);
+
                 for (const row of children) {
                   const client = row.customerClient || row.customer_client;
-                  const childId = client.id.toString();
+                  if (!client) continue;
+                  const childId = client.id?.toString();
+                  if (!childId) continue;
                   if (!allAccounts.find(a => a.id === childId)) {
                     allAccounts.push({
                       id: childId,
                       name: client.descriptiveName || client.descriptive_name || `Account ${childId}`,
                       type: 'ACCOUNT',
                       parentMccId: customerId,
-                      status: client.status || 'ENABLED'
+                      parentMccName: accountName,
+                      status: client.status || 'ENABLED',
                     });
                   }
                 }
-              } else {
-                const cust = selfResult[0].customer;
-                if (!allAccounts.find(a => a.id === customerId)) {
-                  allAccounts.push({
-                    id: customerId,
-                    name: cust.descriptiveName || cust.descriptive_name || `Account ${customerId}`,
-                    type: 'ACCOUNT',
-                    status: cust.status || 'ENABLED'
-                  });
-                }
+              } catch (childErr: any) {
+                this.logger.warn(`[GET-ALL-ACCOUNTS] Failed to fetch children for MCC ${customerId}: ${childErr.message}`);
               }
             } else {
-              // Fallback: If query returned no rows but account was in accessible list
+              // Regular (non-manager) account — add it directly
+              if (!allAccounts.find(a => a.id === customerId)) {
+                allAccounts.push({
+                  id: customerId,
+                  name: accountName,
+                  type: 'ACCOUNT',
+                  status: accountStatus,
+                });
+              }
+            }
+          } else {
+            // Could not query account info — add as unknown but still selectable
+            if (!allAccounts.find(a => a.id === customerId)) {
+              this.logger.warn(`[GET-ALL-ACCOUNTS] No info returned for ${customerId}, adding as unknown`);
               allAccounts.push({
                 id: customerId,
-                name: `Account ${customerId} (Details unavailable)`,
+                name: `Account ${customerId}`,
                 type: 'ACCOUNT',
-                status: 'UNKNOWN'
+                status: 'UNKNOWN',
               });
             }
-          } catch (e) {
-            this.logger.warn(`Failed to scan hierarchy for ${customerId}: ${e.message}`);
-            // Fallback: Add basic account info even if query failed
+          }
+        } catch (e: any) {
+          this.logger.warn(`[GET-ALL-ACCOUNTS] Failed to process ${customerId}: ${e.message}`);
+          // Still add a basic entry so user can attempt to connect
+          if (!allAccounts.find(a => a.id === customerId)) {
             allAccounts.push({
               id: customerId,
               name: `Account ${customerId} (Unverified)`,
               type: 'ACCOUNT',
-              status: 'UNKNOWN'
+              status: 'UNKNOWN',
             });
           }
         }
-        return allAccounts;
-    } catch (error) {
-        this.logger.error(`[GoogleAdsClientService] getAllSelectableAccounts fatal error: ${error.message}`);
-        throw error;
+      }
+
+      this.logger.log(`[GET-ALL-ACCOUNTS] Total selectable accounts: ${allAccounts.length} → ${JSON.stringify(allAccounts.map(a => a.id))}`);
+      return allAccounts;
+    } catch (error: any) {
+      this.logger.error(`[GoogleAdsClientService] getAllSelectableAccounts fatal error: ${error.message}`);
+      throw error;
     }
   }
 
