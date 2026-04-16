@@ -230,10 +230,10 @@ export function useIntegrationAuth() {
             console.error('[useIntegrationAuth] Connect error:', error);
 
             // Handle specific Facebook configuration errors
-            if (platform === 'facebook' && error?.response?.status === 400) {
+            if (platform === 'facebook' && (error as any)?.response?.status === 400) {
                 toast.error('Facebook integration is not configured. Please contact administrator to set up Facebook App credentials.');
             } else {
-                const errorMessage = error?.response?.data?.message || error?.message || 'Unknown error';
+                const errorMessage = (error as any)?.response?.data?.message || (error as any)?.message || 'Unknown error';
                 toast.error(`Failed to start ${PLATFORM_CONFIGS[platform].name} connection: ${errorMessage}`);
             }
 
