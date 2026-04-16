@@ -132,17 +132,21 @@ export class GoogleAdsClientService {
               const childQuery = `SELECT customer_client.id, customer_client.descriptive_name, customer_client.status FROM customer_client WHERE customer_client.manager = FALSE AND customer_client.status != 'CANCELLED'`;
               const children = await this.rawRestQuery(customerId, refreshToken, childQuery, customerId);
 
-              for (const row of children) {
-                const client = row.customerClient || row.customer_client;
-                const childId = client.id.toString();
-                if (!allAccounts.find(a => a.id === childId)) {
-                  allAccounts.push({
-                    id: childId,
-                    name: client.descriptiveName || client.descriptive_name || `Account ${childId}`,
-                    type: 'ACCOUNT',
-                    parentMccId: customerId,
-                    status: client.status || 'ENABLED'
-                  });
+              if (children && Array.isArray(children)) {
+                for (const row of children) {
+                  const client = row.customerClient || row.customer_client;
+                  if (client && client.id) {
+                    const childId = client.id.toString();
+                    if (!allAccounts.find(a => a.id === childId)) {
+                      allAccounts.push({
+                        id: childId,
+                        name: client.descriptiveName || client.descriptive_name || `Account ${childId}`,
+                        type: 'ACCOUNT',
+                        parentMccId: customerId,
+                        status: client.status || 'ENABLED',
+                      });
+                    }
+                  }
                 }
               }
             }
