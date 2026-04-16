@@ -408,6 +408,35 @@ export class DashboardService {
     };
   }
 
+  async getAdsConnections(tenantId: string): Promise<{
+    google: boolean;
+    facebook: boolean;
+    tiktok: boolean;
+    line: boolean;
+  }> {
+    const [googleCount, facebookCount, tiktokCount, lineCount] = await Promise.all([
+      this.prisma.googleAdsAccount.count({
+        where: { tenantId, status: 'ENABLED' },
+      }),
+      this.prisma.facebookAdsAccount.count({
+        where: { tenantId, status: 'ACTIVE' },
+      }),
+      this.prisma.tikTokAdsAccount.count({
+        where: { tenantId, status: 'ACTIVE' },
+      }),
+      this.prisma.lineAdsAccount.count({
+        where: { tenantId, status: 'ACTIVE' },
+      }),
+    ]);
+
+    return {
+      google: googleCount > 0,
+      facebook: facebookCount > 0,
+      tiktok: tiktokCount > 0,
+      line: lineCount > 0,
+    };
+  }
+
   async getPerformanceByPlatform(tenantId: string, days = 30, REAL?: ProvenanceMode) {
     const hideMockData = process.env.HIDE_MOCK_DATA === 'true';
     const { startDate, endDate: today } = DateRangeUtil.getDateRange(days);

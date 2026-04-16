@@ -712,79 +712,85 @@ export function AiAssistant() {
                         >
                             <div className="flex flex-col space-y-6 max-w-3xl mx-auto w-full">
                                 {/* Empty State / Welcome Screen */}
-                                {messages.length === 0 && (
-                                    <motion.div
-                                        className="flex flex-col items-center justify-center py-4 space-y-6 mt-2"
-                                    >
-                                        <div className="space-y-4 text-center">
-                                            <motion.div
-                                                className="flex items-center justify-center gap-2 mb-4"
-                                            >
-                                                <div className="p-3 bg-white rounded-2xl shadow-sm border border-slate-100">
-                                                    <Sparkles className="w-8 h-8 text-orange-500 animate-pulse" />
-                                                </div>
-                                            </motion.div>
-                                            <motion.h1
-                                                className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight"
-                                            >
-                                                How can I help you?
-                                            </motion.h1>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl mt-8">
-                                            {/* AI Detail Summary Button (Primary) */}
-                                            <motion.button
-                                                whileHover={{ scale: 1.02 }}
-                                                whileTap={{ scale: 0.98 }}
-                                                onClick={() => setViewMode('summary')}
-                                                className="relative overflow-hidden px-6 py-6 rounded-2xl text-left border-0 shadow-lg group h-full"
-                                            >
+                                <AnimatePresence>
+                                    {messages.length === 0 && query.trim() === '' && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                                            transition={{ duration: 0.3, ease: "easeOut" }}
+                                            className="flex flex-col items-center justify-center py-4 space-y-6 mt-2"
+                                        >
+                                            <div className="space-y-4 text-center">
                                                 <motion.div
-                                                    className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"
-                                                    animate={{
-                                                        backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
-                                                    }}
-                                                    transition={{
-                                                        duration: 5,
-                                                        repeat: Infinity,
-                                                        ease: "easeInOut",
-                                                    }}
-                                                    style={{ backgroundSize: "200% 200%" }}
-                                                />
-                                                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20" />
-                                                <div className="relative flex flex-col justify-between h-full z-10 gap-4">
-                                                    <div className="p-3 bg-white/10 w-fit rounded-xl group-hover:bg-white/20 transition-colors backdrop-blur-sm">
-                                                        <FileText className="w-6 h-6 text-white" />
+                                                    className="flex items-center justify-center gap-2 mb-4"
+                                                >
+                                                    <div className="p-3 bg-white rounded-2xl shadow-sm border border-slate-100">
+                                                        <Sparkles className="w-8 h-8 text-orange-500 animate-pulse" />
                                                     </div>
-                                                    <div>
-                                                        <span className="text-lg font-bold text-white block mb-1">AI Detail Summary</span>
-                                                        <span className="text-indigo-100/90 text-sm font-medium">Deep dive analysis & strategic reports</span>
-                                                    </div>
-                                                </div>
-                                            </motion.button>
+                                                </motion.div>
+                                                <motion.h1
+                                                    className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight"
+                                                >
+                                                    How can I help you?
+                                                </motion.h1>
+                                            </div>
 
-                                            {/* Campaign Tools Button (Secondary) */}
-                                            <motion.button
-                                                whileHover={{ scale: 1.02, backgroundColor: 'rgba(248, 250, 252, 1)' }}
-                                                whileTap={{ scale: 0.98 }}
-                                                onClick={() => setViewMode('tools')}
-                                                className="relative px-6 py-6 rounded-2xl text-left border border-slate-200 shadow-sm bg-white hover:border-slate-300 hover:shadow-md transition-all group h-full"
-                                            >
-                                                <div className="relative flex flex-col justify-between h-full gap-4">
-                                                    <div className="p-3 bg-orange-50 w-fit rounded-xl mb-2 group-hover:bg-orange-100 transition-colors">
-                                                        <Calculator className="w-6 h-6 text-orange-600" />
-                                                    </div>
-                                                    <div>
-                                                        <div className="flex items-center gap-2 mb-1">
-                                                            <span className="text-lg font-bold text-slate-800">Marketing Calculators</span>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl mt-8">
+                                                {/* AI Detail Summary Button (Primary) */}
+                                                <motion.button
+                                                    whileHover={{ scale: 1.02 }}
+                                                    whileTap={{ scale: 0.98 }}
+                                                    onClick={() => setViewMode('summary')}
+                                                    className="relative overflow-hidden px-6 py-6 rounded-2xl text-left border-0 shadow-lg group h-full"
+                                                >
+                                                    <motion.div
+                                                        className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"
+                                                        animate={{
+                                                            backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+                                                        }}
+                                                        transition={{
+                                                            duration: 5,
+                                                            repeat: Infinity,
+                                                            ease: "easeInOut",
+                                                        }}
+                                                        style={{ backgroundSize: "200% 200%" }}
+                                                    />
+                                                    <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20" />
+                                                    <div className="relative flex flex-col justify-between h-full z-10 gap-4">
+                                                        <div className="p-3 bg-white/10 w-fit rounded-xl group-hover:bg-white/20 transition-colors backdrop-blur-sm">
+                                                            <FileText className="w-6 h-6 text-white" />
                                                         </div>
-                                                        <span className="text-slate-500 text-sm font-medium">Quick actions for ads & content</span>
+                                                        <div>
+                                                            <span className="text-lg font-bold text-white block mb-1">AI Detail Summary</span>
+                                                            <span className="text-indigo-100/90 text-sm font-medium">Deep dive analysis & strategic reports</span>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </motion.button>
-                                        </div>
-                                    </motion.div>
-                                )}
+                                                </motion.button>
+
+                                                {/* Campaign Tools Button (Secondary) */}
+                                                <motion.button
+                                                    whileHover={{ scale: 1.02, backgroundColor: 'rgba(248, 250, 252, 1)' }}
+                                                    whileTap={{ scale: 0.98 }}
+                                                    onClick={() => setViewMode('tools')}
+                                                    className="relative px-6 py-6 rounded-2xl text-left border border-slate-200 shadow-sm bg-white hover:border-slate-300 hover:shadow-md transition-all group h-full"
+                                                >
+                                                    <div className="relative flex flex-col justify-between h-full gap-4">
+                                                        <div className="p-3 bg-orange-50 w-fit rounded-xl mb-2 group-hover:bg-orange-100 transition-colors">
+                                                            <Calculator className="w-6 h-6 text-orange-600" />
+                                                        </div>
+                                                        <div>
+                                                            <div className="flex items-center gap-2 mb-1">
+                                                                <span className="text-lg font-bold text-slate-800">Marketing Calculators</span>
+                                                            </div>
+                                                            <span className="text-slate-500 text-sm font-medium">Quick actions for ads & content</span>
+                                                        </div>
+                                                    </div>
+                                                </motion.button>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
 
                                 {/* Message List */}
                                 <AnimatePresence initial={false}>

@@ -14,14 +14,27 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatCurrencyTHB } from '@/lib/formatters';
 import { BrandLogo } from '@/components/ui/brand-logo';
-import { HelpCircle } from 'lucide-react';
+import { HelpCircle, Info } from 'lucide-react';
+import {
+    Tooltip as UiTooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
+
 import type { RecentCampaign, CampaignStatus, AdPlatform } from '../../schemas';
 
 // =============================================================================
 // Status Badge Styling
 // =============================================================================
 
-const STATUS_STYLES: Record<CampaignStatus, { variant: 'default' | 'secondary' | 'destructive' | 'outline'; label: string }> = {
+const STATUS_STYLES: Record<
+    CampaignStatus,
+    {
+        variant: 'default' | 'secondary' | 'destructive' | 'outline';
+        label: string;
+    }
+> = {
     ACTIVE: { variant: 'default', label: 'Active' },
     PAUSED: { variant: 'secondary', label: 'Paused' },
     PENDING: { variant: 'outline', label: 'Pending' },
@@ -57,21 +70,59 @@ interface RecentCampaignsProps {
 }
 
 // =============================================================================
+// Info Tooltip Component
+// =============================================================================
+
+function RecentCampaignsInfoTooltip() {
+    return (
+        <TooltipProvider>
+            <UiTooltip>
+                <TooltipTrigger asChild>
+                    <button
+                        type="button"
+                        className="inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                        <Info className="h-4 w-4" />
+                    </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs text-sm leading-relaxed">
+                    <p className="font-semibold mb-1">Recent Campaigns</p>
+                    <p>
+                        This section displays the latest campaigns within the selected period.
+                        It helps monitor campaign status, advertising platform, spending amount,
+                        and budget utilization so you can quickly review active performance.
+                    </p>
+                </TooltipContent>
+            </UiTooltip>
+        </TooltipProvider>
+    );
+}
+
+// =============================================================================
 // Main Component
 // =============================================================================
 
-export function RecentCampaigns({ campaigns, className }: RecentCampaignsProps) {
+export function RecentCampaigns({
+    campaigns,
+    className
+}: RecentCampaignsProps) {
     const hasData = campaigns && campaigns.length > 0;
 
     return (
         <Card className={`h-[400px] flex flex-col ${className ?? ''}`}>
             <CardHeader>
-                <CardTitle className="text-base font-semibold">
-                    Recent Campaigns
-                </CardTitle>
+                <div className="flex items-center gap-2">
+                    <CardTitle className="text-base font-semibold">
+                        Recent Campaigns
+                    </CardTitle>
+                    <RecentCampaignsInfoTooltip />
+                </div>
+
                 <CardDescription>
                     {hasData
-                        ? `${campaigns.length} campaign${campaigns.length > 1 ? 's' : ''} in selected period`
+                        ? `${campaigns.length} campaign${
+                              campaigns.length > 1 ? 's' : ''
+                          } in selected period`
                         : 'No campaigns found'}
                 </CardDescription>
             </CardHeader>
@@ -85,8 +136,13 @@ export function RecentCampaigns({ campaigns, className }: RecentCampaignsProps) 
                     <ScrollArea className="h-full pr-4">
                         <div className="space-y-4">
                             {campaigns.map((campaign) => {
-                                const statusStyle = STATUS_STYLES[campaign.status] || STATUS_STYLES.PENDING;
-                                const platformName = PLATFORM_NAMES[campaign.platform] || campaign.platform;
+                                const statusStyle =
+                                    STATUS_STYLES[campaign.status] ||
+                                    STATUS_STYLES.PENDING;
+
+                                const platformName =
+                                    PLATFORM_NAMES[campaign.platform] ||
+                                    campaign.platform;
 
                                 return (
                                     <div
@@ -96,12 +152,20 @@ export function RecentCampaigns({ campaigns, className }: RecentCampaignsProps) 
                                         {/* Left: Platform Icon + Info */}
                                         <div className="flex items-center gap-3 min-w-0">
                                             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted border border-border shadow-sm">
-                                                <BrandLogo platformId={campaign.platform} className="h-6 w-6" />
+                                                <BrandLogo
+                                                    platformId={campaign.platform}
+                                                    className="h-6 w-6"
+                                                />
+
                                                 {/* Fallback if BrandLogo returns null */}
-                                                {!BrandLogo({ platformId: campaign.platform, className: "h-6 w-6" }) && (
+                                                {!BrandLogo({
+                                                    platformId: campaign.platform,
+                                                    className: 'h-6 w-6',
+                                                }) && (
                                                     <HelpCircle className="h-5 w-5 text-muted-foreground" />
                                                 )}
                                             </div>
+
                                             <div className="min-w-0">
                                                 <p className="truncate text-sm font-medium leading-none">
                                                     {campaign.name}
@@ -114,16 +178,27 @@ export function RecentCampaigns({ campaigns, className }: RecentCampaignsProps) 
 
                                         {/* Right: Badge + Spend */}
                                         <div className="flex items-center gap-3 shrink-0">
-                                            <Badge variant={statusStyle.variant} className="text-xs">
+                                            <Badge
+                                                variant={statusStyle.variant}
+                                                className="text-xs"
+                                            >
                                                 {statusStyle.label}
                                             </Badge>
+
                                             <div className="text-right">
                                                 <p className="text-sm font-medium">
-                                                    {formatCurrencyTHB(campaign.spending)}
+                                                    {formatCurrencyTHB(
+                                                        campaign.spending
+                                                    )}
                                                 </p>
-                                                {campaign.budgetUtilization !== undefined && (
+
+                                                {campaign.budgetUtilization !==
+                                                    undefined && (
                                                     <p className="text-xs text-muted-foreground">
-                                                        {campaign.budgetUtilization.toFixed(0)}% used
+                                                        {campaign.budgetUtilization.toFixed(
+                                                            0
+                                                        )}
+                                                        % used
                                                     </p>
                                                 )}
                                             </div>

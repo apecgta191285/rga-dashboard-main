@@ -3,17 +3,17 @@ import { SeoPremiumCards } from '../components/seo-premium-cards';
 import { SeoSummaryCards } from '../components/seo-summary-cards';
 import { TrafficByLocation } from '../components/traffic-by-location';
 import { SeoPerformanceChart } from '../components/seo-performance-chart';
-import { useSeoSummary } from '../hooks';
+import { useSeoSummary, useAdsConnections } from '../hooks';
 import { SeoMetricSummary } from '../types';
 import { OrganicKeywordsByIntent } from '../components/organic-keywords-by-intent';
-
-
+import { AdsConnectionStatus } from '../components/ads-connection-status';
 import { SeoAnchorText } from '../components/seo-anchor-text';
 import { TopOrganicKeywords } from '../components/top-organic-keywords';
 import { SeoOffPageMetrics } from '../components/seo-offpage-metrics';
 
 export function SeoPage() {
     const { data, isLoading } = useSeoSummary();
+    const { data: adsConnections, isLoading: adsLoading, error: adsError } = useAdsConnections();
 
     // Default fallback data if API fails or is loading (to prevent crash)
     const displayData: SeoMetricSummary = data || {
@@ -39,6 +39,39 @@ export function SeoPage() {
                 <div className="flex justify-between items-center">
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight">SEO & Web Analytics</h1>
+                        <div className="flex items-center gap-2 mt-2">
+                            {adsLoading ? (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                    ⏳ กำลังโหลดการเชื่อมต่อ Ads
+                                </span>
+                            ) : adsError ? (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                    ❌ ไม่สามารถตรวจสอบการเชื่อมต่อ Ads: {adsError.message}
+                                </span>
+                            ) : adsConnections ? (
+                                (() => {
+                                    const connectedAds = [];
+                                    if (adsConnections.google) connectedAds.push('Google Ads');
+                                    if (adsConnections.facebook) connectedAds.push('Facebook Ads');
+                                    if (adsConnections.tiktok) connectedAds.push('TikTok Ads');
+                                    if (adsConnections.line) connectedAds.push('LINE Ads');
+
+                                    return connectedAds.length > 0 ? (
+                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            ✅ เชื่อมต่อแล้ว: {connectedAds.join(', ')}
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                            ❌ ยังไม่เชื่อมต่อ Ads
+                                        </span>
+                                    );
+                                })()
+                            ) : (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                    ❌ ไม่สามารถตรวจสอบการเชื่อมต่อ Ads
+                                </span>
+                            )}
+                        </div>
                         <p className="text-muted-foreground mt-1">
                             Track your organic search performance and website engagement.
                         </p>
