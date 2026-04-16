@@ -1,4 +1,5 @@
 import { Button } from '../../ui/button';
+import { LoadingSpinner } from '../../ui/LoadingSpinner';
 import { toast } from 'sonner';
 import { useIntegrationStatus } from '../../../hooks/useIntegrationStatus';
 import { useGA4OAuthFlow } from '../../../hooks/useGA4OAuthFlow';
@@ -21,7 +22,7 @@ export function GoogleAnalyticsCard({ platform }: GoogleAnalyticsCardProps) {
     const search = useSearch();
     const searchParams = useMemo(() => new URLSearchParams(search), [search]);
 
-    const { status, ga4Account, disconnectGoogleAnalytics, refetch } = useIntegrationStatus();
+    const { status, ga4Account, disconnectGoogleAnalytics, syncGoogleAnalytics, isSyncing, refetch } = useIntegrationStatus();
 
 
 
@@ -79,6 +80,26 @@ export function GoogleAnalyticsCard({ platform }: GoogleAnalyticsCardProps) {
         }
     };
 
+    const handleSync = async () => {
+        try {
+            await syncGoogleAnalytics();
+            toast.success('Sync completed successfully');
+            await refetch(); // Refresh status
+        } catch (error: any) {
+            const errorMsg = error?.response?.data?.message || error?.message || 'Failed to sync analytics data';
+            
+            if (errorMsg.includes('unauthorized_client')) {
+                toast.error('Google Analytics authentication expired. Please disconnect and reconnect your account.');
+            } else if (errorMsg.includes('expired') || errorMsg.includes('invalid')) {
+                toast.error('Your Google Analytics connection needs to be refreshed. Please reconnect.');
+            } else {
+                toast.error(errorMsg);
+            }
+            
+            console.error(error);
+        }
+    };
+
     return (
         <>
             <DataSourceCard
@@ -88,6 +109,7 @@ export function GoogleAnalyticsCard({ platform }: GoogleAnalyticsCardProps) {
                 color={platform.color}
                 isConnected={isConnected}
                 isConnecting={isConnecting}
+                isSyncing={isSyncing}
                 onConnect={startGA4Flow}
                 onDisconnect={handleDisconnect}
             >
@@ -114,14 +136,33 @@ export function GoogleAnalyticsCard({ platform }: GoogleAnalyticsCardProps) {
                                     </span>
                                 </div>
                             </div>
+                            <div className="text-xs text-slate-500 text-right">
+                                Last synced: {ga4Account.lastSyncAt
+                                    ? new Date(ga4Account.lastSyncAt).toLocaleString()
+                                    : 'Never'}
+                            </div>
                         </div>
-                        <Button
-                            variant="outline"
-                            className="w-full mt-4"
-                            onClick={() => window.location.href = '/seo-web-analytics'}
-                        >
-                            View Analytics
-                        </Button>
+                        <div className="flex gap-2 mt-4">
+                            <Button
+                                variant="outline"
+                                className="flex-1"
+                                onClick={() => window.location.href = '/seo-web-analytics'}
+                            >
+                                Open Dashboard
+                            </Button>
+                            <Button
+                                variant="outline"
+                                className="flex-1"
+                                onClick={handleSync}
+                                disabled={isSyncing}
+                            >
+                                {isSyncing ? (
+                                    <LoadingSpinner size="sm" className="mr-2" />
+                                ) : (
+                                    'Sync Now'
+                                )}
+                            </Button>
+                        </div>
                     </>
                 )}
             </DataSourceCard>

@@ -66,12 +66,12 @@ export class DevController {
         return this.mockSeeder.seedAlerts(user.tenantId, 8);
     }
 
-    @Post('seed-sync-logs')
-    @ApiOperation({ summary: 'Seed sync logs (12 logs)' })
-    async seedSyncLogs(@CurrentUser() user: any) {
+    @Post('seed-google-ads-account')
+    @ApiOperation({ summary: 'Seed mock Google Ads account (จำเป็นก่อน sync)' })
+    async seedGoogleAdsAccount(@CurrentUser() user: any) {
         this.ensureNotProduction();
-        this.logger.log(`[DEV] ${user.email} → seed-sync-logs`);
-        return this.mockSeeder.seedSyncLogs(user.tenantId, 12);
+        this.logger.log(`[DEV] ${user.email} → seed-google-ads-account`);
+        return this.mockSeeder.seedGoogleAdsAccount(user.tenantId);
     }
 
     // ============================================

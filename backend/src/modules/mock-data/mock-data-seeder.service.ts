@@ -19,8 +19,38 @@ export class MockDataSeederService {
     constructor(private readonly prisma: PrismaService) { }
 
     // ============================================
-    // Campaign Metrics Seeding
+    // Google Ads Account Seeding
     // ============================================
+
+    async seedGoogleAdsAccount(tenantId: string) {
+        this.logger.log(`Seeding mock Google Ads account for tenant ${tenantId}`);
+
+        // Check if account already exists
+        const existing = await this.prisma.googleAdsAccount.findFirst({
+            where: { tenantId },
+        });
+
+        if (existing) {
+            this.logger.log(`Google Ads account already exists for tenant ${tenantId}`);
+            return { success: true, created: false, accountId: existing.id };
+        }
+
+        // Create mock Google Ads account
+        const account = await this.prisma.googleAdsAccount.create({
+            data: {
+                tenantId,
+                customerId: '1234567890', // Mock customer ID
+                accountName: 'Mock Google Ads Account',
+                status: 'ENABLED',
+                accessToken: 'mock_access_token',
+                refreshToken: 'mock_refresh_token',
+                tokenExpiresAt: new Date(Date.now() + 3600000), // 1 hour from now
+            },
+        });
+
+        this.logger.log(`Created mock Google Ads account ${account.id} for tenant ${tenantId}`);
+        return { success: true, created: true, accountId: account.id };
+    }
 
     async seedCampaignMetrics(campaignId: string, days: number = 30) {
         this.logger.log(`Seeding ${days} days of mock metrics for campaign ${campaignId}`);
@@ -280,6 +310,9 @@ export class MockDataSeederService {
 
         this.logger.log(`Starting full mock data seed for tenant ${tenantId}`);
         const results: Record<string, unknown> = {};
+
+        // 0. Seed Google Ads Account (required for campaigns)
+        results.googleAdsAccount = await this.seedGoogleAdsAccount(tenantId);
 
         // 1. Seed Campaigns
         if (opts.campaigns) {

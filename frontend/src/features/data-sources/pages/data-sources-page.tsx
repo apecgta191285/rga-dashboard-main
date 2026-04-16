@@ -24,7 +24,7 @@ import {
 import { useState } from 'react';
 
 // Platforms to display (in order)
-const DISPLAY_PLATFORMS: PlatformId[] = ['google', 'facebook', 'tiktok', 'line'];
+const DISPLAY_PLATFORMS: PlatformId[] = ['google', 'google-analytics', 'facebook', 'tiktok'];
 
 export default function DataSourcesPage() {
     const {

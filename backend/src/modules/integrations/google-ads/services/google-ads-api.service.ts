@@ -37,7 +37,6 @@ export class GoogleAdsApiService {
         campaign.status,
         campaign.advertising_channel_type
       FROM campaign
-      WHERE campaign.status IN ('ENABLED', 'PAUSED')
       ORDER BY campaign.id
     `;
 
@@ -51,10 +50,23 @@ export class GoogleAdsApiService {
       );
 
       this.logger.log(`[fetchCampaigns] Successfully retrieved ${results.length} campaigns via REST.`);
+      this.logger.log(`[fetchCampaigns] Sample campaign data: ${JSON.stringify(results.slice(0, 2), null, 2)}`);
       return results;
     } catch (error: any) {
       this.logger.error(`❌ Google Ads REST Error (fetching campaigns): ${error.message}`);
-      throw new Error(`Failed to fetch campaigns via REST: ${error.message}`);
+      
+      // Parse error for better user feedback
+      let userMessage = `Failed to fetch campaigns via REST: ${error.message}`;
+      
+      if (error.message?.includes('unauthorized_client')) {
+        userMessage = 'Google OAuth authentication failed (unauthorized_client). Your connection may have expired - please reconnect.';
+      } else if (error.message?.includes('invalid_grant')) {
+        userMessage = 'Your Google Ads authentication has expired. Please reconnect your Google Ads account.';
+      } else if (error.message?.includes('permission')) {
+        userMessage = 'Your account does not have permission to access Google Ads API. Check your Google Cloud project settings.';
+      }
+      
+      throw new Error(userMessage);
     }
   }
 
@@ -101,7 +113,14 @@ export class GoogleAdsApiService {
       return results;
     } catch (error: any) {
       this.logger.error(`❌ Google Ads REST Error (fetching metrics): ${error.message}`);
-      throw new Error(`Failed to fetch metrics via REST: ${error.message}`);
+      
+      let userMessage = `Failed to fetch metrics via REST: ${error.message}`;
+      
+      if (error.message?.includes('unauthorized_client')) {
+        userMessage = 'Google OAuth authentication failed. Please reconnect.';
+      }
+      
+      throw new Error(userMessage);
     }
   }
 

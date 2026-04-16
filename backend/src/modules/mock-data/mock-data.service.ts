@@ -48,6 +48,7 @@ export class MockDataService {
 
     private getDaysFromPeriod(period: PeriodEnum): number {
         switch (period) {
+            case PeriodEnum.ONE_DAY: return 1;
             case PeriodEnum.SEVEN_DAYS: return 7;
             case PeriodEnum.THIRTY_DAYS: return 30;
             case PeriodEnum.THIS_MONTH: return new Date().getDate();

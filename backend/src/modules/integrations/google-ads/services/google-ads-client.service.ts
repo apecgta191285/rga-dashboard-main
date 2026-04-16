@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+// import { GoogleAdsApi } from 'google-ads-api';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { google } from 'googleapis';
@@ -6,190 +7,174 @@ import { google } from 'googleapis';
 @Injectable()
 export class GoogleAdsClientService {
   private readonly logger = new Logger(GoogleAdsClientService.name);
+  // private client: GoogleAdsApi;
 
   constructor(private configService: ConfigService) {
-    this.logger.log('🚀 [GoogleAdsClientService] Initialized with Smart-REST transport');
+    this.logger.warn('🚀 [DIAGNOSTIC] ANTIGRAVITY VERSION 2 LOADED (GRPC DISABLED)');
+    /*
+    this.client = new GoogleAdsApi({
+      client_id: this.configService.get('GOOGLE_CLIENT_ID'),
+      client_secret: this.configService.get('GOOGLE_CLIENT_SECRET'),
+      developer_token: this.configService.get('GOOGLE_ADS_DEVELOPER_TOKEN'),
+      // Keep for legacy, but we will mostly use rawRestQuery now
+      // @ts-ignore
+      transport: 'rest',
+    });
+    */
   }
 
   /**
-   * 🔑 Get fresh Access Token
+   * 🔑 REST AUTH: Get a fresh Access Token for raw REST calls
    */
   async getAccessToken(refreshToken: string): Promise<string> {
+    const clientId = this.configService.get('GOOGLE_ADS_CLIENT_ID') || this.configService.get('GOOGLE_CLIENT_ID');
+    const clientSecret = this.configService.get('GOOGLE_ADS_CLIENT_SECRET') || this.configService.get('GOOGLE_CLIENT_SECRET');
+
+    if (!clientId || !clientSecret) {
+      throw new Error('Missing Google OAuth client credentials for Ads');
+    }
+
+    this.logger.debug(`[TOKEN] getAccessToken: clientId=${clientId?.substring(0, 20)}...`);
+    this.logger.debug(`[TOKEN] getAccessToken: refreshToken=${refreshToken?.substring(0, 20)}...`);
+
     const oauth2Client = new google.auth.OAuth2(
-      this.configService.get('GOOGLE_CLIENT_ID'),
-      this.configService.get('GOOGLE_CLIENT_SECRET'),
+      clientId,
+      clientSecret,
     );
     oauth2Client.setCredentials({ refresh_token: refreshToken });
-    const { token } = await oauth2Client.getAccessToken();
-    if (!token) throw new Error('Failed to obtain access token from Google');
-    return token;
+    
+    try {
+      this.logger.debug(`[TOKEN] Calling oauth2Client.getAccessToken()...`);
+      const { token } = await oauth2Client.getAccessToken();
+      
+      if (!token) {
+        this.logger.error(`[TOKEN] ❌ Failed to obtain access token - token is null/undefined`);
+        throw new Error('Failed to obtain access token from Google - token is null. Your refresh token may be invalid or expired. Please reconnect your Google Ads account.');
+      }
+      
+      this.logger.debug(`[TOKEN] ✅ Got access token: ${token.substring(0, 20)}...`);
+      return token;
+    } catch (error: any) {
+      this.logger.error(`[TOKEN] ❌ Token refresh failed`);
+      this.logger.error(`[TOKEN] Error message: ${error.message}`);
+      this.logger.error(`[TOKEN] Error: ${JSON.stringify(error)}`);
+      
+      // Provide more helpful error message
+      if (error.message?.includes('invalid_grant')) {
+        throw new Error('Your Google Ads connection has expired. Please reconnect your Google Ads account.');
+      } else if (error.message?.includes('unauthorized_client')) {
+        throw new Error('OAuth client credentials mismatch. Please check your Google Cloud project settings and reconnect.');
+      }
+      
+      throw new Error(`Failed to refresh Google OAuth token: ${error.message}. Please reconnect your Google Ads account.`);
+    }
   }
 
   /**
-   * 🚀 executeRestCall: Universal fallback wrapper for Google Ads REST
-   */
-  private async executeRestCall(method: 'GET' | 'POST', path: string, refreshToken: string, data?: any, loginCustomerId?: string | null) {
-      const accessToken = await this.getAccessToken(refreshToken);
-      const devToken = this.configService.get('GOOGLE_ADS_DEVELOPER_TOKEN')?.trim().replace(/^"|"$/g, '');
-      
-      if (!devToken) {
-          this.logger.error('[GoogleAdsAPI] ⛔ FATAL: GOOGLE_ADS_DEVELOPER_TOKEN is missing or empty!');
-      } else {
-          this.logger.debug(`[GoogleAdsAPI] Using dev token starting with: ${devToken.substring(0, 3)}...`);
-      }
-      
-      // Try latest versions for 2026 — Google Ads API usually releases 3-4 versions per year
-      const hosts = ['googleads.googleapis.com'];
-      const versions = ['v23', 'v22', 'v21', 'v20', 'v19'];
-      
-      let lastError: any = null;
-
-      for (const host of hosts) {
-          for (const ver of versions) {
-              const url = `https://${host}/${ver}/${path}`;
-              
-              try {
-                  const headers: any = {
-                      'Authorization': `Bearer ${accessToken}`,
-                      'developer-token': devToken,
-                      'Content-Type': 'application/json',
-                  };
-                  if (loginCustomerId) {
-                      headers['login-customer-id'] = loginCustomerId.replace(/-/g, '');
-                  }
-                  
-                  // Diagnostic tagging
-                  headers['User-Agent'] = 'RGA-Dashboard-REST-Agent/1.0';
-
-                  const config: any = { headers, timeout: 15000 };
-                  
-                  this.logger.debug(`[GoogleAdsAPI] Calling ${method} ${url}`);
-                  
-                  let response;
-                  if (method === 'GET') {
-                      response = await axios.get(url, config);
-                  } else {
-                      response = await axios.post(url, data || {}, config);
-                  }
-                  
-                  return response.data;
-              } catch (error: any) {
-                  lastError = error;
-                  const status = error.response?.status;
-                  const errorJson = error.response?.data ? JSON.stringify(error.response.data) : 'No data';
-                  
-                  this.logger.error(`[GoogleAdsAPI-ERROR] ${host}/${ver}/${path} | Status: ${status} | Response: ${errorJson}`);
-                  
-                  // If it's a 401/403, the URL is CORRECT, but tokens are the issue. Don't retry.
-                  if (status === 401 || status === 403) {
-                      throw error; 
-                  }
-              }
-          }
-      }
-      
-      throw lastError || new Error(`Failed to reach Google Ads API across all versions and hosts: ${path}`);
-  }
-
-  /**
-   * 🔎 Search metrics/campaigns
+   * 🚀 RAW REST QUERY: Execute a Google Ads Search query via Axios (Bypass gRPC)
+   * This is the ONLY reliable way to work on Hostinger.
    */
   async rawRestQuery(customerId: string, refreshToken: string, query: string, loginCustomerId?: string | null) {
     const cleanId = customerId.replace(/-/g, '');
-    const path = `customers/${cleanId}/googleAds:search`;
+    const configuredLoginCustomerId = this.configService.get<string>('GOOGLE_ADS_LOGIN_CUSTOMER_ID');
     
-    const data = await this.executeRestCall('POST', path, refreshToken, { query }, loginCustomerId);
-    return data?.results || [];
+    // Skip using the configured LOGIN_CUSTOMER_ID if it's the placeholder value
+    const isPlaceholder = configuredLoginCustomerId === 'YOUR_GOOGLE_ADS_LOGIN_CUSTOMER_ID' || !configuredLoginCustomerId;
+    const loginIdCandidate = loginCustomerId || (!isPlaceholder ? configuredLoginCustomerId : null);
+    const cleanLoginId = loginIdCandidate ? loginIdCandidate.replace(/-/g, '') : undefined;
+    const finalLoginId = (cleanLoginId && cleanLoginId !== cleanId) ? cleanLoginId : undefined;
+
+    const accessToken = await this.getAccessToken(refreshToken);
+    const developerToken = this.configService.get('GOOGLE_ADS_DEVELOPER_TOKEN');
+
+    if (!developerToken) {
+      throw new Error('Missing Google Ads developer token');
+    }
+
+    // Use v23 REST API
+    const url = `https://googleads.googleapis.com/v23/customers/${cleanId}/googleAds:search`;
+
+    this.logger.debug(`[RAW-REST] Executing query for ${cleanId} (LoginId: ${finalLoginId || 'DIRECT'})`);
+    this.logger.debug(`[RAW-REST] URL: ${url}`);
+    this.logger.debug(`[RAW-REST] Has dev token: ${!!developerToken}`);
+
+    const headers: any = {
+      'Authorization': `Bearer ${accessToken}`,
+      'developer-token': developerToken,
+      'Content-Type': 'application/json',
+    };
+
+    if (finalLoginId) {
+      headers['login-customer-id'] = finalLoginId;
+      this.logger.debug(`[RAW-REST] Added login-customer-id: ${finalLoginId}`);
+    }
+
+    try {
+      this.logger.debug(`[RAW-REST] Making POST request to ${url}`);
+      const response = await axios.post(url, { query }, { headers });
+      this.logger.debug(`[RAW-REST] ✅ Success! Got ${response.data?.results?.length || 0} results`);
+      this.logger.debug(`[RAW-REST] Full response data: ${JSON.stringify(response.data, null, 2)}`);
+      
+      // Normalize format to match library output (results array)
+      return response.data?.results || [];
+    } catch (error: any) {
+      this.logger.error(`[RAW-REST] ❌ Request failed`);
+      this.logger.error(`[RAW-REST] Status: ${error.response?.status}`);
+      this.logger.error(`[RAW-REST] StatusText: ${error.response?.statusText}`);
+      this.logger.error(`[RAW-REST] Error data: ${JSON.stringify(error.response?.data)}`);
+      this.logger.error(`[RAW-REST] Full error: ${error.message}`);
+      throw error;
+    }
   }
 
   /**
-   * 🔎 List Accessible Customers
-   * Direct REST call (the approach that previously worked), with library fallback
+   * Helper to keep the existing interface but we'll migrate calls to rawRestQuery
    */
+  getCustomer(customerId: string, refreshToken: string, loginCustomerId?: string | null) {
+    /*
+    return this.client.Customer({
+      customer_id: customerId.replace(/-/g, ''),
+      refresh_token: refreshToken,
+      login_customer_id: loginCustomerId ? loginCustomerId.replace(/-/g, '') : undefined,
+    });
+    */
+    throw new Error('getCustomer is disabled - migrate to rawRestQuery');
+  }
+
   async listAccessibleCustomers(refreshToken: string): Promise<string[]> {
-    const developerToken = this.configService.get('GOOGLE_ADS_DEVELOPER_TOKEN')?.trim().replace(/^"|"$/g, '');
-    const loginCustomerId = this.configService.get('GOOGLE_ADS_LOGIN_CUSTOMER_ID')?.replace(/-/g, '');
-
-    this.logger.log(`[GoogleAdsAPI-DIAG] listAccessibleCustomers | devToken length=${developerToken?.length} | loginCustomerId=${loginCustomerId}`);
-
-    if (!developerToken) {
-      throw new Error('GOOGLE_ADS_DEVELOPER_TOKEN is missing from .env');
-    }
-
-    let customers: string[] = [];
-
-    // --- Attempt 1: Direct REST call to v23 (Current latest in April 2026) ---
-    try {
-      this.logger.log('[GoogleAdsAPI] Attempt 1: REST GET customers:listAccessibleCustomers (v23)...');
       const accessToken = await this.getAccessToken(refreshToken);
+      const configuredLoginCustomerId = this.configService.get<string>('GOOGLE_ADS_LOGIN_CUSTOMER_ID');
+      const isPlaceholder = configuredLoginCustomerId === 'YOUR_GOOGLE_ADS_LOGIN_CUSTOMER_ID' || !configuredLoginCustomerId;
+      
+      this.logger.debug(`[LIST-ACCESSIBLE] Starting listAccessibleCustomers`);
+      this.logger.debug(`[LIST-ACCESSIBLE] configuredLoginCustomerId: ${configuredLoginCustomerId}`);
+      this.logger.debug(`[LIST-ACCESSIBLE] isPlaceholder: ${isPlaceholder}`);
       
       const headers: any = {
         'Authorization': `Bearer ${accessToken}`,
-        'developer-token': developerToken,
-        'Content-Type': 'application/json',
+        'developer-token': this.configService.get('GOOGLE_ADS_DEVELOPER_TOKEN'),
       };
 
+      if (configuredLoginCustomerId && !isPlaceholder) {
+        headers['login-customer-id'] = configuredLoginCustomerId.replace(/-/g, '');
+        this.logger.debug(`[LIST-ACCESSIBLE] Using login-customer-id: ${headers['login-customer-id']}`);
+      }
+
       const url = 'https://googleads.googleapis.com/v23/customers:listAccessibleCustomers';
-      this.logger.log(`[GoogleAdsAPI] GET ${url}`);
-      const response = await axios.get(url, { headers, timeout: 15000 });
-      const resourceNames: string[] = response.data?.resourceNames || [];
-      this.logger.log(`[GoogleAdsAPI] Attempt 1 SUCCESS: ${resourceNames.length} customers`);
-      if (resourceNames.length > 0) {
-        customers = resourceNames;
-      }
-    } catch (restErr: any) {
-      const status = restErr.response?.status;
-      this.logger.warn(`[GoogleAdsAPI] Attempt 1 (v23) FAILED: status=${status}`);
-    }
-
-    // --- Attempt 2: google-ads-api library ---
-    if (customers.length === 0) {
+      
       try {
-        this.logger.log('[GoogleAdsAPI] Attempt 2: google-ads-api library...');
-        const clientId = this.configService.get('GOOGLE_CLIENT_ID');
-        const clientSecret = this.configService.get('GOOGLE_CLIENT_SECRET');
-        const { GoogleAdsApi } = require('google-ads-api');
-        const client = new GoogleAdsApi({
-          client_id: clientId,
-          client_secret: clientSecret,
-          developer_token: developerToken,
-        });
-        const result = await client.listAccessibleCustomers(refreshToken);
-        this.logger.log(`[GoogleAdsAPI] Attempt 2 returned: ${JSON.stringify(result)}`);
-        if (Array.isArray(result) && result.length > 0) {
-          customers = result;
-        }
-      } catch (libErr: any) {
-        this.logger.warn(`[GoogleAdsAPI] Attempt 2 FAILED: ${libErr.message}`);
+        this.logger.debug(`[LIST-ACCESSIBLE] Making GET request to ${url}`);
+        const response = await axios.get(url, { headers });
+        const resourceNames = response.data?.resourceNames || [];
+        this.logger.log(`[LIST-ACCESSIBLE] ✅ Got ${resourceNames.length} accessible customers`);
+        return resourceNames;
+      } catch (error: any) {
+        this.logger.error(`[LIST-ACCESSIBLE] ❌ Request failed`);
+        this.logger.error(`[LIST-ACCESSIBLE] Status: ${error.response?.status}`);
+        this.logger.error(`[LIST-ACCESSIBLE] StatusText: ${error.response?.statusText}`);
+        this.logger.error(`[LIST-ACCESSIBLE] Error data: ${JSON.stringify(error.response?.data)}`);
+        throw error;
       }
-    }
-
-    // --- Attempt 3: Fallback to executeRestCall with version cycling ---
-    if (customers.length === 0) {
-      try {
-        this.logger.log('[GoogleAdsAPI] Attempt 3: executeRestCall fallback...');
-        const data = await this.executeRestCall('GET', 'customers:listAccessibleCustomers', refreshToken, null, loginCustomerId || null);
-        const resourceNames = data?.resourceNames || [];
-        this.logger.log(`[GoogleAdsAPI] Attempt 3 returned: ${JSON.stringify(resourceNames)}`);
-        if (resourceNames.length > 0) {
-          customers = resourceNames;
-        }
-      } catch (restErr: any) {
-        this.logger.warn(`[GoogleAdsAPI] Attempt 3 FAILED: ${restErr.message}`);
-      }
-    }
-
-    // --- Fallback: Use env LOGIN_CUSTOMER_ID ---
-    if (customers.length === 0 && loginCustomerId) {
-      this.logger.warn(`[GoogleAdsAPI] ⚠️ All attempts returned empty. Using env fallback: customers/${loginCustomerId}`);
-      customers = [`customers/${loginCustomerId}`];
-    }
-
-    if (customers.length === 0) {
-      this.logger.error(`[GoogleAdsAPI] ❌ No accessible customers found. Possible causes:\n  1. Developer Token not approved (check Google Ads API Center)\n  2. Google account has no access to any Google Ads account\n  3. GOOGLE_ADS_LOGIN_CUSTOMER_ID not set in .env`);
-    }
-
-    return customers;
   }
 
   async getClientAccounts(refreshToken: string, loginCustomerId: string) {
@@ -211,124 +196,73 @@ export class GoogleAdsClientService {
   }
 
   /**
-   * 🔎 Flatten Accounts Hierarchy
-   * Returns all selectable accounts: both Manager (MCC) accounts and their child accounts
+   * 🔎 SCAN HIERARCHY: List all accounts and their sub-accounts via REST
    */
   async getAllSelectableAccounts(refreshToken: string): Promise<any[]> {
+    this.logger.log(`[GET-ALL-ACCOUNTS] ========== START ==========`);
     try {
+      this.logger.log(`[GET-ALL-ACCOUNTS] Calling listAccessibleCustomers...`);
       const accessibleCustomers = await this.listAccessibleCustomers(refreshToken);
-      this.logger.log(`[GET-ALL-ACCOUNTS] Processing ${accessibleCustomers.length} accessible customers: ${JSON.stringify(accessibleCustomers)}`);
+      this.logger.log(`[GET-ALL-ACCOUNTS] Got ${accessibleCustomers.length} accessible customers`);
+      
       const allAccounts: any[] = [];
 
       for (const resourceName of accessibleCustomers) {
         const customerId = resourceName.replace('customers/', '');
+        this.logger.debug(`[GET-ALL-ACCOUNTS] Processing customer: ${customerId}`);
 
         try {
+          // Query info about this account
           const selfQuery = `SELECT customer.id, customer.descriptive_name, customer.manager, customer.status FROM customer LIMIT 1`;
-          // For selfQuery, use the customer's own ID as loginCustomerId (required for MCC accounts)
           const selfResult = await this.rawRestQuery(customerId, refreshToken, selfQuery, customerId);
 
           if (selfResult.length > 0) {
             const info = selfResult[0].customer;
             const isManager = info.manager || false;
-            const accountName = info.descriptiveName || info.descriptive_name || `Account ${customerId}`;
-            const accountStatus = info.status || 'ENABLED';
-
-            this.logger.log(`[GET-ALL-ACCOUNTS] Customer ${customerId} | name=${accountName} | isManager=${isManager}`);
+            this.logger.debug(`[GET-ALL-ACCOUNTS] Customer ${customerId} isManager: ${isManager}`);
 
             if (isManager) {
-              // Add the Manager (MCC) account itself as selectable
-              if (!allAccounts.find(a => a.id === customerId)) {
-                allAccounts.push({
-                  id: customerId,
-                  name: `${accountName} (Manager)`,
-                  type: 'MANAGER',
-                  status: accountStatus,
-                });
-              }
-
-              // Also fetch and add all child (non-manager) accounts under this MCC
-              try {
-                const childQuery = `SELECT customer_client.id, customer_client.descriptive_name, customer_client.status, customer_client.manager FROM customer_client WHERE customer_client.manager = FALSE AND customer_client.status != 'CANCELLED'`;
-                // ⚠️ Must use MCC id as loginCustomerId to query its children
-                const children = await this.rawRestQuery(customerId, refreshToken, childQuery, customerId);
-                this.logger.log(`[GET-ALL-ACCOUNTS] MCC ${customerId} has ${children.length} child accounts`);
-
-                for (const row of children) {
-                  const client = row.customerClient || row.customer_client;
-                  if (!client) continue;
-                  const childId = client.id?.toString();
-                  if (!childId) continue;
-                  if (!allAccounts.find(a => a.id === childId)) {
-                    allAccounts.push({
-                      id: childId,
-                      name: client.descriptiveName || client.descriptive_name || `Account ${childId}`,
-                      type: 'ACCOUNT',
-                      parentMccId: customerId,
-                      parentMccName: accountName,
-                      status: client.status || 'ENABLED',
-                    });
-                  }
+              // Fetch children
+              const childQuery = `SELECT customer_client.id, customer_client.descriptive_name, customer_client.status FROM customer_client WHERE customer_client.manager = FALSE`;
+              const children = await this.rawRestQuery(customerId, refreshToken, childQuery, customerId);
+              this.logger.debug(`[GET-ALL-ACCOUNTS] Customer ${customerId} has ${children.length} child accounts`);
+              
+              for (const row of children) {
+                const client = row.customerClient || row.customer_client;
+                const childId = client.id.toString();
+                if (!allAccounts.find(a => a.id === childId)) {
+                  allAccounts.push({
+                    id: childId,
+                    name: client.descriptiveName || client.descriptive_name || `Account ${childId}`,
+                    type: 'ACCOUNT',
+                    parentMccId: customerId,
+                    status: client.status || 'ENABLED'
+                  });
                 }
-              } catch (childErr: any) {
-                this.logger.warn(`[GET-ALL-ACCOUNTS] Failed to fetch children for MCC ${customerId}: ${childErr.message}`);
               }
             } else {
-              // Regular (non-manager) account — add it directly
+              const cust = selfResult[0].customer;
               if (!allAccounts.find(a => a.id === customerId)) {
                 allAccounts.push({
                   id: customerId,
-                  name: accountName,
+                  name: cust.descriptiveName || cust.descriptive_name || `Account ${customerId}`,
                   type: 'ACCOUNT',
-                  status: accountStatus,
+                  status: cust.status || 'ENABLED'
                 });
               }
             }
-          } else {
-            // Could not query account info — add as unknown but still selectable
-            if (!allAccounts.find(a => a.id === customerId)) {
-              this.logger.warn(`[GET-ALL-ACCOUNTS] No info returned for ${customerId}, adding as unknown`);
-              allAccounts.push({
-                id: customerId,
-                name: `Account ${customerId}`,
-                type: 'ACCOUNT',
-                status: 'UNKNOWN',
-              });
-            }
           }
-        } catch (e: any) {
-          this.logger.warn(`[GET-ALL-ACCOUNTS] Failed to process ${customerId}: ${e.message}`);
-          // Still add a basic entry so user can attempt to connect
-          if (!allAccounts.find(a => a.id === customerId)) {
-            allAccounts.push({
-              id: customerId,
-              name: `Account ${customerId} (Unverified)`,
-              type: 'ACCOUNT',
-              status: 'UNKNOWN',
-            });
-          }
+        } catch (e) {
+          this.logger.warn(`[GET-ALL-ACCOUNTS] Failed to scan hierarchy for ${customerId}: ${e.message}`);
         }
       }
-
-      this.logger.log(`[GET-ALL-ACCOUNTS] Total selectable accounts: ${allAccounts.length} → ${JSON.stringify(allAccounts.map(a => a.id))}`);
+      
+      this.logger.log(`[GET-ALL-ACCOUNTS] ========== COMPLETE: Found ${allAccounts.length} total accounts ==========`);
       return allAccounts;
-    } catch (error: any) {
-      this.logger.error(`[GoogleAdsClientService] getAllSelectableAccounts fatal error: ${error.message}`);
+    } catch (error) {
+      this.logger.error(`[GET-ALL-ACCOUNTS] ❌ FATAL ERROR: ${error.message}`);
       throw error;
     }
   }
 
-  /**
-   * 🔑 Exchange OAuth code for tokens
-   */
-  async getAccessTokenFromCode(code: string): Promise<any> {
-    const oauth2Client = new google.auth.OAuth2(
-      this.configService.get('GOOGLE_CLIENT_ID'),
-      this.configService.get('GOOGLE_CLIENT_SECRET'),
-      this.configService.get('GOOGLE_REDIRECT_URI_ADS'),
-    );
-
-    const { tokens } = await oauth2Client.getToken(code);
-    return tokens;
-  }
 }
