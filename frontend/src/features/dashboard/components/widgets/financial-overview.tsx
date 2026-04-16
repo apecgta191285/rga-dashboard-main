@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Download } from 'lucide-react';
 import { Cell, Pie, PieChart, ResponsiveContainer, Sector, Tooltip } from 'recharts';
 import { Button } from '@/components/ui/button';
@@ -103,8 +103,15 @@ export function FinancialOverview({
     summary = DEFAULT_SUMMARY,
 }: FinancialOverviewProps) {
     const cardRef = useRef<HTMLDivElement>(null);
+    const [targetElement, setTargetElement] = useState<HTMLDivElement | null>(null);
     const [activeIndex, setActiveIndex] = useState<number | null>(null);
     const computedTotal = total ?? breakdown.reduce((acc, cur) => acc + cur.value, 0);
+
+    useEffect(() => {
+        if (cardRef.current) {
+            setTargetElement(cardRef.current);
+        }
+    }, []);
     const hasData = breakdown.some(item => item.value > 0);
 
     const chartData = hasData
@@ -150,7 +157,7 @@ export function FinancialOverview({
 
                     <ExportDropdown
                         filename="financial-overview"
-                        targetElement={cardRef.current}
+                        targetElement={targetElement}
                         onExportCsv={handleExportCsv}
                     />
                 </div>

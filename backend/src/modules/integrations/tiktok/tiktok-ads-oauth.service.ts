@@ -1,4 +1,4 @@
-import { Injectable, Logger, BadRequestException, Inject } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
@@ -6,6 +6,8 @@ import { Cache } from 'cache-manager';
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
 import { EncryptionService } from '../../../common/services/encryption.service';
+import { UnifiedSyncService } from '../../sync/unified-sync.service';
+import { AdPlatform } from '@prisma/client';
 import {
     OAuthProvider,
     OAuthCallbackResult,
@@ -55,6 +57,7 @@ export class TikTokAdsOAuthService implements OAuthProvider, SandboxSupport {
         private readonly configService: ConfigService,
         private readonly prisma: PrismaService,
         private readonly encryptionService: EncryptionService,
+        @Inject(forwardRef(() => UnifiedSyncService)) private readonly unifiedSyncService: UnifiedSyncService,
         @Inject(CACHE_MANAGER) private cacheManager: Cache,
     ) {
         // Load configuration
@@ -417,8 +420,8 @@ export class TikTokAdsOAuthService implements OAuthProvider, SandboxSupport {
             await this.cacheManager.del(`tiktok_temp_tokens:${tempToken}`);
             await this.cacheManager.del(`tiktok_temp_accounts:${tempToken}`);
 
-            // TODO: Trigger initial sync (like Google Ads pattern)
-            // await this.triggerInitialSync(dbAccountId, tenantId);
+            // Trigger initial sync in background so newly connected TikTok data starts populating
+            this.triggerInitialSync(dbAccountId, tenantId);
 
             return {
                 success: true,
@@ -428,6 +431,16 @@ export class TikTokAdsOAuthService implements OAuthProvider, SandboxSupport {
         } catch (error) {
             this.logger.error(`[TikTok OAuth] Complete connection error: ${error.message}`);
             throw new BadRequestException(`Failed to save TikTok account: ${error.message}`);
+        }
+    }
+
+    private async triggerInitialSync(accountId: string, tenantId: string) {
+        try {
+            this.logger.log(`[TikTok OAuth] Triggering initial TikTok initial sync for account: ${accountId}`);
+            await this.unifiedSyncService.syncAccount(AdPlatform.TIKTOK, accountId, tenantId);
+            this.logger.log(`[TikTok OAuth] Initial sync completed for account: ${accountId}`);
+        } catch (syncError: any) {
+            this.logger.error(`[TikTok OAuth] Initial sync failed for account ${accountId}: ${syncError?.message || syncError}`);
         }
     }
 

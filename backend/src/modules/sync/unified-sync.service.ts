@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { IntegrationFactory } from '../integrations/common/integration.factory';
 import { AdPlatform, Prisma } from '@prisma/client';
 import { MarketingPlatformAdapter } from '../integrations/common/marketing-platform.adapter';
+import { EncryptionService } from '../../common/services/encryption.service';
 
 function toNumber(value: any, defaultValue = 0): number {
     if (value === null || value === undefined) return defaultValue;
@@ -29,7 +30,25 @@ export class UnifiedSyncService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly integrationFactory: IntegrationFactory,
+        private readonly encryptionService: EncryptionService,
     ) { }
+
+    private tryDecryptToken(token: string | null | undefined): string | null {
+        if (!token) {
+            return null;
+        }
+
+        if (!token.includes(':')) {
+            return token;
+        }
+
+        try {
+            return this.encryptionService.decrypt(token);
+        } catch (error: any) {
+            this.logger.warn(`Unable to decrypt token for sync; using raw value: ${error.message}`);
+            return token;
+        }
+    }
 
     /**
      * Sync all connected accounts across all platforms
@@ -168,11 +187,11 @@ export class UnifiedSyncService {
             if (!accountData) {
                 this.logger.log(`[SYNC] Fetching account data from database...`);
                 accountData = await this.fetchAccountData(platform, accountId);
-                
+
                 if (!accountData) {
                     throw new Error(`Account not found in database: ${accountId}`);
                 }
-                
+
                 this.logger.log(`[SYNC] Account data fetched: ${JSON.stringify({
                     id: accountData.id,
                     customerId: accountData.customerId || accountData.propertyId || accountData.accountId,
@@ -182,8 +201,8 @@ export class UnifiedSyncService {
             }
 
             const credentials = {
-                accessToken: accountData.accessToken,
-                refreshToken: accountData.refreshToken,
+                accessToken: this.tryDecryptToken(accountData.accessToken),
+                refreshToken: this.tryDecryptToken(accountData.refreshToken),
                 accountId: (() => {
                     switch (platform) {
                         case AdPlatform.GOOGLE_ANALYTICS:
@@ -230,14 +249,20 @@ export class UnifiedSyncService {
             } else {
                 // Ads Logic: Fetch Campaign Level Metrics
                 const campaignPlatforms = platform === ('INSTAGRAM' as any as AdPlatform) ? [AdPlatform.FACEBOOK] : [platform];
+                const accountFilterField =
+                    platform === AdPlatform.GOOGLE_ADS
+                        ? 'googleAdsAccountId'
+                        : platform === AdPlatform.FACEBOOK || platform === ('INSTAGRAM' as any as AdPlatform)
+                            ? 'facebookAdsAccountId'
+                            : platform === AdPlatform.TIKTOK
+                                ? 'tiktokAdsAccountId'
+                                : 'lineAdsAccountId';
+
                 const dbCampaigns = await this.prisma.campaign.findMany({
                     where: {
                         tenantId,
                         platform: { in: campaignPlatforms },
-                        OR: [
-                            { googleAdsAccountId: accountId },
-                            { facebookAdsAccountId: accountId }
-                        ]
+                        [accountFilterField]: accountId,
                     }
                 });
 
@@ -433,7 +458,7 @@ export class UnifiedSyncService {
     private async updateLastSync(platform: AdPlatform, accountId: string) {
         const now = new Date();
         this.logger.log(`[SYNC] updateLastSync: platform=${platform}, accountId=${accountId}, time=${now.toISOString()}`);
-        
+
         try {
             switch (platform) {
                 case AdPlatform.GOOGLE_ADS:

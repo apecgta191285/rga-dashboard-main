@@ -83,7 +83,7 @@ export class ChatService {
 
     try {
         // Use environment variables for n8n configuration
-        const n8nBaseUrl = process.env.N8N_BASE_URL || 'https://kitsana.app.n8n.cloud';
+        const n8nBaseUrl = process.env.N8N_BASE_URL || 'https://suttipatrga.app.n8n.cloud';
         // Chat module should call chat webhook; keep legacy var as fallback.
         const n8nWebhookPath =
             process.env.N8N_CHAT_WEBHOOK_PATH ||

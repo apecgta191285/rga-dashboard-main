@@ -8,7 +8,7 @@ import * as path from 'path';
 export class PrismaService extends PrismaClient implements OnModuleInit {
   constructor() {
     let url = process.env.DATABASE_URL || '';
-    
+
     // ลบ sslmode ออกจาก URL เพื่อป้องกันการตีกันกับ ssl object ด้านล่าง
     const cleanUrl = url.replace('?sslmode=require', '').replace('&sslmode=require', '');
 
@@ -17,12 +17,10 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
       connectionString: cleanUrl,
       ssl: { rejectUnauthorized: false },
     });
-    
+
     const adapter = new PrismaPg(pool as any);
 
-    // Set schema path for Prisma
-    process.env.PRISMA_SCHEMA_PATH = path.join(process.cwd(), 'prisma', 'schema.prisma');
-    
+
     super({
       adapter,
       log: ['query', 'warn', 'error'], // เปิด log เพื่อดูการเรียก Query ชัดๆ
