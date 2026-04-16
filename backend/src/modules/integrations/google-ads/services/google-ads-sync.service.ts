@@ -39,6 +39,7 @@ export class GoogleAdsSyncService {
         let updatedCount = 0;
 
         this.logger.log(`Syncing ${campaigns.length} campaigns for account ${accountId}`);
+        this.logger.log(`Campaign data sample: ${JSON.stringify(campaigns.slice(0, 1), null, 2)}`);
 
         for (const campaign of campaigns) {
             // Check if campaign already exists
@@ -86,6 +87,9 @@ export class GoogleAdsSyncService {
         }
 
         this.logger.log(`Campaign sync result: ${createdCount} created, ${updatedCount} updated`);
+
+        // Log final result
+        this.logger.log(`[SYNC] Final result: ${syncedCampaigns.length} campaigns synced for account ${accountId}`);
 
         // Sync metrics for all campaigns (including generating mock data)
         await this.syncAllCampaignMetrics(accountId);

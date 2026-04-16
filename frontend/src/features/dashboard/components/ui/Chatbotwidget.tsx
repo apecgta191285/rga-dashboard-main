@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useAuthStore } from '@/stores/auth-store';
 
 interface Message {
   id: string;
   text: string;
   isUser: boolean;
+  requestId?: string; // Track which request this came from
 }
 
 interface ChatbotProps {
@@ -21,17 +23,79 @@ const ROLE_OPTIONS = [
 
 type RoleId = (typeof ROLE_OPTIONS)[number]['id'];
 
+// Simple UUID generator (lightweight alternative)
+const generateId = (): string => {
+  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+};
+
 export const ChatbotWidget: React.FC<ChatbotProps> = ({ webhookUrl, buttonSize = 'default' }) => {
-  const resolvedWebhookUrl =
+  const { user } = useAuthStore();
+  const DEBUG = import.meta.env.MODE === 'development';
+  const logger = (tag: string, message: any, data?: any) => {
+    if (DEBUG) {
+      console.log(`[ChatbotWidget] ${tag}: ${message}`, data || '');
+    }
+  };
+
+  const defaultGeneralWebhook = 'https://kitsana.app.n8n.cloud/webhook/support-chat-standalone';
+  const defaultSeoWebhook = 'https://kitsana.app.n8n.cloud/webhook/support-chat-standalone';
+  const defaultFallbackWebhook = 'https://kitsana.app.n8n.cloud/webhook/support-chat-standalone';
+
+  const generalWebhookUrl =
+    (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHATBOT_WEBHOOK_URL_GENERAL : '') ||
+    defaultGeneralWebhook;
+
+  const seoWebhookUrl =
+    (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHATBOT_WEBHOOK_URL_SEO : '') ||
+    defaultSeoWebhook;
+
+  const globalWebhookUrl =
     webhookUrl ||
-    (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHATBOT_WEBHOOK_URL : '') ||
-    '';
+    (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHATBOT_WEBHOOK_URL : '');
+
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [activeRole, setActiveRole] = useState<RoleId>('general');
   const [isTyping, setIsTyping] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const isSendingRef = useRef(false);
+
+  const resolvedWebhookUrl =
+    activeRole === 'general'
+      ? generalWebhookUrl
+      : activeRole === 'seo'
+      ? seoWebhookUrl
+      : globalWebhookUrl || defaultFallbackWebhook;
+
+  const appendMessage = (newMsg: Message) => {
+    setMessages((prev) => {
+      const newText = newMsg.text.trim();
+
+      // If this is a bot response and the same text already exists, keep only first occurrence.
+      // This guarantees that the exact same bot answer will never repeat.
+      if (!newMsg.isUser) {
+        const alreadyHasSame = prev.some(
+          (m) => !m.isUser && m.text.trim() === newText
+        );
+        if (alreadyHasSame) {
+          logger('DEDUPE', 'Prevented duplicate bot message', { text: newText, requestId: newMsg.requestId });
+          return prev;
+        }
+      }
+
+      // For user message, still prevent exact consecutive duplicate to avoid accidental double-submit.
+      const last = prev[prev.length - 1];
+      if (last && last.isUser === newMsg.isUser && last.text.trim() === newText) {
+        logger('DEDUPE', 'Prevented consecutive duplicate', { text: newText, isUser: newMsg.isUser });
+        return prev;
+      }
+
+      logger('APPEND', 'Adding new message', { id: newMsg.id, text: newText, isUser: newMsg.isUser, requestId: newMsg.requestId });
+      return [...prev, newMsg];
+    });
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -41,51 +105,102 @@ export const ChatbotWidget: React.FC<ChatbotProps> = ({ webhookUrl, buttonSize =
     if (import.meta.env.MODE === 'development') {
       console.log('[ChatbotWidget] Resolved webhook URL:', resolvedWebhookUrl || '(empty)');
     }
-  }, [resolvedWebhookUrl]);
+  }, [resolvedWebhookUrl, activeRole, generalWebhookUrl, seoWebhookUrl, globalWebhookUrl]);
 
   const sendMessage = async () => {
-    if (!input.trim()) return;
+    if (isSendingRef.current || !input.trim()) return;
+
+    const requestId = generateId();
+    logger('SEND', 'Starting new request', { requestId, input: input.trim(), role: activeRole });
 
     if (!resolvedWebhookUrl) {
       const botMsg: Message = {
-        id: (Date.now() + 1).toString(),
+        id: generateId(),
         text: 'Webhook is not configured. Please set VITE_CHATBOT_WEBHOOK_URL.',
         isUser: false,
+        requestId,
       };
       setMessages((prev) => [...prev, botMsg]);
       return;
     }
 
     const userMsg: Message = {
-      id: Date.now().toString(),
+      id: generateId(),
       text: input,
       isUser: true,
+      requestId,
     };
 
-    setMessages((prev) => [...prev, userMsg]);
+    appendMessage(userMsg);
     setInput('');
+    isSendingRef.current = true;
+    setIsSending(true);
     setIsTyping(true);
 
     try {
+      // Build request body based on active role
+      let requestBody: any = {
+        timestamp: new Date().toISOString(),
+      };
+
+      if (activeRole === 'general' || activeRole === 'seo') {
+        // For chat-general and chat-seo, send tenant_id and question
+        requestBody.tenant_id = user?.tenantId || 'default_tenant';
+        requestBody.question = input;
+      } else {
+        // For other roles, use the default message format
+        requestBody.message = input;
+        requestBody.role = activeRole;
+      }
+
       const response = await fetch(resolvedWebhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: input,
-          role: activeRole,
-          timestamp: new Date().toISOString(),
-        }),
+        body: JSON.stringify(requestBody),
       });
+
+      logger('RESPONSE', 'Received response', { requestId, status: response.status, contentType: response.headers.get('content-type') });
 
       const contentType = response.headers.get('content-type') || '';
       let botText = '';
 
       if (contentType.includes('application/json')) {
         const data = await response.json();
+        logger('PARSE', 'Parsed JSON response', { requestId, data });
         if (!response.ok) {
           throw new Error(data?.error || data?.message || `HTTP ${response.status}`);
         }
-        botText = data.reply || data.response || data.message || data.output || '';
+
+        // Support multiple formats:
+        // - {reply: string}
+        // - {reply: [string]}
+        // - {response: string}
+        // - [{message: string}]
+        // - array of simple strings
+        if (Array.isArray(data)) {
+          if (
+            data.length > 0 &&
+            data.every(
+              (item) =>
+                item &&
+                typeof item === 'object' &&
+                (item.hasOwnProperty('message') || item.hasOwnProperty('reply') || item.hasOwnProperty('response') || item.hasOwnProperty('output'))
+            )
+          ) {
+            botText = data
+              .map((item: any) => item.message || item.reply || item.response || item.output || '')
+              .filter(Boolean)
+              .join('\n');
+          } else {
+            botText = data
+              .map((item) => (typeof item === 'string' ? item : JSON.stringify(item)))
+              .join('\n');
+          }
+        } else if (Array.isArray(data.reply)) {
+          botText = data.reply.join('\n');
+        } else {
+          botText = data.reply || data.response || data.message || data.output || '';
+        }
       } else {
         const text = await response.text();
         if (!response.ok) {
@@ -94,22 +209,51 @@ export const ChatbotWidget: React.FC<ChatbotProps> = ({ webhookUrl, buttonSize =
         botText = text;
       }
 
+      // Normalize to a single string message
+      if (Array.isArray(botText)) {
+        botText = botText
+          .map((item) => {
+            if (typeof item === 'string') return item;
+            if (item && typeof item === 'object') {
+              return item.message || item.reply || item.response || item.output || JSON.stringify(item);
+            }
+            return String(item);
+          })
+          .filter(Boolean)
+          .join(' ');
+      }
+
+      if (botText && typeof botText === 'object') {
+        botText = JSON.stringify(botText);
+      }
+
+      botText = (botText || 'ได้รับข้อความแล้วค่ะ').toString().replace(/\s+/g, ' ').trim();
+
+      logger('FINALIZE', 'Final bot text', { requestId, botText });
+
       const botMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        text: botText || 'ได้รับข้อความแล้วค่ะ',
+        id: generateId(),
+        text: botText,
         isUser: false,
+        requestId,
       };
 
-      setMessages((prev) => [...prev, botMsg]);
+      appendMessage(botMsg);
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger('ERROR', 'Request failed', { requestId, error: errorMessage });
       const errorMsg: Message = {
-        id: (Date.now() + 1).toString(),
+        id: generateId(),
         text: 'ขออภัย เกิดข้อผิดพลาด',
         isUser: false,
+        requestId,
       };
       setMessages((prev) => [...prev, errorMsg]);
     } finally {
+      isSendingRef.current = false;
+      setIsSending(false);
       setIsTyping(false);
+      logger('COMPLETE', 'Request finished', { requestId });
     }
   };
 
@@ -460,12 +604,12 @@ export const ChatbotWidget: React.FC<ChatbotProps> = ({ webhookUrl, buttonSize =
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
             placeholder="พิมพ์ข้อความ..."
-            disabled={isTyping}
+            disabled={isSending || isTyping}
           />
           <button
             className="chatbot-send"
             onClick={sendMessage}
-            disabled={!input.trim() || isTyping}
+            disabled={!input.trim() || isSending || isTyping}
           >
             <svg viewBox="0 0 24 24">
               <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>

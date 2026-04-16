@@ -1,29 +1,33 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
-import { prismaConfig } from './prisma.config';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
+import * as path from 'path';
 
 @Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+export class PrismaService extends PrismaClient implements OnModuleInit {
   constructor() {
-    super(prismaConfig);
+    let url = process.env.DATABASE_URL || '';
+
+    // ลบ sslmode ออกจาก URL เพื่อป้องกันการตีกันกับ ssl object ด้านล่าง
+    const cleanUrl = url.replace('?sslmode=require', '').replace('&sslmode=require', '');
+
+    // บังคับใช้ SSL ที่ Hostinger ยอมรับ
+    const pool = new Pool({
+      connectionString: cleanUrl,
+      ssl: { rejectUnauthorized: false },
+    });
+
+    const adapter = new PrismaPg(pool as any);
+
+
+    super({
+      adapter,
+      log: ['query', 'warn', 'error'], // เปิด log เพื่อดูการเรียก Query ชัดๆ
+    });
   }
 
   async onModuleInit() {
-    try {
-      const url = process.env.DATABASE_URL;
-      const maskedUrl = url ? url.replace(/:[^:@]+@/, ':****@') : 'UNDEFINED';
-      console.log('----------------------------------------');
-      console.log(`[PrismaService] Connecting to DB: ${maskedUrl}`);
-      console.log(`[PrismaService] Prisma Version: 7.5.0`);
-      console.log('----------------------------------------');
-      await this.$connect();
-      console.log('[PrismaService] Connected successfully!');
-    } catch (error) {
-      console.error('[PrismaService] Connection error:', error);
-    }
-  }
-
-  async onModuleDestroy() {
-    await this.$disconnect();
+    await this.$connect();
   }
 }

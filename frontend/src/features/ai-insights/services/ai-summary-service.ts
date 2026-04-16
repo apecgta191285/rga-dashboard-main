@@ -11,73 +11,82 @@ export interface AiSummaryCard {
 
 interface AiSummaryResponse extends AiDetailSummaryData { }
 
-const WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL_SUMMARY || 'https://suttipatrga.app.n8n.cloud/webhook/chat-summary';
+const BACKEND_WEBHOOK_URL = '/api/ai/webhook/summary';
+
+const normalizeSummaryResponse = (responseData: any) => {
+    let payload = responseData;
+
+    if (responseData?.success && responseData?.data) {
+        payload = responseData.data;
+    }
+
+    if (Array.isArray(payload)) {
+        payload = payload[0];
+    }
+
+    if (payload && typeof payload === 'object' && 'data' in payload && payload.data) {
+        payload = payload.data;
+    }
+
+    if (Array.isArray(payload)) {
+        payload = payload[0];
+    }
+
+    return {
+        summaryCards: Array.isArray(payload?.summaryCards) ? payload.summaryCards : [],
+        insight: {
+            title: payload?.insight?.title ?? '',
+            message: payload?.insight?.message ?? '',
+            recommendation: payload?.insight?.recommendation ?? '',
+        },
+        sections: Array.isArray(payload?.sections) ? payload.sections : [],
+        raw: payload,
+    };
+};
 
 export const aiSummaryService = {
-    /**
-     * Fetch full summary data including cards, insights, and sections
-     */
-    getFullSummary: async (): Promise<AiSummaryResponse> => {
-        try {
-            const response = await fetch(WEBHOOK_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    action: 'get-full-summary',
-                    timestamp: new Date().toISOString(),
-                }),
-            });
+    getFullSummary: async (tenantId: string, message: string): Promise<AiSummaryResponse> => {
+        const response = await fetch(BACKEND_WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                tenantId,
+                message,
+                timestamp: new Date().toISOString(),
+            }),
+        });
 
-            if (!response.ok) {
-                throw new Error(`Failed to fetch summary: ${response.statusText}`);
-            }
-
-            const responseData: any = await response.json();
-
-            const safeData: AiSummaryResponse = {
-                summaryCards: Array.isArray(responseData?.summaryCards) ? responseData.summaryCards : [],
-                insight: {
-                    title: responseData?.insight?.title ?? '',
-                    message: responseData?.insight?.message ?? '',
-                    recommendation: responseData?.insight?.recommendation ?? '',
-                },
-                sections: Array.isArray(responseData?.sections) ? responseData.sections : [],
-            };
-
-            return safeData;
-        } catch (error) {
-            console.error('Error fetching full summary:', error);
-            throw error;
+        if (!response.ok) {
+            throw new Error(`Failed to fetch summary: ${response.statusText}`);
         }
+
+        const responseData: any = await response.json();
+        const normalized = normalizeSummaryResponse(responseData);
+
+        return {
+            summaryCards: normalized.summaryCards,
+            insight: normalized.insight,
+            sections: normalized.sections,
+        };
     },
 
-    /**
-     * Fetch only summary cards data
-     */
-    getSummaryCards: async (): Promise<AiSummaryCard[]> => {
-        try {
-            const response = await fetch(WEBHOOK_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    action: 'get-summary-cards',
-                    timestamp: new Date().toISOString(),
-                }),
-            });
+    getSummaryCards: async (tenantId: string, message: string): Promise<AiSummaryCard[]> => {
+        const response = await fetch(BACKEND_WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                tenantId,
+                message,
+                timestamp: new Date().toISOString(),
+            }),
+        });
 
-            if (!response.ok) {
-                throw new Error(`Failed to fetch summary cards: ${response.statusText}`);
-            }
-
-            const data = await response.json();
-            return data.summaryCards || [];
-        } catch (error) {
-            console.error('Error fetching summary cards:', error);
-            throw error;
+        if (!response.ok) {
+            throw new Error(`Failed to fetch summary cards: ${response.statusText}`);
         }
+
+        const responseData: any = await response.json();
+        const normalized = normalizeSummaryResponse(responseData);
+        return normalized.summaryCards;
     },
 };

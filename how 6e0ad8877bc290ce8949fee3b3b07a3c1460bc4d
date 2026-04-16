@@ -1,0 +1,50 @@
+[33mcommit 6e0ad8877bc290ce8949fee3b3b07a3c1460bc4d[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mGia[m[33m)[m
+Author: RGAGear <rga2025.dev@gmail.com>
+Date:   Thu Mar 26 09:47:02 2026 +0700
+
+    update: deploy succ
+
+[33mcommit 173afd4b6a5d629ee07bb4a9acbf6e4056363efb[m
+Author: RGAGear <rga2025.dev@gmail.com>
+Date:   Sat Mar 21 16:34:00 2026 +0700
+
+    update deploy
+
+[33mcommit bf3379757f8cd92e22d4d1ff15cb95ecfd9711e8[m
+Merge: f4c51db cb03233
+Author: 004 Kiattichai <650112230004@bru.ac.th>
+Date:   Tue Feb 17 14:36:16 2026 +0700
+
+    Merge fix: Resolved remaining conflicts in schema.prisma, seo.service.ts and seo.controller.ts (Singoun 17/02/2026)
+
+[33mcommit cb03233aa55ee154c57348fd7a9b959251c3e710[m[33m ([m[1;31mupstream/backup/feature/email-verification[m[33m)[m
+Author: Chanon Areeue <your-email@example.com>
+Date:   Tue Feb 17 13:14:47 2026 +0700
+
+    feat: implement forgot password feature
+    
+    - Add forgot password and reset password DTOs
+    - Implement forgotPassword and resetPassword methods in AuthService
+    - Add forgot-password and reset-password API endpoints
+    - Update Prisma schema with password reset fields
+    - Add forgot password UI modal in Login page
+    - Implement email template for password reset
+    - Add audit logging for password reset events
+    - Add form validation and error handling
+    - Professional email template design
+
+[33mcommit 0a1ff72f8dbf63cba82f8118070e62c80095ab81[m
+Author: Chanon Areeue <your-email@example.com>
+Date:   Mon Feb 16 14:37:32 2026 +0700
+
+    feat: Update email template to professional English and fix SEO data display
+    
+    - Convert email verification template to professional business English
+    - Add professional styling and layout to email template
+    - Update SEO offpage metrics with real values (backlinks: 236, domains: 125, keywords: 1250, traffic cost: )
+    - Remove debug files and clean up codebase
+    - Update auth service with improved email content
+    - Fix frontend registration page styling
+    - Update database schema and seed data
+    
+     Generated with Cascade AI Assistant

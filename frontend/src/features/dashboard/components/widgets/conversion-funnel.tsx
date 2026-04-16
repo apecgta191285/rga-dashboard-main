@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -58,6 +58,13 @@ export function ConversionFunnel({
     const max = Math.max(1, ...displayStages.map((s) => s.value));
 
     const cardRef = useRef<HTMLDivElement>(null);
+    const [targetElement, setTargetElement] = useState<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        if (cardRef.current) {
+            setTargetElement(cardRef.current);
+        }
+    }, []);
 
     const handleExportCsv = () => {
         downloadCsv(
@@ -77,7 +84,7 @@ export function ConversionFunnel({
 
                     <ExportDropdown
                         filename="conversion-funnel"
-                        targetElement={cardRef.current}
+                        targetElement={targetElement}
                         onExportCsv={hasData ? handleExportCsv : undefined}
                         disabled={!hasData}
                     />

@@ -12,7 +12,7 @@
 /**
  * Supported integration platforms
  */
-export type PlatformId = 'google' | 'facebook' | 'tiktok' | 'line';
+export type PlatformId = 'google' | 'google-analytics' | 'facebook' | 'tiktok' | 'line';
 
 /**
  * Platform display configuration
@@ -35,6 +35,13 @@ export const PLATFORM_CONFIGS: Record<PlatformId, PlatformConfig> = {
         icon: 'google',
         description: 'Connect your Google Ads account to sync campaigns and metrics',
         color: '#4285F4',
+    },
+    'google-analytics': {
+        id: 'google-analytics',
+        name: 'Google Analytics 4',
+        icon: 'google-analytics',
+        description: 'Connect your GA4 property to sync web analytics data',
+        color: '#F9AB00',
     },
     facebook: {
         id: 'facebook',

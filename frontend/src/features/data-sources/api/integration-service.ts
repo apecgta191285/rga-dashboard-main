@@ -30,7 +30,9 @@ interface PlatformRoutes {
     /** Integration base URL (e.g., /integrations/google-ads) */
     integrationBaseUrl: string;
     /** Field name for externalId in complete request */
-    externalIdField: 'customerId' | 'accountId' | 'advertiserId';
+    externalIdField: 'customerId' | 'accountId' | 'advertiserId' | 'propertyId';
+    /** OAuth temp account endpoint suffix */
+    tempAccountsPath?: string;
 }
 
 /**
@@ -42,6 +44,12 @@ const PLATFORM_ROUTES: Record<PlatformId, PlatformRoutes> = {
         authBaseUrl: '/auth/google/ads',
         integrationBaseUrl: '/integrations/google-ads',
         externalIdField: 'customerId',
+    },
+    'google-analytics': {
+        authBaseUrl: '/auth/google/analytics',
+        integrationBaseUrl: '/integrations/google-analytics',
+        externalIdField: 'propertyId',
+        tempAccountsPath: '/temp-properties',
     },
     facebook: {
         authBaseUrl: '/auth/facebook/ads',
@@ -70,8 +78,17 @@ const PLATFORM_ROUTES: Record<PlatformId, PlatformRoutes> = {
  * TikTok returns { accounts: [...] }, others return array directly
  */
 function normalizeTempAccounts(response: unknown): TempAccount[] {
-    // If response is already an array, return it
     if (Array.isArray(response)) {
+        const items = response as any[];
+
+        // GA4 returns properties as { propertyId, displayName }
+        if (items.length > 0 && items[0] && 'propertyId' in items[0]) {
+            return items.map((item) => ({
+                id: item.propertyId,
+                name: item.displayName || item.propertyId,
+            }));
+        }
+
         return response as TempAccount[];
     }
 
@@ -122,8 +139,9 @@ export const integrationService = {
      */
     async getTempAccounts(platform: PlatformId, tempToken: string): Promise<TempAccount[]> {
         const routes = PLATFORM_ROUTES[platform];
+        const path = routes.tempAccountsPath ?? '/temp-accounts';
         const response = await apiClient.get(
-            `${routes.authBaseUrl}/temp-accounts?tempToken=${encodeURIComponent(tempToken)}`
+            `${routes.authBaseUrl}${path}?tempToken=${encodeURIComponent(tempToken)}`
         );
         return normalizeTempAccounts(response.data);
     },
@@ -178,9 +196,10 @@ export const integrationService = {
      * Useful for dashboard/overview
      */
     async getAllStatuses(): Promise<Record<PlatformId, IntegrationStatusResponse | null>> {
-        const platforms: PlatformId[] = ['google', 'facebook', 'tiktok', 'line'];
+        const platforms: PlatformId[] = ['google', 'google-analytics', 'facebook', 'tiktok', 'line'];
         const results: Record<PlatformId, IntegrationStatusResponse | null> = {
             google: null,
+            'google-analytics': null,
             facebook: null,
             tiktok: null,
             line: null,

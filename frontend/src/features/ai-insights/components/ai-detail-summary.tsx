@@ -43,7 +43,7 @@ interface AiDetailSummaryProps {
 
 export function AiDetailSummary({ onBack, data: propData }: AiDetailSummaryProps) {
     const [expandedSections, setExpandedSections] = useState<number[]>([]);
-    const { data: webhookData, isLoading, error } = useAiSummary();
+    const { data: webhookData, isLoading, error } = useAiSummary(!propData);
     const [data, setData] = useState<AiDetailSummaryData | null>(propData || null);
 
     // Use webhook data if available, otherwise use prop data

@@ -6,9 +6,11 @@ import { AlertModule } from '../alerts/alert.module';
 import { VerificationController } from './verification.controller';
 import { VerificationSeeder } from '../mock-data/generators/verification-seeder';
 
+import { EchoController } from './echo.controller';
+
 @Module({
     imports: [PrismaModule, AlertModule],
-    controllers: [DebugController, VerificationController],
+    controllers: [DebugController, VerificationController, EchoController],
     providers: [DebugService, VerificationSeeder],
 })
 export class DebugModule { }

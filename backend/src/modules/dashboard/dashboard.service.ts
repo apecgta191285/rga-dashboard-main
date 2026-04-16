@@ -7,7 +7,7 @@ import {
   DashboardOverviewResponseDto,
   GetDashboardOverviewDto,
 } from './dto/dashboard-overview.dto';
-import { ProvenanceMode } from 'src/common/provenance.constants';
+import { ProvenanceMode } from '../../common/provenance.constants';
 
 // ============================================================
 // Helper: Safe Decimal to Number conversion with null coalescing
@@ -756,12 +756,37 @@ export class DashboardService {
       conversions: m._sum.conversions ?? 0,
     }));
 
+    // 8. Platform Breakdown
+    const platformBreakdownGroup = await this.prisma.metric.groupBy({
+      by: ['platform'],
+      where: {
+        tenantId,
+        date: { gte: startDate, lte: endDate },
+        ...(hideMockData ? { isMockData: false } : {}),
+      },
+      _sum: {
+        spend: true,
+        impressions: true,
+        clicks: true,
+        conversions: true,
+      },
+    });
+
+    const platformBreakdown = platformBreakdownGroup.map(m => ({
+      platform: m.platform,
+      spend: toNumber(m._sum.spend),
+      impressions: m._sum.impressions ?? 0,
+      clicks: m._sum.clicks ?? 0,
+      conversions: m._sum.conversions ?? 0,
+    }));
+
     return {
       success: true,
       data: {
         summary,
         growth,
         trends,
+        platformBreakdown,
         recentCampaigns,
       },
       meta: {

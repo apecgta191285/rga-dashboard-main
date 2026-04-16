@@ -28,7 +28,7 @@ export class SyncController {
         @CurrentUser('tenantId') tenantId: string,
         @Param('platform') platform: string,
     ) {
-        const normalized = platform.toUpperCase();
+        const normalized = platform.replace(/-/g, '_').toUpperCase();
         if (!(normalized in AdPlatform)) {
             throw new BadRequestException(`Invalid platform: ${platform}`);
         }

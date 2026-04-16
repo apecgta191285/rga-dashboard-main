@@ -74,7 +74,7 @@ export class GoogleAdsOAuthService {
       // --- DIAGNOSTIC TRAP START ---
       try {
         if (tokens.refresh_token) {
-          this.logger.log(`[OAuth Trap] ✅ Received Refresh Token: ${tokens.refresh_token.substring(0, 5)}...`);
+          this.logger.log(`[OAuth Trap] ✅ Received Refresh Token`);
         } else {
           this.logger.warn(`[OAuth Trap] ⚠️ WARNING: No refresh_token received! Google did not send one.`);
         }
@@ -83,8 +83,11 @@ export class GoogleAdsOAuthService {
       }
       // --- DIAGNOSTIC TRAP END ---
 
-      if (!tokens.access_token || !tokens.refresh_token) {
-        throw new BadRequestException('Failed to get tokens from Google');
+      if (!tokens.access_token) {
+        throw new BadRequestException('Failed to get access token from Google');
+      }
+      if (!tokens.refresh_token) {
+        throw new BadRequestException('ไม่ได้รับ Refresh Token จาก Google. กรุณาไปที่ Google Account -\u003E Security -\u003E Third-party apps และกด Remove Access ก่อนลองเชื่อมต่อใหม่อีกครั้ง');
       }
 
       // Fetch all selectable accounts using Option B (flatten all accessible accounts)
@@ -99,11 +102,25 @@ export class GoogleAdsOAuthService {
 
       try {
         selectableAccounts = await this.googleAdsClientService.getAllSelectableAccounts(tokens.refresh_token);
-        this.logger.log(`Selectable Google Ads Accounts: ${JSON.stringify(selectableAccounts.map(a => a.id))}`);
-      } catch (error) {
-        this.logger.error(`Failed to list Google Ads accounts: ${error.message}`);
+        this.logger.log(`✅ Selectable Google Ads Accounts: ${JSON.stringify(selectableAccounts.map(a => ({ id: a.id, name: a.name })))}`);
+      } catch (error: any) {
+        this.logger.error(`❌ Failed to list Google Ads accounts`);
+        this.logger.error(`Error message: ${error.message}`);
+        this.logger.error(`Error response status: ${error.response?.status}`);
+        this.logger.error(`Error response data: ${JSON.stringify(error.response?.data)}`);
+        
+        // Provide more contextual error message
+        let contextualMessage = error.message;
+        if (error.response?.status === 400) {
+          contextualMessage = `400 Bad Request - API returned error. Check: (1) Developer Token validity, (2) Google Ads API enabled, (3) Account has proper permissions`;
+        } else if (error.response?.status === 401) {
+          contextualMessage = `401 Unauthorized - Token may have expired or been revoked`;
+        } else if (error.response?.status === 403) {
+          contextualMessage = `403 Forbidden - Your account may not have permission to access Google Ads API`;
+        }
+        
         throw new BadRequestException(
-          `ไม่สามารถดึง Google Ads Accounts ได้: ${error.message}. กรุณาตรวจสอบว่า Developer Token ถูกต้องและ Google Ads API เปิดใช้งานแล้ว`
+          `ไม่สามารถดึง Google Ads Accounts ได้: ${contextualMessage}. กรุณาตรวจสอบว่า Developer Token ถูกต้องและ Google Ads API เปิดใช้งานแล้ว`
         );
       }
 
@@ -130,6 +147,12 @@ export class GoogleAdsOAuthService {
       };
     } catch (error) {
       this.logger.error('Error in handleCallback:', error);
+      
+      // DEBUG: Write error to a file so we can see what exactly failed for the user
+      try {
+        require('fs').appendFileSync('oauth_error.log', new Date().toISOString() + ' | OAuth Error: ' + error.stack + '\n');
+      } catch (e) {}
+
       // Re-throw BadRequestException as-is, wrap others
       if (error instanceof BadRequestException) {
         throw error;
@@ -210,10 +233,40 @@ export class GoogleAdsOAuthService {
     await this.cacheManager.del(`google_ads_temp_tokens:${tempToken}`);
     await this.cacheManager.del(`google_ads_temp_accounts:${tempToken}`);
 
-    // 🚀 Trigger Initial Sync (non-blocking)
-    this.triggerInitialSync(accountId, tenantId);
+    // 🚀 Trigger Initial Sync immediately and return sync result
+    let syncSuccess = false;
+    let syncErrorMessage: string | null = null;
 
-    return { success: true, accountId };
+    try {
+      this.logger.log(`[OAuth Sync] ========================================`);
+      this.logger.log(`[OAuth Sync] Starting initial sync`);
+      this.logger.log(`[OAuth Sync] accountId=${accountId}`);
+      this.logger.log(`[OAuth Sync] tenantId=${tenantId}`);
+      this.logger.log(`[OAuth Sync] customerId=${cleanCustomerId}`);
+      this.logger.log(`[OAuth Sync] Calling unifiedSyncService.syncAccount...`);
+      
+      await this.unifiedSyncService.syncAccount(AdPlatform.GOOGLE_ADS, accountId, tenantId);
+      
+      syncSuccess = true;
+      this.logger.log(`[OAuth Sync] ✅ Initial sync completed successfully`);
+    } catch (syncError: any) {
+      syncErrorMessage = syncError?.message || 'Unknown sync error';
+      this.logger.error(`[OAuth Sync] ❌ Initial sync failed`);
+      this.logger.error(`[OAuth Sync] Error: ${syncErrorMessage}`);
+      this.logger.error(`[OAuth Sync] Stack: ${syncError?.stack}`);
+    }
+
+    this.logger.log(`[OAuth Sync] ========================================`);
+    this.logger.log(`[OAuth Sync] Returning to client: syncSuccess=${syncSuccess}`);
+
+    return {
+      success: true,
+      accountId,
+      syncResult: {
+        success: syncSuccess,
+        error: syncErrorMessage,
+      },
+    };
   }
 
   /**

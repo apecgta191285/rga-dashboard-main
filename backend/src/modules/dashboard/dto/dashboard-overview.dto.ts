@@ -193,6 +193,26 @@ export class ResponseMetaDto {
 }
 
 /**
+ * Platform breakdown metrics
+ */
+export class PlatformBreakdownDto {
+    @ApiProperty({ enum: AdPlatform, example: 'GOOGLE_ADS' })
+    platform: AdPlatform;
+
+    @ApiProperty({ example: 42500.0 })
+    spend: number;
+
+    @ApiProperty({ example: 150000 })
+    impressions: number;
+
+    @ApiProperty({ example: 5000 })
+    clicks: number;
+
+    @ApiProperty({ example: 625 })
+    conversions: number;
+}
+
+/**
  * Dashboard overview data payload
  */
 export class DashboardOverviewDataDto {
@@ -205,6 +225,9 @@ export class DashboardOverviewDataDto {
 
     @ApiProperty({ type: [TrendDataPointDto] })
     trends: TrendDataPointDto[];
+
+    @ApiProperty({ type: [PlatformBreakdownDto] })
+    platformBreakdown: PlatformBreakdownDto[];
 
     @ApiProperty({ type: [RecentCampaignDto] })
     recentCampaigns: RecentCampaignDto[];
