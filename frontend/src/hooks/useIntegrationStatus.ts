@@ -31,6 +31,7 @@ export function useIntegrationStatus() {
     const [lineAdsAccounts, setLineAdsAccounts] = useState<any[]>([]);
     const [tiktokAdsAccounts, setTiktokAdsAccounts] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<Error | null>(null);
     const [isSyncing, setIsSyncing] = useState(false);
 
     const fetchStatus = useCallback(async () => {
@@ -46,12 +47,14 @@ export function useIntegrationStatus() {
             setGa4Account(null);
             setLineAdsAccounts([]);
             setTiktokAdsAccounts([]);
+            setError(null);
             setIsLoading(false);
             return;
         }
 
         try {
             setIsLoading(true);
+            setError(null);
 
             // Fetch all statuses in parallel
             const [googleAdsRes, facebookAdsRes, ga4Res, lineAdsRes, tiktokAdsRes] = await Promise.allSettled([
@@ -83,6 +86,7 @@ export function useIntegrationStatus() {
             setTiktokAdsAccounts(tiktokAdsStatus.accounts || []);
         } catch (error) {
             console.error('Failed to fetch integration status:', error);
+            setError(error instanceof Error ? error : new Error('Failed to load integration status'));
         } finally {
             setIsLoading(false);
         }
@@ -164,6 +168,7 @@ export function useIntegrationStatus() {
         lineAdsAccounts,
         tiktokAdsAccounts,
         isLoading,
+        error,
         isSyncing,
         refetch: fetchStatus,
         syncGoogleAds,
