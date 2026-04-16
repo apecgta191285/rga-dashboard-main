@@ -141,10 +141,10 @@ export class GoogleAdsOAuthService {
 
       // Re-throw BadRequestException as-is, wrap others
       if (error instanceof BadRequestException) {
-        throw error;
+        throw new BadRequestException(`[NEW_DEBUG] ${error.message}`);
       }
       throw new BadRequestException(
-        `OAuth callback failed: ${error.message}`,
+        `[NEW_DEBUG] OAuth callback failed: ${error.message}`,
       );
     }
   }
@@ -245,7 +245,7 @@ export class GoogleAdsOAuthService {
       });
 
       // Run sync using Unified Engine
-      await this.unifiedSyncService.syncAccount(AdPlatform.GOOGLE_ADS, accountId, tenantId);
+      await this.unifiedSyncService.syncAccount(AdPlatform.GOOGLE_ADS, accountId, tenantId, null, 90);
 
       // Update SyncLog
       await this.prisma.syncLog.update({

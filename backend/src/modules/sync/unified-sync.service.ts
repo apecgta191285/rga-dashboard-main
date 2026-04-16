@@ -154,7 +154,7 @@ export class UnifiedSyncService {
     /**
      * Sync a specific account using the Adapter Pattern
      */
-    async syncAccount(platform: AdPlatform, accountId: string, tenantId: string, accountData?: any) {
+    async syncAccount(platform: AdPlatform, accountId: string, tenantId: string, accountData?: any, days: number = 30) {
         const adapter = this.integrationFactory.getAdapter(platform);
 
         // 1. Prepare Credentials
@@ -195,7 +195,7 @@ export class UnifiedSyncService {
         if (platform === AdPlatform.GOOGLE_ANALYTICS) {
             // GA4 Logic: Fetch Account Level Metrics
             const dateRange = {
-                startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Last 30 days
+                startDate: new Date(Date.now() - days * 24 * 60 * 60 * 1000), 
                 endDate: new Date(),
             };
 
@@ -220,7 +220,7 @@ export class UnifiedSyncService {
                 if (!campaign.externalId) continue;
 
                 const dateRange = {
-                    startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Last 30 days
+                    startDate: new Date(Date.now() - days * 24 * 60 * 60 * 1000),
                     endDate: new Date(),
                 };
 

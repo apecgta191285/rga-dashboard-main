@@ -141,7 +141,7 @@ async function bootstrap() {
       'health/readiness',
 
       'auth/google/ads/callback',
-
+      'debug-ads*',
       'auth/google/analytics/callback',
 
       'auth/facebook/ads/callback',
