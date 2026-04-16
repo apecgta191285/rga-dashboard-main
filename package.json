@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "@nestjs/cache-manager": "^2.0.0",
-    "cache-manager": "^5.2.1"
+    "cache-manager": "^5.2.1",
+    "facebook-nodejs-business-sdk": "^24.0.1"
   }
 }

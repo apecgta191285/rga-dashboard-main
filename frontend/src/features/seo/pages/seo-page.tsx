@@ -4,16 +4,17 @@ import { SeoSummaryCards } from '../components/seo-summary-cards';
 import { TrafficByLocation } from '../components/traffic-by-location';
 import { SeoPerformanceChart } from '../components/seo-performance-chart';
 import { useSeoSummary } from '../hooks';
+import { useIntegrationStatus } from '@/hooks/useIntegrationStatus';
 import { SeoMetricSummary } from '../types';
 import { OrganicKeywordsByIntent } from '../components/organic-keywords-by-intent';
-
-
+import { AdsConnectionStatus } from '../components/ads-connection-status';
 import { SeoAnchorText } from '../components/seo-anchor-text';
 import { TopOrganicKeywords } from '../components/top-organic-keywords';
 import { SeoOffPageMetrics } from '../components/seo-offpage-metrics';
 
 export function SeoPage() {
     const { data, isLoading } = useSeoSummary();
+    const { status: integrationStatus, isLoading: integrationLoading, error: integrationError } = useIntegrationStatus();
 
     // Default fallback data if API fails or is loading (to prevent crash)
     const displayData: SeoMetricSummary = data || {
@@ -39,6 +40,13 @@ export function SeoPage() {
                 <div className="flex justify-between items-center">
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight">SEO & Web Analytics</h1>
+                        <div className="flex items-center gap-2 mt-2">
+                            <AdsConnectionStatus
+                                data={integrationStatus}
+                                isLoading={integrationLoading}
+                                error={integrationError ?? null}
+                            />
+                        </div>
                         <p className="text-muted-foreground mt-1">
                             Track your organic search performance and website engagement.
                         </p>

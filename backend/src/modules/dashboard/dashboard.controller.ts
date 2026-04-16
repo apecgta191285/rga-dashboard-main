@@ -96,6 +96,12 @@ export class DashboardController {
     return this.dashboardService.getTrends(req.user.tenantId, daysNum);
   }
 
+  @Get('ads-connections')
+  @ApiOperation({ summary: 'Get ads platform connections status' })
+  async getAdsConnections(@Request() req) {
+    return this.dashboardService.getAdsConnections(req.user.tenantId);
+  }
+
   @Get('performance-by-platform')
   async getPerformanceByPlatform(@Request() req, @Query('startDate') startDate?: string) {
     let days = 30;

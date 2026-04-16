@@ -28,9 +28,27 @@ export class FacebookAdsOAuthService {
         this.appId = this.configService.get<string>('FACEBOOK_APP_ID');
         this.appSecret = this.configService.get<string>('FACEBOOK_APP_SECRET');
         this.redirectUri = this.configService.get<string>('FACEBOOK_REDIRECT_URI');
+
+        // Validate required environment variables
+        if (!this.appId) {
+            this.logger.error('FACEBOOK_APP_ID is not configured');
+        }
+        if (!this.appSecret) {
+            this.logger.error('FACEBOOK_APP_SECRET is not configured');
+        }
+        if (!this.redirectUri) {
+            this.logger.error('FACEBOOK_REDIRECT_URI is not configured');
+        }
     }
 
     async generateAuthUrl(userId: string, tenantId: string): Promise<string> {
+        // Validate required configuration
+        if (!this.appId || !this.appSecret || !this.redirectUri) {
+            throw new BadRequestException(
+                'Facebook integration is not properly configured. Please check FACEBOOK_APP_ID, FACEBOOK_APP_SECRET, and FACEBOOK_REDIRECT_URI environment variables.'
+            );
+        }
+
         const state = uuidv4();
         // Cache state for validation
         await this.cacheManager.set(`fb_auth_state:${state}`, { userId, tenantId }, 600000); // 10 mins
@@ -48,50 +66,68 @@ export class FacebookAdsOAuthService {
     }
 
     async handleCallback(code: string, state: string) {
-        // Validate state
-        const storedState = await this.cacheManager.get<{ userId: string; tenantId: string }>(`fb_auth_state:${state}`);
-        if (!storedState) {
-            throw new BadRequestException('Invalid or expired state');
-        }
+        try {
+            this.logger.log(`Handling Facebook OAuth callback for state: ${state}`);
 
-        // Exchange code for access token
-        const tokenUrl = `https://graph.facebook.com/${this.apiVersion}/oauth/access_token`;
-        const { data: tokenData } = await firstValueFrom(
-            this.httpService.get(tokenUrl, {
-                params: {
-                    client_id: this.appId,
-                    client_secret: this.appSecret,
-                    redirect_uri: this.redirectUri,
-                    code,
+            // Validate state
+            const storedState = await this.cacheManager.get<{ userId: string; tenantId: string }>(`fb_auth_state:${state}`);
+            if (!storedState) {
+                this.logger.error(`Invalid or expired state: ${state}`);
+                throw new BadRequestException('Invalid or expired state');
+            }
+
+            this.logger.log(`State validated for user: ${storedState.userId}, tenant: ${storedState.tenantId}`);
+
+            // Exchange code for access token
+            this.logger.log('Exchanging code for access token...');
+            const tokenUrl = `https://graph.facebook.com/${this.apiVersion}/oauth/access_token`;
+            const { data: tokenData } = await firstValueFrom(
+                this.httpService.get(tokenUrl, {
+                    params: {
+                        client_id: this.appId,
+                        client_secret: this.appSecret,
+                        redirect_uri: this.redirectUri,
+                        code,
+                    },
+                }),
+            );
+
+            const shortLivedToken = tokenData.access_token;
+            this.logger.log('Short-lived token obtained successfully');
+
+            // Exchange for long-lived token
+            this.logger.log('Exchanging for long-lived token...');
+            const longLivedToken = await this.exchangeForLongLivedToken(shortLivedToken);
+            this.logger.log('Long-lived token obtained successfully');
+
+            // Get User's Ad Accounts
+            this.logger.log('Fetching ad accounts...');
+            const accounts = await this.getAdAccounts(longLivedToken);
+            this.logger.log(`Found ${accounts.length} ad accounts`);
+
+            // Store temp token and accounts in cache for selection step
+            const tempToken = uuidv4();
+            await this.cacheManager.set(
+                `fb_temp_token:${tempToken}`,
+                {
+                    accessToken: longLivedToken,
+                    accounts,
+                    userId: storedState.userId,
+                    tenantId: storedState.tenantId,
                 },
-            }),
-        );
+                600000,
+            );
 
-        const shortLivedToken = tokenData.access_token;
+            this.logger.log(`Facebook OAuth callback completed successfully with tempToken: ${tempToken}`);
 
-        // Exchange for long-lived token
-        const longLivedToken = await this.exchangeForLongLivedToken(shortLivedToken);
-
-        // Get User's Ad Accounts
-        const accounts = await this.getAdAccounts(longLivedToken);
-
-        // Store temp token and accounts in cache for selection step
-        const tempToken = uuidv4();
-        await this.cacheManager.set(
-            `fb_temp_token:${tempToken}`,
-            {
-                accessToken: longLivedToken,
-                accounts,
-                userId: storedState.userId,
-                tenantId: storedState.tenantId,
-            },
-            600000,
-        );
-
-        return {
-            status: 'success',
-            tempToken,
-        };
+            return {
+                status: 'success',
+                tempToken,
+            };
+        } catch (error) {
+            this.logger.error(`Facebook OAuth callback failed:`, error);
+            throw error;
+        }
     }
 
     private async exchangeForLongLivedToken(shortLivedToken: string): Promise<string> {

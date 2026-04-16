@@ -228,7 +228,15 @@ export function useIntegrationAuth() {
             }
         } catch (error) {
             console.error('[useIntegrationAuth] Connect error:', error);
-            toast.error(`Failed to start ${PLATFORM_CONFIGS[platform].name} connection`);
+
+            // Handle specific Facebook configuration errors
+            if (platform === 'facebook' && error?.response?.status === 400) {
+                toast.error('Facebook integration is not configured. Please contact administrator to set up Facebook App credentials.');
+            } else {
+                const errorMessage = error?.response?.data?.message || error?.message || 'Unknown error';
+                toast.error(`Failed to start ${PLATFORM_CONFIGS[platform].name} connection: ${errorMessage}`);
+            }
+
             setPendingPlatform(null);
         }
     }, [queryClient]);
