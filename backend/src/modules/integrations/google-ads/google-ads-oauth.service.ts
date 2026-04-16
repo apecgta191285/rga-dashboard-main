@@ -289,7 +289,7 @@ export class GoogleAdsOAuthService {
       });
 
       // Run sync using Unified Engine
-      await this.unifiedSyncService.syncAccount(AdPlatform.GOOGLE_ADS, accountId, tenantId, null, 90);
+      await this.unifiedSyncService.syncAccount(AdPlatform.GOOGLE_ADS, accountId, tenantId);
 
       // Update SyncLog
       await this.prisma.syncLog.update({
