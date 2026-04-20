@@ -159,9 +159,9 @@ export function ConversionFunnel({
                             const conversionRate =
                                 nextStage && stage.value > 0
                                     ? (
-                                          (nextStage.value / stage.value) *
-                                          100
-                                      ).toFixed(1)
+                                        (nextStage.value / stage.value) *
+                                        100
+                                    ).toFixed(1)
                                     : null;
 
                             return (

@@ -37,9 +37,9 @@ export const ChatbotWidget: React.FC<ChatbotProps> = ({ webhookUrl, buttonSize =
     }
   };
 
-  const defaultGeneralWebhook = 'https://kitsana.app.n8n.cloud/webhook/support-chat-standalone';
-  const defaultSeoWebhook = 'https://kitsana.app.n8n.cloud/webhook/support-chat-standalone';
-  const defaultFallbackWebhook = 'https://kitsana.app.n8n.cloud/webhook/support-chat-standalone';
+  const defaultGeneralWebhook = 'https://suttipatrga1.app.n8n.cloud/webhook/chat-general';
+  const defaultSeoWebhook = 'https://suttipatrga1.app.n8n.cloud/webhook/chat-seo';
+  const defaultFallbackWebhook = 'https://suttipatrga1.app.n8n.cloud/webhook/chat-general';
 
   const generalWebhookUrl =
     (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHATBOT_WEBHOOK_URL_GENERAL : '') ||

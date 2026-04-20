@@ -1,5 +1,5 @@
-import { BadRequestException, Controller, Param, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { BadRequestException, Controller, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { AdPlatform } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -38,18 +38,31 @@ export class SyncController {
 
     @Post(':platform/accounts/:accountId')
     @ApiOperation({ summary: 'Trigger manual sync for a specific account (tenant-scoped)' })
+    @ApiQuery({ name: 'lookbackDays', required: false, description: 'Optional number of days to backfill metric sync, e.g. 30 or 90.' })
     async syncAccount(
         @CurrentUser('tenantId') tenantId: string,
         @Param('platform') platform: string,
         @Param('accountId') accountId: string,
+        @Query('lookbackDays') lookbackDays?: string,
     ) {
         const normalized = platform.toUpperCase();
         if (!(normalized in AdPlatform)) {
             throw new BadRequestException(`Invalid platform: ${platform}`);
         }
 
+        const parsedLookback = lookbackDays ? Number(lookbackDays) : undefined;
+        if (lookbackDays && (!Number.isFinite(parsedLookback) || parsedLookback <= 0)) {
+            throw new BadRequestException('lookbackDays must be a positive integer');
+        }
+
         await this.assertAccountOwnership(normalized as AdPlatform, accountId, tenantId);
-        await this.unifiedSyncService.syncAccount(normalized as AdPlatform, accountId, tenantId);
+        await this.unifiedSyncService.syncAccount(
+            normalized as AdPlatform,
+            accountId,
+            tenantId,
+            undefined,
+            parsedLookback,
+        );
 
         return { success: true, message: 'Sync started' };
     }

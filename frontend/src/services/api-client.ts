@@ -56,7 +56,7 @@ export const apiClient: AxiosInstance = axios.create({
 
     },
 
-    timeout: 30000,
+    timeout: 120000,
 
 });
 

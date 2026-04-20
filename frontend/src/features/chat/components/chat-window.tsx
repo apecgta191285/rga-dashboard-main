@@ -31,9 +31,9 @@ interface ChatWindowProps {
 // Clean text by removing escape sequences and JSON structure
 function cleanText(text: string | any): string {
     if (!text) return '';
-    
+
     let result = typeof text === 'string' ? text : JSON.stringify(text);
-    
+
     // Handle JSON.stringify double-encoded strings (e.g., "{\"key\":...}")
     try {
         // If it looks like a JSON string, try to parse it
@@ -43,19 +43,19 @@ function cleanText(text: string | any): string {
     } catch (e) {
         // Not a JSON string, continue
     }
-    
+
     // Remove JSON structure - extract just the text content
     // Match patterns like {"parts":[{"text":"..."}]} or similar
-    const jsonMatch = result.match(/"text"\s*:\s*"([^"]+(?:\\.[^"]*)*)"/) || 
-                      result.match(/"text"\s*:\s*"([^"]*)"/);
+    const jsonMatch = result.match(/"text"\s*:\s*"([^"]+(?:\\.[^"]*)*)"/) ||
+        result.match(/"text"\s*:\s*"([^"]*)"/);
     if (jsonMatch && jsonMatch[1]) {
         result = JSON.parse('"' + jsonMatch[1] + '"'); // Parse the captured string properly
     }
-    
+
     // Now clean escape sequences multiple times to handle nested encoding
     for (let i = 0; i < 3; i++) {
         const before = result;
-        
+
         result = result
             // Handle escaped quotes and backslashes (do this first)
             .replace(/\\\\"/g, '\x00ESCAPED_QUOTE\x00') // Temporarily replace \\"
@@ -76,11 +76,11 @@ function cleanText(text: string | any): string {
             .replace(/&lt;/g, '<')
             .replace(/&gt;/g, '>')
             .replace(/&amp;/g, '&');
-        
+
         // If nothing changed, stop looping
         if (before === result) break;
     }
-    
+
     // Remove any remaining JSON structure characters
     result = result
         // Remove leading/trailing JSON characters
@@ -90,7 +90,7 @@ function cleanText(text: string | any): string {
         .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
         // Trim whitespace from start and end
         .trim();
-    
+
     return result;
 }
 
@@ -151,7 +151,7 @@ export function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
     const widgetWebhookUrl =
         (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHAT_WIDGET_WEBHOOK_URL : '') ||
         (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHATBOT_WEBHOOK_URL : '') ||
-        'https://kitsana.app.n8n.cloud/webhook/support-chat-standalone';
+        '/api/ai/webhook/general';
 
     const handleSendMessage = async () => {
         if (!inputValue.trim()) return;
@@ -180,23 +180,36 @@ export function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
             });
 
             const contentType = response.headers.get('content-type') || '';
+            const raw = await response.text();
             let aiText = '';
-            let apiResponse: any = null;
+
+            if (!response.ok) {
+                let errorMessage = raw;
+                if (contentType.includes('application/json')) {
+                    try {
+                        const data = JSON.parse(raw);
+                        errorMessage = data?.error || data?.message || JSON.stringify(data);
+                    } catch {
+                        // fallback to raw string
+                    }
+                }
+                console.warn('[ChatWindow] Webhook returned non-OK response, suppressed user message.', {
+                    status: response.status,
+                    contentType,
+                    errorMessage,
+                });
+                return;
+            }
 
             if (contentType.includes('application/json')) {
-                // n8n can sometimes respond with `application/json` but empty/invalid body.
-                // So we read as text first, then attempt JSON.parse safely.
-                const raw = await response.text();
                 if (!raw || raw.trim() === '') {
                     console.warn('[ChatWindow] Empty JSON body returned from webhook.');
                     console.log('[ChatWindow] Webhook raw response:', { raw, status: response.status, contentType });
                 } else {
                     try {
                         const data = JSON.parse(raw);
-                        apiResponse = data;
                         console.log('[ChatWindow] API Response:', data);
 
-                        // Try to extract text from various response formats
                         let extractedText =
                             (typeof data === 'string' ? data : '') ||
                             data?.text ||
@@ -211,7 +224,6 @@ export function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
                             (data?.candidates?.[0]?.content?.parts?.[0]?.text) ||
                             '';
 
-                        // If the proxy reports failure, prefer its error message
                         if (!extractedText && data?.success === false && data?.error) {
                             extractedText = data.error;
                         }
@@ -219,25 +231,22 @@ export function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
                             extractedText = data.message;
                         }
 
-                        // Do not show raw session_id to users — n8n should return reply/answer/message.
                         if (!extractedText && (data?.session_id ?? data?.id)) {
                             console.warn('[ChatWindow] Webhook returned no reply text; keys:', Object.keys(data || {}));
                         }
 
                         aiText = cleanText(extractedText);
                     } catch (parseErr) {
-                        console.warn('[ChatWindow] Failed to JSON.parse webhook response. Raw:', raw);
-                        // As a fallback, display raw string if it contains any text.
+                        console.warn('[ChatWindow] Failed to parse webhook JSON response. Raw:', raw);
                         aiText = cleanText(raw);
                     }
                 }
             } else {
-                aiText = cleanText(await response.text());
+                aiText = cleanText(raw);
             }
 
             console.log('[ChatWindow] Extracted AI Text:', aiText);
 
-            // Only show message if we have actual content from webhook
             if (aiText && aiText.trim().length > 0) {
                 const newAiMessage: Message = {
                     id: (Date.now() + 1).toString(),
@@ -250,7 +259,6 @@ export function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
             }
         } catch (error) {
             console.error('Chat error:', error);
-            // Don't show error message - only webhook responses
         } finally {
             setIsTyping(false);
         }

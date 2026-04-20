@@ -174,6 +174,24 @@ export function useIntegrationAuth() {
 
             // Refresh dashboard data (demo -> live switch)
             queryClient.invalidateQueries({ queryKey: dashboardKeys.overview() });
+
+            if (variables.platform === 'tiktok' && data.accountId) {
+                void (async () => {
+                    try {
+                        toast.success('Starting TikTok data sync...');
+                        await integrationService.syncTikTokAccount(data.accountId, 90);
+                        toast.success('TikTok data sync initiated.');
+                        queryClient.invalidateQueries({ queryKey: dashboardKeys.overview() });
+                    } catch (syncError: any) {
+                        console.error('[useIntegrationAuth] TikTok sync error:', syncError);
+                        const errorMessage =
+                            syncError?.response?.data?.message ||
+                            syncError?.message ||
+                            'TikTok sync failed. Please retry from the data sources page.';
+                        toast.error(errorMessage);
+                    }
+                })();
+            }
         },
         onError: (error: Error, variables) => {
             const platformName = PLATFORM_CONFIGS[variables.platform].name;
@@ -226,10 +244,9 @@ export function useIntegrationAuth() {
             } else {
                 throw new Error('No auth URL received');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('[useIntegrationAuth] Connect error:', error);
 
-            // Handle specific Facebook configuration errors
             if (platform === 'facebook' && error?.response?.status === 400) {
                 toast.error('Facebook integration is not configured. Please contact administrator to set up Facebook App credentials.');
             } else {

@@ -179,7 +179,7 @@ export function AiAssistant() {
 
     const { user, isAuthenticated } = useAuthStore();
     const queryClient = useQueryClient();
-    const defaultWebhook = 'https://kitsana.app.n8n.cloud/webhook/chat-general';
+    const defaultWebhook = 'https://suttipatrga1.app.n8n.cloud/webhook/chat-general';
     const envWebhookGeneral =
         (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHATBOT_WEBHOOK_URL_GENERAL : '') || '';
     const envWebhookSummary =
@@ -193,7 +193,7 @@ export function AiAssistant() {
             ? envWebhookAds
             : activeRole === 'seo'
                 ? envWebhookSeo
-                : envWebhookSummary || envWebhookGeneral;
+                : envWebhookGeneral || envWebhookSummary;
     const activeSessionId = activeSessionIdByRole[activeRole];
 
     const tryParseSummaryData = (value: any): AiDetailSummaryData | null => {
@@ -388,7 +388,8 @@ export function AiAssistant() {
             updateMessages(prev => [...prev, userMsg]);
             setQuery(""); // Clear input AFTER adding message
 
-            // 4. Send User Message to API (skip if no session)
+            // 4. Save user message so the chat history keeps the typed text.
+            //    This is not the AI webhook request.
             if (currentSessionId) {
                 await sendMessageMutation.mutateAsync({
                     sessionId: currentSessionId,
@@ -396,6 +397,7 @@ export function AiAssistant() {
                     content: savedQuery
                 });
             }
+
             // 5. Determine Response Logic (Webhook only - no fallback)
             let responseText = "";
             if (webhookUrl) {
@@ -403,9 +405,10 @@ export function AiAssistant() {
                     ? 'ads'
                     : activeRole === 'seo'
                         ? 'seo'
-                        : envWebhookSummary
-                            ? 'summary'
-                            : 'general';
+                        : 'general';
+
+                console.log(`[AI Assistant] Sending to webhook route: ${route} (activeRole=${activeRole})`);
+
                 const response = await fetch(`/api/ai/webhook/${route}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -448,11 +451,18 @@ export function AiAssistant() {
             }
 
             // 6. Only show message if we have actual Gemini response
-            if (!responseText || responseText.trim().length === 0) {
-                // No response from Gemini - remove the user message and don't show anything
-                updateMessages(prev => prev.filter(m => m.id !== tempUserMsgId));
+            const trimmedResponse = responseText?.trim() || '';
+            const isHtmlResponse = /^<\/?(?:html|!doctype)/i.test(trimmedResponse) || /<html/i.test(trimmedResponse);
+            const isNoResponseText =
+                !trimmedResponse ||
+                /^no response\.?$/i.test(trimmedResponse) ||
+                isHtmlResponse;
+
+            if (isNoResponseText) {
+                setQuery(savedQuery);
                 setIsThinking(false);
                 isProcessingRef.current = false;
+                toast.error('AI did not return a valid response. Please try again or check your AI webhook.');
                 return;
             }
 

@@ -54,10 +54,10 @@ export class GoogleAdsApiService {
       return results;
     } catch (error: any) {
       this.logger.error(`❌ Google Ads REST Error (fetching campaigns): ${error.message}`);
-      
+
       // Parse error for better user feedback
       let userMessage = `Failed to fetch campaigns via REST: ${error.message}`;
-      
+
       if (error.message?.includes('unauthorized_client')) {
         userMessage = 'Google OAuth authentication failed (unauthorized_client). Your connection may have expired - please reconnect.';
       } else if (error.message?.includes('invalid_grant')) {
@@ -65,7 +65,7 @@ export class GoogleAdsApiService {
       } else if (error.message?.includes('permission')) {
         userMessage = 'Your account does not have permission to access Google Ads API. Check your Google Cloud project settings.';
       }
-      
+
       throw new Error(userMessage);
     }
   }
@@ -102,6 +102,7 @@ export class GoogleAdsApiService {
 
     try {
       this.logger.debug(`[fetchCampaignMetrics] Executing Raw REST query for campaign ${campaignId}`);
+      this.logger.debug(`[fetchCampaignMetrics] Query: ${query}`);
       const results = await this.googleAdsClientService.rawRestQuery(
         account.customerId,
         decryptedRefreshToken,
@@ -110,22 +111,30 @@ export class GoogleAdsApiService {
       );
 
       this.logger.debug(`[fetchCampaignMetrics] Retrieved ${results.length} daily metric records via REST.`);
+
+      if (results.length > 0) {
+        this.logger.debug(`[fetchCampaignMetrics] Sample metric data: ${JSON.stringify(results.slice(0, 1), null, 2)}`);
+      } else {
+        this.logger.warn(`[fetchCampaignMetrics] ⚠️ No metrics returned for campaign ${campaignId} from ${startDateStr} to ${endDateStr}`);
+      }
+
       return results;
     } catch (error: any) {
       this.logger.error(`❌ Google Ads REST Error (fetching metrics): ${error.message}`);
-      
+      this.logger.error(`[fetchCampaignMetrics] Stack: ${error.stack}`);
+
       let userMessage = `Failed to fetch metrics via REST: ${error.message}`;
-      
+
       if (error.message?.includes('unauthorized_client')) {
         userMessage = 'Google OAuth authentication failed. Please reconnect.';
       }
-      
+
       throw new Error(userMessage);
     }
   }
 
   // Error handler (Simplified for now as we use Axios)
   private handleApiError(error: any, accountId: string, action: string) {
-     this.logger.error(`[API-ERROR] Action: ${action}, Error: ${error.message}`);
+    this.logger.error(`[API-ERROR] Action: ${action}, Error: ${error.message}`);
   }
 }

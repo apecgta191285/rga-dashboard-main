@@ -138,6 +138,8 @@ export interface CompleteConnectionResponse {
     success: boolean;
     accountId: string;
     accountName?: string;
+    initialSyncSucceeded?: boolean;
+    initialSyncError?: string;
 }
 
 /**

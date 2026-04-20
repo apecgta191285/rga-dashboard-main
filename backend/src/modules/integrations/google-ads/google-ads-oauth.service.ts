@@ -108,7 +108,7 @@ export class GoogleAdsOAuthService {
         this.logger.error(`Error message: ${error.message}`);
         this.logger.error(`Error response status: ${error.response?.status}`);
         this.logger.error(`Error response data: ${JSON.stringify(error.response?.data)}`);
-        
+
         // Provide more contextual error message
         let contextualMessage = error.message;
         if (error.response?.status === 400) {
@@ -118,7 +118,7 @@ export class GoogleAdsOAuthService {
         } else if (error.response?.status === 403) {
           contextualMessage = `403 Forbidden - Your account may not have permission to access Google Ads API`;
         }
-        
+
         throw new BadRequestException(
           `ไม่สามารถดึง Google Ads Accounts ได้: ${contextualMessage}. กรุณาตรวจสอบว่า Developer Token ถูกต้องและ Google Ads API เปิดใช้งานแล้ว`
         );
@@ -147,11 +147,11 @@ export class GoogleAdsOAuthService {
       };
     } catch (error) {
       this.logger.error('Error in handleCallback:', error);
-      
+
       // DEBUG: Write error to a file so we can see what exactly failed for the user
       try {
         require('fs').appendFileSync('oauth_error.log', new Date().toISOString() + ' | OAuth Error: ' + error.stack + '\n');
-      } catch (e) {}
+      } catch (e) { }
 
       // Re-throw BadRequestException as-is, wrap others
       if (error instanceof BadRequestException) {
@@ -238,15 +238,17 @@ export class GoogleAdsOAuthService {
     let syncErrorMessage: string | null = null;
 
     try {
+      this.logger.log(`[OAuth] Google Ads account connected`);
+      this.logger.log(`[OAuth] tenantId=${tenantId}, accountId=${accountId}, customerId=${cleanCustomerId}, accountName=${accountName}`);
       this.logger.log(`[OAuth Sync] ========================================`);
       this.logger.log(`[OAuth Sync] Starting initial sync`);
       this.logger.log(`[OAuth Sync] accountId=${accountId}`);
       this.logger.log(`[OAuth Sync] tenantId=${tenantId}`);
       this.logger.log(`[OAuth Sync] customerId=${cleanCustomerId}`);
       this.logger.log(`[OAuth Sync] Calling unifiedSyncService.syncAccount...`);
-      
+
       await this.unifiedSyncService.syncAccount(AdPlatform.GOOGLE_ADS, accountId, tenantId);
-      
+
       syncSuccess = true;
       this.logger.log(`[OAuth Sync] ✅ Initial sync completed successfully`);
     } catch (syncError: any) {
@@ -289,7 +291,7 @@ export class GoogleAdsOAuthService {
       });
 
       // Run sync using Unified Engine
-      await this.unifiedSyncService.syncAccount(AdPlatform.GOOGLE_ADS, accountId, tenantId);
+      await this.unifiedSyncService.syncAccount(AdPlatform.GOOGLE_ADS, accountId, tenantId, undefined, 90); // Sync last 90 days for initial sync
 
       // Update SyncLog
       await this.prisma.syncLog.update({

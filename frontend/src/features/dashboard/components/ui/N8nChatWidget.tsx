@@ -22,7 +22,7 @@ export const N8nChatWidget = ({
   inputPlaceholder = 'เธเธดเธกเธเนเธเธณเธ–เธฒเธกเธเธญเธเธเธธเธ“...',
 }: N8nChatWidgetProps) => {
   useEffect(() => {
-    const defaultWebhook = 'https://kitsana.app.n8n.cloud/webhook/support-chat-standalone';
+    const defaultWebhook = 'https://suttipatrga1.app.n8n.cloud/webhook/chat-general';
     const resolvedWebhookUrl =
       webhookUrl ||
       (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHATBOT_WEBHOOK_URL : '') ||

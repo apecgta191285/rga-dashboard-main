@@ -9,7 +9,7 @@ export class TikTokAdsService implements MarketingPlatformAdapter {
   private readonly logger = new Logger(TikTokAdsService.name);
   private readonly baseUrl = 'https://business-api.tiktok.com/open_api/v1.3';
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(private readonly configService: ConfigService) { }
 
   async validateCredentials(credentials: PlatformCredentials): Promise<boolean> {
     try {
@@ -96,22 +96,43 @@ export class TikTokAdsService implements MarketingPlatformAdapter {
       });
 
       if (response.data?.code !== 0) {
-        throw new Error(`TikTok API Error: ${response.data?.message}`);
+        throw new Error(`TikTok API Error: ${response.data?.message || JSON.stringify(response.data)}`);
       }
 
-      const list = response.data.data.list || [];
-      return list.map((row: any) => ({
-        date: new Date(row.metrics.stat_time_day),
-        impressions: parseInt(row.metrics.impressions),
-        clicks: parseInt(row.metrics.clicks),
-        spend: new Prisma.Decimal(parseFloat(row.metrics.spend)),
-        conversions: parseInt(row.metrics.conversion),
-        revenue: new Prisma.Decimal(0),
-        roas: new Prisma.Decimal(0),
-      }));
-    } catch (error) {
-      this.logger.error(`Failed to fetch TikTok metrics: ${error.message}`);
-      return [];
+      const list = response.data?.data?.list || [];
+      if (!list.length) {
+        this.logger.warn(
+          `TikTok report returned no rows for campaign ${campaignId} from ${range.startDate.toISOString().split('T')[0]} to ${range.endDate.toISOString().split('T')[0]}`,
+        );
+      }
+
+      return list.map((row: any) => {
+        const metrics = row.metrics ?? row;
+        const dimensions = row.dimensions ?? row;
+        const dateValue =
+          metrics.stat_time_day ??
+          dimensions.stat_time_day ??
+          row.stat_time_day ??
+          row.date;
+
+        if (!dateValue) {
+          throw new Error(`TikTok report row missing date field for campaign ${campaignId}: ${JSON.stringify(row)}`);
+        }
+
+        return {
+          date: new Date(dateValue),
+          impressions: parseInt(metrics.impressions ?? metrics.impression ?? '0') || 0,
+          clicks: parseInt(metrics.clicks ?? metrics.click ?? '0') || 0,
+          spend: new Prisma.Decimal(parseFloat(metrics.spend ?? metrics.cost ?? '0') || 0),
+          conversions: parseInt(metrics.conversion ?? metrics.conversions ?? '0') || 0,
+          revenue: new Prisma.Decimal(0),
+          roas: new Prisma.Decimal(0),
+        };
+      });
+    } catch (error: any) {
+      const message = error?.message || JSON.stringify(error);
+      this.logger.error(`Failed to fetch TikTok metrics for campaign ${campaignId}: ${message}`);
+      throw new Error(`Failed to fetch TikTok metrics: ${message}`);
     }
   }
 
