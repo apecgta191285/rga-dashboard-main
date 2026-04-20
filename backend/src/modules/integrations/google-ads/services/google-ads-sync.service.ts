@@ -58,6 +58,9 @@ export class GoogleAdsSyncService {
                     data: {
                         name: campaign.name,
                         status: campaign.status,
+                        budget: campaign.budget,
+                        startDate: campaign.startDate,
+                        endDate: campaign.endDate,
                         googleAdsAccount: {
                             connect: { id: accountId },
                         },
@@ -73,6 +76,9 @@ export class GoogleAdsSyncService {
                         platform: 'GOOGLE_ADS',
                         status: campaign.status,
                         externalId: campaign.externalId,
+                        budget: campaign.budget,
+                        startDate: campaign.startDate,
+                        endDate: campaign.endDate,
                         googleAdsAccount: {
                             connect: { id: accountId },
                         },
@@ -109,7 +115,7 @@ export class GoogleAdsSyncService {
     async syncCampaignMetrics(
         accountId: string,
         campaignId: string,
-        days: number = 30,
+        days: number = 90,
     ) {
         this.logger.log(
             `Syncing metrics for campaign ${campaignId} (last ${days} days)`,

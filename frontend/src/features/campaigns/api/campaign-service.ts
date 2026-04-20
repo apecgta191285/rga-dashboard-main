@@ -35,7 +35,7 @@ export interface CampaignQueryParams {
 // =============================================================================
 
 export interface CampaignSummaryMetrics {
-    spend: number;
+    spent: number;
     budget: number;
     impressions: number;
     clicks: number;
@@ -71,7 +71,7 @@ interface BackendCampaign {
     status: string;      // UPPERCASE: "ACTIVE", "PAUSED", "DRAFT", etc.
     platform: string;    // UPPERCASE: "GOOGLE_ADS", "FACEBOOK", "TIKTOK"
     budget: number;
-    spend?: number;
+    spent?: number;
     impressions?: number;
     clicks?: number;
     startDate: string;
@@ -142,7 +142,7 @@ function normalizeCampaign(raw: BackendCampaign): Campaign {
         status: STATUS_MAP[raw.status] || 'draft',
         platform: PLATFORM_MAP[raw.platform] || 'google',
         budget: raw.budget ?? 0,
-        spent: raw.spend ?? 0,
+        spent: raw.spent ?? 0,
         impressions: raw.impressions ?? 0,
         clicks: raw.clicks ?? 0,
         startDate: raw.startDate,

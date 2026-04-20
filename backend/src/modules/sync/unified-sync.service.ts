@@ -271,7 +271,7 @@ export class UnifiedSyncService {
                     if (!campaign.externalId) continue;
 
                     const dateRange = {
-                        startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Last 30 days
+                        startDate: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000), // Last 365 days
                         endDate: new Date(),
                     };
 
@@ -347,12 +347,18 @@ export class UnifiedSyncService {
         };
 
         if (existing) {
-            return this.prisma.campaign.update({
+            const campaign = await this.prisma.campaign.update({
                 where: { id: existing.id },
                 data: campaignData
             });
+
+            // 4. Save Lifetime Metrics (Direct from Platform API)
+            if (data.metrics) {
+                await this.saveLifetimeMetrics(tenantId, platform, campaign.id, data.metrics);
+            }
+            return campaign;
         } else {
-            return this.prisma.campaign.create({
+            const campaign = await this.prisma.campaign.create({
                 data: {
                     ...campaignData,
                     tenantId,
@@ -360,7 +366,55 @@ export class UnifiedSyncService {
                     platform,
                 }
             });
+
+            // 4. Save Lifetime Metrics (Direct from Platform API)
+            if (data.metrics) {
+                await this.saveLifetimeMetrics(tenantId, platform, campaign.id, data.metrics);
+            }
+            return campaign;
         }
+    }
+
+    /**
+     * Keep a special 'lifetime_summary' row in Metric table
+     * to preserve absolute totals from platforms (even for old campaigns)
+     */
+    private async saveLifetimeMetrics(tenantId: string, platform: AdPlatform, campaignId: string, metrics: any) {
+        const date = new Date('1970-01-01'); // Token date for lifetime entry
+        const source = 'lifetime_summary';
+
+        await this.prisma.metric.upsert({
+            where: {
+                metrics_unique_key: {
+                    tenantId,
+                    campaignId,
+                    date,
+                    hour: 0,
+                    platform,
+                    source,
+                },
+            },
+            create: {
+                tenantId,
+                campaignId,
+                platform,
+                date,
+                hour: 0,
+                source,
+                impressions: Math.trunc(metrics.impressions || 0),
+                clicks: Math.trunc(metrics.clicks || 0),
+                spend: metrics.cost || metrics.spend || 0,
+                revenue: metrics.revenue || metrics.conversionsValue || 0,
+                conversions: Math.trunc(metrics.conversions || 0),
+            },
+            update: {
+                impressions: Math.trunc(metrics.impressions || 0),
+                clicks: Math.trunc(metrics.clicks || 0),
+                spend: metrics.cost || metrics.spend || 0,
+                revenue: metrics.revenue || metrics.conversionsValue || 0,
+                conversions: Math.trunc(metrics.conversions || 0),
+            },
+        });
     }
 
     /**

@@ -38,11 +38,38 @@ export class GoogleAdsMapperService {
             metrics: {
                 clicks: row.metrics?.clicks || 0,
                 impressions: row.metrics?.impressions || 0,
-                cost: (row.metrics?.costMicros || row.metrics?.cost_micros || 0) / 1000000, // Convert micros to dollars
+                cost: (row.metrics?.costMicros || row.metrics?.cost_micros || 0) / 1000000,
                 conversions: row.metrics?.conversions || 0,
+                revenue: row.metrics?.conversionsValue || row.metrics?.conversions_value || 0,
                 ctr: row.metrics?.ctr || 0,
             },
-            budget: 0, // Initialize budget for type safety
+            budget: (() => {
+              const b = row.campaignBudget || row.campaign_budget || row.budget;
+              const totalMicros = Number(b?.totalAmountMicros || b?.total_amount_micros || 0);
+              const dailyMicros = Number(b?.amountMicros || b?.amount_micros || 0);
+              const micros = totalMicros || dailyMicros || 0;
+              
+              const start = row.campaign?.startDate || row.campaign?.start_date;
+              const end = row.campaign?.endDate || row.campaign?.end_date;
+              
+              // If we have no total budget but we HAVE a daily budget and a duration, calculate it
+              if (!totalMicros && dailyMicros && start && end && end !== '2037-12-30') {
+                const startDate = new Date(start);
+                const endDate = new Date(end);
+                const days = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+                return (dailyMicros * days) / 1000000;
+              }
+              
+              return micros / 1000000;
+            })(),
+            startDate: (() => {
+              const d = row.campaign?.startDate || row.campaign?.start_date;
+              return d ? new Date(d) : null;
+            })(),
+            endDate: (() => {
+              const d = row.campaign?.endDate || row.campaign?.end_date;
+              return d ? new Date(d) : (d === '2037-12-30' ? null : null); // Google Ads uses 2037-12-30 for no end date
+            })(),
         }));
         this.logger.log(`[transformCampaigns] Transformed to ${transformed.length} campaigns`);
         this.logger.log(`[transformCampaigns] Sample transformed: ${JSON.stringify(transformed.slice(0, 1), null, 2)}`);

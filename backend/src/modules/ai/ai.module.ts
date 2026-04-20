@@ -3,12 +3,12 @@ import { HttpModule } from '@nestjs/axios';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AiController } from './ai.controller';
 import { AiService } from './ai.service';
-import { AiWebhookController } from './ai-webhook.controller';
+import { AiAnalyticsService } from './ai-analytics.service';
 
 @Module({
   imports: [PrismaModule, HttpModule],
-  controllers: [AiController, AiWebhookController],
-  providers: [AiService],
-  exports: [AiService],
+  controllers: [AiController],
+  providers: [AiService, AiAnalyticsService],
+  exports: [AiService, AiAnalyticsService],
 })
 export class AiModule { }

@@ -146,6 +146,10 @@ async function bootstrap() {
       'auth/facebook/ads/callback',
       'auth/line/callback',
       'auth/tiktok/callback',
+      'ai/webhook/general',
+      'ai/webhook/ads',
+      'ai/webhook/seo',
+      'ai/webhook/summary',
     ],
   });
 

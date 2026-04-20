@@ -35,8 +35,18 @@ export class GoogleAdsApiService {
         campaign.id,
         campaign.name,
         campaign.status,
-        campaign.advertising_channel_type
+        campaign.advertising_channel_type,
+        campaign_budget.amount_micros,
+        campaign_budget.total_amount_micros,
+        campaign.start_date,
+        campaign.end_date,
+        metrics.impressions,
+        metrics.clicks,
+        metrics.cost_micros,
+        metrics.conversions,
+        metrics.conversions_value
       FROM campaign
+      WHERE campaign.status != 'REMOVED'
       ORDER BY campaign.id
     `;
 
