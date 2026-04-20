@@ -20,23 +20,9 @@ import * as Sentry from '@sentry/node';
 
 import * as dotenv from 'dotenv';
 import { join } from 'path';
-import * as fs from 'fs';
-
-const envPath = join(__dirname, '..', '.env');
-console.log('--- DEBUG INFO ---');
-console.log('__dirname:', __dirname);
-console.log('Looking for .env at:', envPath);
-console.log('Does .env exist?', fs.existsSync(envPath));
-if (fs.existsSync(envPath)) {
-  const content = fs.readFileSync(envPath, 'utf8');
-  console.log('First 50 chars of .env:', content.substring(0, 50).replace(/\n/g, '\\n'));
-} else {
-  console.log('Files in parent dir:', fs.readdirSync(join(__dirname, '..')));
-}
-console.log('------------------');
 
 // Load .env BEFORE any other local imports to ensure all services get correct config
-dotenv.config({ path: envPath });
+dotenv.config({ path: join(__dirname, '..', '.env') });
 
 import { AppModule } from './app.module';
 

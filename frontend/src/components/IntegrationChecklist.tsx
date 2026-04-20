@@ -33,17 +33,15 @@ import {
 
 const CHECKLIST_PLATFORM_IDS = [
     'google-ads',
+    'google-analytics',
     'facebook-ads',
-    'instagram-ads',
-    'line-ads',
     'tiktok-ads',
 ] as const;
 
 const statusKeyMap: Record<string, keyof IntegrationStatus> = {
     'google-ads': 'googleAds',
+    'google-analytics': 'googleAnalytics',
     'facebook-ads': 'facebookAds',
-    'instagram-ads': 'facebookAds',
-    'line-ads': 'lineAds',
     'tiktok-ads': 'tiktokAds',
 };
 
@@ -213,7 +211,7 @@ export function IntegrationChecklist() {
 
             {isCollapsed ? null : (
                 <CardContent className="pt-0">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         {platforms.map((platform) => {
                             const statusKey =
                                 statusKeyMap[platform.id];

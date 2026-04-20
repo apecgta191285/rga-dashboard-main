@@ -147,61 +147,59 @@ export function RecentCampaigns({
                                 return (
                                     <div
                                         key={campaign.id}
-                                        className="flex items-center justify-between gap-4 rounded-lg border p-3 transition-all duration-200 hover:bg-muted/50 hover:shadow-sm"
+                                        className="flex w-full h-16 items-center gap-3 rounded-lg border p-3 transition-all duration-200 hover:bg-muted/50 hover:shadow-sm"
                                     >
-                                        {/* Left: Platform Icon + Info */}
-                                        <div className="flex items-center gap-3 min-w-0">
-                                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted border border-border shadow-sm">
-                                                <BrandLogo
-                                                    platformId={campaign.platform}
-                                                    className="h-6 w-6"
-                                                />
+                                        {/* Left: Platform Icon */}
+                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted border border-border shadow-sm">
+                                            <BrandLogo
+                                                platformId={campaign.platform}
+                                                className="h-6 w-6"
+                                            />
 
-                                                {/* Fallback if BrandLogo returns null */}
-                                                {!BrandLogo({
-                                                    platformId: campaign.platform,
-                                                    className: 'h-6 w-6',
-                                                }) && (
-                                                    <HelpCircle className="h-5 w-5 text-muted-foreground" />
-                                                )}
-                                            </div>
-
-                                            <div className="min-w-0">
-                                                <p className="truncate text-sm font-medium leading-none">
-                                                    {campaign.name}
-                                                </p>
-                                                <p className="mt-1 text-xs text-muted-foreground">
-                                                    {platformName}
-                                                </p>
-                                            </div>
+                                            {/* Fallback if BrandLogo returns null */}
+                                            {!BrandLogo({
+                                                platformId: campaign.platform,
+                                                className: 'h-6 w-6',
+                                            }) && (
+                                                <HelpCircle className="h-5 w-5 text-muted-foreground" />
+                                            )}
                                         </div>
 
-                                        {/* Right: Badge + Spend */}
-                                        <div className="flex items-center gap-3 shrink-0">
-                                            <Badge
-                                                variant={statusStyle.variant}
-                                                className="text-xs"
-                                            >
-                                                {statusStyle.label}
-                                            </Badge>
+                                        {/* Center-Left: Campaign Info */}
+                                        <div className="min-w-0 flex-1">
+                                            <p className="truncate text-sm font-medium leading-tight">
+                                                {campaign.name}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground leading-tight">
+                                                {platformName}
+                                            </p>
+                                        </div>
 
-                                            <div className="text-right">
-                                                <p className="text-sm font-medium">
-                                                    {formatCurrencyTHB(
-                                                        campaign.spending
-                                                    )}
-                                                </p>
+                                        {/* Center-Right: Status Badge */}
+                                        <Badge
+                                            variant={statusStyle.variant}
+                                            className="text-xs shrink-0"
+                                        >
+                                            {statusStyle.label}
+                                        </Badge>
 
-                                                {campaign.budgetUtilization !==
-                                                    undefined && (
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {campaign.budgetUtilization.toFixed(
-                                                            0
-                                                        )}
-                                                        % used
-                                                    </p>
+                                        {/* Right: Spending Info */}
+                                        <div className="text-right shrink-0 w-16">
+                                            <p className="text-sm font-medium leading-tight">
+                                                {formatCurrencyTHB(
+                                                    campaign.spending
                                                 )}
-                                            </div>
+                                            </p>
+
+                                            {campaign.budgetUtilization !==
+                                                undefined && (
+                                                <p className="text-xs text-muted-foreground leading-tight">
+                                                    {campaign.budgetUtilization.toFixed(
+                                                        0
+                                                    )}
+                                                    % used
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
                                 );

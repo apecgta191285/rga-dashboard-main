@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
-import { Download } from 'lucide-react';
+import { Download, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     Card,

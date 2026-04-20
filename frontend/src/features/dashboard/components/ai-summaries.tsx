@@ -104,9 +104,15 @@ export function AiSummaries({ summary, growth }: AiSummariesProps) {
                 </div>
             )}
 
-            {error && (
-                <div className="rounded-xl p-4 bg-rose-50 border border-rose-200 text-rose-700 text-sm">
-                    Failed to load summary data. Using cached data instead.
+            {error && displayedItems.length === 0 && (
+                <div className="rounded-xl p-4 bg-slate-50 border border-slate-200 text-slate-700 text-sm">
+                    Unable to load AI summaries at this moment.
+                </div>
+            )}
+
+            {error && displayedItems.length > 0 && (
+                <div className="rounded-xl p-3 bg-amber-50 border border-amber-200 text-amber-700 text-xs">
+                    Showing offline data. Refresh to get latest updates.
                 </div>
             )}
 
