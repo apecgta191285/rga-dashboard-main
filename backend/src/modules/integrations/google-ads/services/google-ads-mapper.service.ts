@@ -53,18 +53,43 @@ export class GoogleAdsMapperService {
      * Transform API metric results to internal format
      */
     transformMetrics(metrics: any[]) {
-        return metrics.map((row: any) => ({
-            date: new Date(row.segments.date),
-            campaignId: row.campaign.id.toString(),
-            campaignName: row.campaign.name,
-            impressions: parseInt(row.metrics?.impressions || '0'),
-            clicks: parseInt(row.metrics?.clicks || '0'),
-            cost: (row.metrics?.costMicros || row.metrics?.cost_micros || 0) / 1000000, // Convert micros to currency
-            conversions: parseFloat(row.metrics?.conversions || '0'),
-            conversionValue: parseFloat(row.metrics?.conversionsValue || row.metrics?.conversions_value || '0'),
-            ctr: parseFloat(row.metrics?.ctr || '0') * 100, // Convert to percentage
-            cpc: (row.metrics?.averageCpc || row.metrics?.average_cpc || 0) / 1000000, // Convert micros to currency
-            cpm: 0, // CPM not available in this report type
-        }));
+        if (!metrics || metrics.length === 0) {
+            this.logger.warn('[transformMetrics] No metrics data provided');
+            return [];
+        }
+
+        this.logger.debug(`[transformMetrics] Raw metric sample: ${JSON.stringify(metrics[0], null, 2)}`);
+
+        return metrics.map((row: any) => {
+            try {
+                // Defensive: Handle missing nested structures
+                const campaign = row.campaign || {};
+                const segments = row.segments || {};
+                const metrics = row.metrics || {};
+
+                // Handle missing date field
+                if (!segments.date && !segments.date_str) {
+                    this.logger.warn(`[transformMetrics] Missing date field in row: ${JSON.stringify(row)}`);
+                    return null; // Skip rows without dates
+                }
+
+                return {
+                    date: new Date(segments.date || segments.date_str),
+                    campaignId: (campaign.id || '').toString(),
+                    campaignName: campaign.name || 'Unknown',
+                    impressions: parseInt(metrics.impressions || '0'),
+                    clicks: parseInt(metrics.clicks || '0'),
+                    cost: (metrics.costMicros || metrics.cost_micros || 0) / 1000000, // Convert micros to currency
+                    conversions: parseFloat(metrics.conversions || '0'),
+                    conversionValue: parseFloat(metrics.conversionsValue || metrics.conversions_value || '0'),
+                    ctr: parseFloat(metrics.ctr || '0') * 100, // Convert to percentage
+                    cpc: (metrics.averageCpc || metrics.average_cpc || 0) / 1000000, // Convert micros to currency
+                    cpm: 0, // CPM not available in this report type
+                };
+            } catch (error: any) {
+                this.logger.error(`[transformMetrics] Error transforming metric row: ${error.message}`, JSON.stringify(row));
+                return null;
+            }
+        }).filter(m => m !== null); // Filter out failed transformations
     }
 }

@@ -241,6 +241,17 @@ export const integrationService = {
         return response.data;
     },
 
+    /**
+     * Trigger manual sync for a TikTok Ads account
+     */
+    async syncTikTokAccount(accountId: string, lookbackDays = 90): Promise<{ success: boolean; message: string }> {
+        const query = lookbackDays ? `?lookbackDays=${encodeURIComponent(String(lookbackDays))}` : '';
+        const response = await apiClient.post<{ success: boolean; message: string }>(
+            `/sync/tiktok/accounts/${encodeURIComponent(accountId)}${query}`
+        );
+        return response.data;
+    },
+
     // ============================================
     // Sync Operations
     // ============================================

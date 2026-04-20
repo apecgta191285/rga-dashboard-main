@@ -4,6 +4,7 @@ import { IntegrationFactory } from '../integrations/common/integration.factory';
 import { AdPlatform, Prisma } from '@prisma/client';
 import { MarketingPlatformAdapter } from '../integrations/common/marketing-platform.adapter';
 import { EncryptionService } from '../../common/services/encryption.service';
+import { number } from 'joi';
 
 function toNumber(value: any, defaultValue = 0): number {
     if (value === null || value === undefined) return defaultValue;
@@ -21,6 +22,22 @@ function toNumber(value: any, defaultValue = 0): number {
 
 function toUTCDateOnly(date: Date): Date {
     return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+}
+
+function splitDateRangeIntoChunks(startDate: Date, endDate: Date, maxDays: number) {
+    const ranges: Array<{ startDate: Date; endDate: Date }> = [];
+    const DAY_MS = 24 * 60 * 60 * 1000;
+    let currentStart = toUTCDateOnly(startDate);
+    const finalEnd = toUTCDateOnly(endDate);
+
+    while (currentStart <= finalEnd) {
+        const candidateEnd = new Date(currentStart.getTime() + (maxDays - 1) * DAY_MS);
+        const currentEnd = candidateEnd > finalEnd ? finalEnd : candidateEnd;
+        ranges.push({ startDate: new Date(currentStart), endDate: new Date(currentEnd) });
+        currentStart = new Date(currentEnd.getTime() + DAY_MS);
+    }
+
+    return ranges;
 }
 
 @Injectable()
@@ -173,9 +190,15 @@ export class UnifiedSyncService {
     /**
      * Sync a specific account using the Adapter Pattern
      */
-    async syncAccount(platform: AdPlatform, accountId: string, tenantId: string, accountData?: any) {
+    async syncAccount(
+        platform: AdPlatform,
+        accountId: string,
+        tenantId: string,
+        accountData?: any,
+        lookbackDays: number = 30,
+    ) {
         this.logger.log(`[SYNC] ========== SYNC START ==========`);
-        this.logger.log(`[SYNC] platform=${platform}, accountId=${accountId}, tenantId=${tenantId}`);
+        this.logger.log(`[SYNC] platform=${platform}, accountId=${accountId}, tenantId=${tenantId}, lookbackDays=${lookbackDays}`);
 
         let syncError: Error | null = null;
 
@@ -236,14 +259,15 @@ export class UnifiedSyncService {
             this.logger.log(`[SYNC] ✅ Saved ${campaigns.length} campaigns`);
 
             // 4. Fetch & Save Metrics
+            const effectiveLookbackDays = Number.isFinite(lookbackDays) && lookbackDays > 0 ? lookbackDays : 30;
+            const dateRangeForAccount = {
+                startDate: new Date(Date.now() - effectiveLookbackDays * 24 * 60 * 60 * 1000),
+                endDate: new Date(),
+            };
+
             if (platform === AdPlatform.GOOGLE_ANALYTICS) {
                 // GA4 Logic: Fetch Account Level Metrics
-                const dateRange = {
-                    startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Last 30 days
-                    endDate: new Date(),
-                };
-
-                const metrics = await adapter.fetchMetrics(credentials, credentials.accountId, dateRange);
+                const metrics = await adapter.fetchMetrics(credentials, credentials.accountId, dateRangeForAccount);
                 await this.saveWebAnalytics(tenantId, credentials.accountId, metrics);
 
             } else {
@@ -267,16 +291,40 @@ export class UnifiedSyncService {
                 });
 
                 this.logger.log(`[SYNC] Fetching metrics for ${dbCampaigns.length} campaigns...`);
+
+                const dateRanges =
+                    platform === AdPlatform.TIKTOK
+                        ? splitDateRangeIntoChunks(dateRangeForAccount.startDate, dateRangeForAccount.endDate, 30)
+                        : [dateRangeForAccount];
+
                 for (const campaign of dbCampaigns) {
-                    if (!campaign.externalId) continue;
+                    if (!campaign.externalId) {
+                        this.logger.warn(`[SYNC] Skipping campaign without externalId: ${campaign.name}`);
+                        continue;
+                    }
 
-                    const dateRange = {
-                        startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Last 30 days
-                        endDate: new Date(),
-                    };
+                    const campaignMetrics: any[] = [];
+                    for (const range of dateRanges) {
+                        const rangeStr = `${range.startDate.toISOString().split('T')[0]} to ${range.endDate.toISOString().split('T')[0]}`;
+                        this.logger.log(
+                            `[SYNC] Fetching ${platform} metrics for campaign ${campaign.externalId} (${campaign.name}) from ${rangeStr}`,
+                        );
 
-                    const metrics = await adapter.fetchMetrics(credentials, campaign.externalId, dateRange);
-                    await this.saveCampaignMetrics(tenantId, platform, campaign.id, metrics);
+                        try {
+                            const metrics = await adapter.fetchMetrics(credentials, campaign.externalId, range);
+                            this.logger.log(`[SYNC] ✅ Fetched ${metrics.length} metric records for campaign ${campaign.externalId}`);
+                            campaignMetrics.push(...metrics);
+                        } catch (err: any) {
+                            this.logger.error(`[SYNC] ❌ Error fetching metrics for campaign ${campaign.externalId}: ${err.message}`);
+                            // Continue with next campaign on error
+                        }
+                    }
+
+                    if (campaignMetrics.length === 0) {
+                        this.logger.warn(`[SYNC] ⚠️ No metrics collected for campaign ${campaign.externalId} (${campaign.name})`);
+                    }
+
+                    await this.saveCampaignMetrics(tenantId, platform, campaign.id, campaignMetrics);
                 }
                 this.logger.log(`[SYNC] ✅ Metrics fetched and saved`);
             }

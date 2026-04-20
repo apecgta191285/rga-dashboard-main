@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
-import { Download } from 'lucide-react';
+import { Download, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -159,9 +159,9 @@ export function ConversionFunnel({
                             const conversionRate =
                                 nextStage && stage.value > 0
                                     ? (
-                                          (nextStage.value / stage.value) *
-                                          100
-                                      ).toFixed(1)
+                                        (nextStage.value / stage.value) *
+                                        100
+                                    ).toFixed(1)
                                     : null;
 
                             return (

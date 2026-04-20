@@ -60,6 +60,8 @@ export function useOAuthFlow({ onSuccess }: UseOAuthFlowProps = {}) {
         if (!tempToken) return;
         try {
             setIsConnecting(true);
+            toast.success('Starting Google Ads data sync...');
+
             const response = await api.post('/auth/google/ads/complete', {
                 tempToken,
                 customerId,

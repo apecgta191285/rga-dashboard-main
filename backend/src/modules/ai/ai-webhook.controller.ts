@@ -123,8 +123,10 @@ export class AiWebhookController {
     private async proxyToN8n(webhookEnv: string, body: any) {
         const webhookUrl = process.env[webhookEnv];
 
+        console.log(`[AiWebhookController] Using env: ${webhookEnv} = ${webhookUrl}`);
+
         if (!webhookUrl) {
-            throw new HttpException('N8N_WEBHOOK_URL_GENERAL is not configured', HttpStatus.SERVICE_UNAVAILABLE);
+            throw new HttpException(`${webhookEnv} is not configured`, HttpStatus.SERVICE_UNAVAILABLE);
         }
 
         try {
@@ -132,6 +134,7 @@ export class AiWebhookController {
                 console.warn(`${webhookEnv} payload missing userId/tenantId`, { userId: body?.userId, tenantId: body?.tenantId });
             }
 
+            console.log(`[AiWebhookController] Calling n8n: POST ${webhookUrl}`);
             const response = await this.http
                 .post(webhookUrl, body)
                 .toPromise();
@@ -139,8 +142,19 @@ export class AiWebhookController {
             const n8nData = response.data;
             console.log(`${webhookEnv} Response:`, JSON.stringify(n8nData, null, 2));
 
+            if (typeof n8nData === 'string' && /<html|<!doctype/i.test(n8nData)) {
+                throw new HttpException('Invalid HTML response from webhook. Check your n8n webhook URL.', HttpStatus.BAD_GATEWAY);
+            }
+
             const normalized = this.formatN8nResponse(n8nData);
-            const reply = normalized.message || 'No response';
+            const reply = normalized.message;
+            const hasReply = reply != null && (typeof reply !== 'string' || reply.trim().length > 0);
+            const isHtmlReply = typeof reply === 'string' && /<\/?(?:html|head|body|div|span|script|title|meta|!doctype)/i.test(reply.trim());
+
+            if (!hasReply || isHtmlReply) {
+                throw new HttpException('No valid AI response from webhook (received HTML or empty content)', HttpStatus.BAD_GATEWAY);
+            }
+
             const data = normalized.parsed ?? normalized.raw ?? {};
 
             return {
@@ -163,21 +177,25 @@ export class AiWebhookController {
 
     @Post('general')
     async proxyGeneral(@Body() body: any) {
+        console.log('[AiWebhookController] Route: general');
         return this.proxyToN8n('N8N_WEBHOOK_URL_GENERAL', body);
     }
 
     @Post('ads')
     async proxyAds(@Body() body: any) {
+        console.log('[AiWebhookController] Route: ads');
         return this.proxyToN8n('N8N_WEBHOOK_URL_ADS', body);
     }
 
     @Post('seo')
     async proxySeo(@Body() body: any) {
+        console.log('[AiWebhookController] Route: seo');
         return this.proxyToN8n('N8N_WEBHOOK_URL_SEO', body);
     }
 
     @Post('summary')
     async proxySummary(@Body() body: any) {
+        console.log('[AiWebhookController] Route: summary');
         return this.proxyToN8n('N8N_WEBHOOK_URL_SUMMARY', body);
     }
 }

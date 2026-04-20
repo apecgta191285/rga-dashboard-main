@@ -159,7 +159,15 @@ export class TikTokAdsOAuthService implements OAuthProvider, SandboxSupport {
                 this.logger.log(`[TikTok OAuth] Created Sandbox account: ${accountId}`);
             }
 
-            return { success: true, accountId, accountName };
+            const syncResult = await this.triggerInitialSync(accountId, tenantId);
+
+            return {
+                success: true,
+                accountId,
+                accountName,
+                initialSyncSucceeded: syncResult.success,
+                initialSyncError: syncResult.error,
+            };
         } catch (error) {
             this.logger.error(`[TikTok OAuth] Sandbox connection error: ${error.message}`);
             throw new BadRequestException(`Failed to connect Sandbox account: ${error.message}`);
@@ -420,13 +428,15 @@ export class TikTokAdsOAuthService implements OAuthProvider, SandboxSupport {
             await this.cacheManager.del(`tiktok_temp_tokens:${tempToken}`);
             await this.cacheManager.del(`tiktok_temp_accounts:${tempToken}`);
 
-            // Trigger initial sync in background so newly connected TikTok data starts populating
-            this.triggerInitialSync(dbAccountId, tenantId);
+            // Trigger initial sync so newly connected TikTok data starts populating immediately
+            const syncResult = await this.triggerInitialSync(dbAccountId, tenantId);
 
             return {
                 success: true,
                 accountId: dbAccountId,
                 accountName,
+                initialSyncSucceeded: syncResult.success,
+                initialSyncError: syncResult.error,
             };
         } catch (error) {
             this.logger.error(`[TikTok OAuth] Complete connection error: ${error.message}`);
@@ -434,13 +444,16 @@ export class TikTokAdsOAuthService implements OAuthProvider, SandboxSupport {
         }
     }
 
-    private async triggerInitialSync(accountId: string, tenantId: string) {
+    private async triggerInitialSync(accountId: string, tenantId: string): Promise<{ success: boolean; error?: string }> {
         try {
             this.logger.log(`[TikTok OAuth] Triggering initial TikTok initial sync for account: ${accountId}`);
-            await this.unifiedSyncService.syncAccount(AdPlatform.TIKTOK, accountId, tenantId);
+            await this.unifiedSyncService.syncAccount(AdPlatform.TIKTOK, accountId, tenantId, undefined, 90);
             this.logger.log(`[TikTok OAuth] Initial sync completed for account: ${accountId}`);
+            return { success: true };
         } catch (syncError: any) {
-            this.logger.error(`[TikTok OAuth] Initial sync failed for account ${accountId}: ${syncError?.message || syncError}`);
+            const errorMessage = syncError?.message || String(syncError);
+            this.logger.error(`[TikTok OAuth] Initial sync failed for account ${accountId}: ${errorMessage}`);
+            return { success: false, error: errorMessage };
         }
     }
 

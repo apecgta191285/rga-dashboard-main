@@ -23,9 +23,9 @@ interface ChatResponse {
 // Clean text by removing escape sequences and JSON structure
 function cleanText(text: string | any): string {
   if (!text) return '';
-  
+
   let result = typeof text === 'string' ? text : JSON.stringify(text);
-  
+
   // Handle JSON.stringify double-encoded strings (e.g., "{\"key\":...}")
   try {
     // If it looks like a JSON string, try to parse it
@@ -35,19 +35,19 @@ function cleanText(text: string | any): string {
   } catch (e) {
     // Not a JSON string, continue
   }
-  
+
   // Remove JSON structure - extract just the text content
   // Match patterns like {"parts":[{"text":"..."}]} or similar
-  const jsonMatch = result.match(/"text"\s*:\s*"([^"]+(?:\\.[^"]*)*)"/) || 
-                    result.match(/"text"\s*:\s*"([^"]*)"/);
+  const jsonMatch = result.match(/"text"\s*:\s*"([^"]+(?:\\.[^"]*)*)"/) ||
+    result.match(/"text"\s*:\s*"([^"]*)"/);
   if (jsonMatch && jsonMatch[1]) {
     result = JSON.parse('"' + jsonMatch[1] + '"'); // Parse the captured string properly
   }
-  
+
   // Now clean escape sequences multiple times to handle nested encoding
   for (let i = 0; i < 3; i++) {
     const before = result;
-    
+
     result = result
       // Handle escaped quotes and backslashes (do this first)
       .replace(/\\\\"/g, '\x00ESCAPED_QUOTE\x00') // Temporarily replace \\"
@@ -68,11 +68,11 @@ function cleanText(text: string | any): string {
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
       .replace(/&amp;/g, '&');
-    
+
     // If nothing changed, stop looping
     if (before === result) break;
   }
-  
+
   // Remove any remaining JSON structure characters
   result = result
     // Remove leading/trailing JSON characters
@@ -82,7 +82,7 @@ function cleanText(text: string | any): string {
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
     // Trim whitespace from start and end
     .trim();
-  
+
   return result;
 }
 
@@ -93,7 +93,7 @@ export class ChatbotController {
   @Post()
   async forwardToWebhook(@Body() body: ChatRequest): Promise<ChatResponse> {
     // Build N8N webhook URL from environment variables
-    const n8nBaseUrl = process.env.N8N_BASE_URL || 'https://kitsana.app.n8n.cloud';
+    const n8nBaseUrl = process.env.N8N_BASE_URL || 'https://suttipatrga1.app.n8n.cloud';
     // This endpoint is chat-specific; prefer chat env var, keep legacy var as fallback.
     const n8nWebhookPath =
       process.env.N8N_CHAT_WEBHOOK_PATH ||
@@ -112,7 +112,7 @@ export class ChatbotController {
     console.log('[Chatbot] Request payload:', JSON.stringify(requestPayload, null, 2));
 
     try {
-      const timeoutMs = parseInt(process.env.N8N_REQUEST_TIMEOUT_MS || '10000', 10);
+      const timeoutMs = parseInt(process.env.N8N_REQUEST_TIMEOUT_MS || '120000', 10);
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -186,7 +186,7 @@ export class ChatbotController {
         if (depth > 5) return '';
         if (typeof obj === 'string') return obj;
         if (!obj || typeof obj !== 'object') return '';
-        
+
         // Check common AI response fields (in priority order)
         const commonFields = ['text', 'reply', 'message', 'content', 'answer', 'output', 'response', 'result'];
         for (const field of commonFields) {
@@ -194,7 +194,7 @@ export class ChatbotController {
             return obj[field];
           }
         }
-        
+
         // Check nested 'parts' array (for Gemini-like responses)
         if (Array.isArray(obj)) {
           for (const item of obj) {
@@ -202,7 +202,7 @@ export class ChatbotController {
             if (found && found.length > 0) return found;
           }
         }
-        
+
         // Check nested objects for common response structures
         const structureFields = ['candidates', 'content', 'data', 'result', 'output'];
         for (const field of structureFields) {
@@ -211,7 +211,7 @@ export class ChatbotController {
             if (found && found.length > 0) return found;
           }
         }
-        
+
         // Try all object values as last resort
         for (const key in obj) {
           if (obj.hasOwnProperty(key) && typeof obj[key] !== 'object') {
@@ -220,23 +220,23 @@ export class ChatbotController {
             }
           }
         }
-        
+
         return '';
       }
 
       // Extract reply - use helper function FIRST
       let rawReply = findTextInObject(n8nData);
-      
+
       // If helper didn't find anything, try direct paths
       if (!rawReply) {
         rawReply =
           n8nData?.candidates?.[0]?.content?.parts?.[0]?.text ||
           n8nData?.answer ||
-          n8nData?.reply || 
-          n8nData?.output || 
-          n8nData?.response || 
-          n8nData?.message || 
-          n8nData?.text || 
+          n8nData?.reply ||
+          n8nData?.output ||
+          n8nData?.response ||
+          n8nData?.message ||
+          n8nData?.text ||
           n8nData?.raw ||
           n8nData?.result ||
           n8nData?.data?.reply ||
