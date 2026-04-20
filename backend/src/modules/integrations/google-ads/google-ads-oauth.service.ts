@@ -291,7 +291,7 @@ export class GoogleAdsOAuthService {
       });
 
       // Run sync using Unified Engine
-      await this.unifiedSyncService.syncAccount(AdPlatform.GOOGLE_ADS, accountId, tenantId, undefined, 90); // Sync last 90 days for initial sync
+      await this.unifiedSyncService.syncAccount(AdPlatform.GOOGLE_ADS, accountId, tenantId);
 
       // Update SyncLog
       await this.prisma.syncLog.update({

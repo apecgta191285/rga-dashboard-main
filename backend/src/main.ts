@@ -129,23 +129,13 @@ async function bootstrap() {
       'auth/google/ads/callback',
       'debug-ads*',
       'auth/google/analytics/callback',
-
       'auth/facebook/ads/callback',
-
       'auth/line/callback',
-
       'auth/tiktok/callback',
-
-      'api/ai/webhook/general',
-
-      'api/ai/webhook/ads',
-
-      'api/ai/webhook/seo',
-
-      'api/ai/webhook/summary',
-
-      'api/ai/webhook/*',
-
+      'ai/webhook/general',
+      'ai/webhook/ads',
+      'ai/webhook/seo',
+      'ai/webhook/summary',
     ],
   });
 

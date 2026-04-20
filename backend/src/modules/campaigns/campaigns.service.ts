@@ -278,15 +278,19 @@ export class CampaignsService {
    * when startDate/endDate query params are provided.
    * This ensures spend, impressions, etc. reflect the selected time window.
    */
-  private normalizeCampaign(c: Campaign & { metrics: Metric[] }) {
+  private normalizeCampaign(c: any) {
     const m = c.metrics || [];
 
-    // Aggregate metrics - these are already filtered by date range if provided
-    const spend = m.reduce((s: number, x: Metric) => s + this.safe(x.spend), 0);
-    const revenue = m.reduce((s: number, x: Metric) => s + this.safe(x.revenue), 0);
-    const clicks = m.reduce((s: number, x: Metric) => s + this.safe(x.clicks), 0);
-    const impressions = m.reduce((s: number, x: Metric) => s + this.safe(x.impressions), 0);
-    const conversions = m.reduce((s: number, x: Metric) => s + this.safe(x.conversions), 0);
+    // Aggregated metrics (Period-based)
+    const periodSpend = m.reduce((s: number, x: Metric) => s + this.safe(x.spend), 0);
+    const periodRevenue = m.reduce((s: number, x: Metric) => s + this.safe(x.revenue), 0);
+    
+    // Total metrics (Lifetime-based)
+    const spend = this.safe(c.lifetimeSpend ?? periodSpend);
+    const revenue = this.safe(c.lifetimeRevenue ?? periodRevenue);
+    const clicks = this.safe(c.lifetimeClicks ?? m.reduce((s: number, x: Metric) => s + this.safe(x.clicks), 0));
+    const impressions = this.safe(c.lifetimeImpressions ?? m.reduce((s: number, x: Metric) => s + this.safe(x.impressions), 0));
+    const conversions = this.safe(c.lifetimeConversions ?? m.reduce((s: number, x: Metric) => s + this.safe(x.conversions), 0));
 
     return {
       id: c.id,
@@ -294,24 +298,22 @@ export class CampaignsService {
       platform: c.platform,
       status: c.status,
       budget: this.safe(c.budget),
-      startDate: c.startDate,
-      endDate: c.endDate,
       externalId: c.externalId,
-      // Aggregated metrics (time-window aware)
-      spend,
-      revenue,
-      clicks,
+      spent: Number(spend),
       impressions,
+      clicks,
+      revenue,
       conversions,
-      // Calculated ratios
-      // Calculated ratios
-      roas: spend ? Number((revenue / spend).toFixed(2)) : 0,
-      roi: spend ? Number(((revenue - spend) / spend * 100).toFixed(2)) : -100,
-      ctr: impressions ? Number(((clicks / impressions) * 100).toFixed(2)) : 0,
-      cpc: clicks ? Number((spend / clicks).toFixed(2)) : 0,
-      cpm: impressions ? Number(((spend / impressions) * 1000).toFixed(2)) : 0,
+      // Calculated ratios based on Total/Lifetime values
+      roas: spend > 0 ? Number((revenue / spend).toFixed(2)) : 0,
+      roi: spend > 0 ? Number(((revenue - spend) / spend * 100).toFixed(2)) : 0,
+      ctr: impressions > 0 ? Number(((clicks / impressions) * 100).toFixed(2)) : 0,
+      cpc: clicks > 0 ? Number((spend / clicks).toFixed(2)) : 0,
+      cpm: impressions > 0 ? Number(((spend / impressions) * 1000).toFixed(2)) : 0,
       createdAt: c.createdAt,
       updatedAt: c.updatedAt,
+      // Period-specific data for reference
+      periodSpent: Number(periodSpend),
     };
   }
 }

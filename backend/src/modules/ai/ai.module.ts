@@ -3,18 +3,12 @@ import { HttpModule } from '@nestjs/axios';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AiController } from './ai.controller';
 import { AiService } from './ai.service';
-import { AiWebhookController } from './ai-webhook.controller';
+import { AiAnalyticsService } from './ai-analytics.service';
 
 @Module({
-  imports: [
-    PrismaModule,
-    HttpModule.register({
-      timeout: parseInt(process.env.N8N_REQUEST_TIMEOUT_MS || '120000', 10),
-      maxRedirects: 5,
-    }),
-  ],
-  controllers: [AiController, AiWebhookController],
-  providers: [AiService],
-  exports: [AiService],
+  imports: [PrismaModule, HttpModule],
+  controllers: [AiController],
+  providers: [AiService, AiAnalyticsService],
+  exports: [AiService, AiAnalyticsService],
 })
 export class AiModule { }

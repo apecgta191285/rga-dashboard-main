@@ -105,8 +105,8 @@ export function CampaignSummary({ summary, isLoading = false }: CampaignSummaryP
             {/* 2. Total Spend */}
             <SummaryCard
                 title="Total Spend"
-                value={currency(summary.spend)}
-                mobileValue={currencyShort(summary.spend)}
+                value={currency(summary.spent)}
+                mobileValue={currencyShort(summary.spent)}
                 icon={CreditCard}
                 colorClass="text-blue-600"
                 bgClass="bg-blue-100"
