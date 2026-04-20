@@ -173,7 +173,7 @@ export class UnifiedSyncService {
     /**
      * Sync a specific account using the Adapter Pattern
      */
-    async syncAccount(platform: AdPlatform, accountId: string, tenantId: string, accountData?: any) {
+    async syncAccount(platform: AdPlatform, accountId: string, tenantId: string, accountData?: any, lookbackDays?: number) {
         this.logger.log(`[SYNC] ========== SYNC START ==========`);
         this.logger.log(`[SYNC] platform=${platform}, accountId=${accountId}, tenantId=${tenantId}`);
 
@@ -238,8 +238,9 @@ export class UnifiedSyncService {
             // 4. Fetch & Save Metrics
             if (platform === AdPlatform.GOOGLE_ANALYTICS) {
                 // GA4 Logic: Fetch Account Level Metrics
+                const days = lookbackDays || 30;
                 const dateRange = {
-                    startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Last 30 days
+                    startDate: new Date(Date.now() - days * 24 * 60 * 60 * 1000), 
                     endDate: new Date(),
                 };
 
@@ -270,8 +271,9 @@ export class UnifiedSyncService {
                 for (const campaign of dbCampaigns) {
                     if (!campaign.externalId) continue;
 
+                    const days = lookbackDays || 365;
                     const dateRange = {
-                        startDate: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000), // Last 365 days
+                        startDate: new Date(Date.now() - days * 24 * 60 * 60 * 1000), 
                         endDate: new Date(),
                     };
 
