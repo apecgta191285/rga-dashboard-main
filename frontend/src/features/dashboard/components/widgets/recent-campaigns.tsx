@@ -88,9 +88,9 @@ function RecentCampaignsInfoTooltip() {
                 <TooltipContent side="top" className="max-w-xs text-sm leading-relaxed">
                     <p className="font-semibold mb-1">Recent Campaigns</p>
                     <p>
-                        This section displays the latest campaigns within the selected period.
+                        This section displays the 5 most recent campaigns.
                         It helps monitor campaign status, advertising platform, spending amount,
-                        and budget utilization so you can quickly review active performance.
+                        and budget utilization so you can quickly review current campaign performance.
                     </p>
                 </TooltipContent>
             </UiTooltip>
@@ -120,9 +120,9 @@ export function RecentCampaigns({
 
                 <CardDescription>
                     {hasData
-                        ? `${campaigns.length} campaign${
+                        ? `${campaigns.length} most recent campaign${
                               campaigns.length > 1 ? 's' : ''
-                          } in selected period`
+                          }`
                         : 'No campaigns found'}
                 </CardDescription>
             </CardHeader>
