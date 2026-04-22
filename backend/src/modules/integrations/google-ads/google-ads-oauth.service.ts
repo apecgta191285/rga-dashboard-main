@@ -486,8 +486,19 @@ export class GoogleAdsOAuthService {
   }
 
   async disconnect(tenantId: string) {
-    // Delete all accounts for this tenant
-    // In a real scenario, you might want to soft delete or keep logs, but for now we hard delete
+    // First, soft delete all campaigns for this tenant and platform GOOGLE_ADS
+    await this.prisma.campaign.updateMany({
+      where: {
+        tenantId,
+        platform: 'GOOGLE_ADS',
+        status: { not: 'DELETED' },
+      },
+      data: {
+        status: 'DELETED',
+      },
+    });
+
+    // Then, delete all accounts for this tenant
     await this.prisma.googleAdsAccount.deleteMany({
       where: { tenantId }
     });

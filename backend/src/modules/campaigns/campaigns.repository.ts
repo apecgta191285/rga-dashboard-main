@@ -81,7 +81,9 @@ export class PrismaCampaignsRepository implements CampaignsRepository {
 
     const ids = query.ids ? query.ids.split(',').filter(id => id.trim().length > 0) : undefined;
 
-    const where: Prisma.CampaignWhereInput = { tenantId };
+    const where: Prisma.CampaignWhereInput = { 
+      tenantId,
+    };
 
     if (ids && ids.length > 0) {
       where.id = { in: ids };
@@ -94,8 +96,17 @@ export class PrismaCampaignsRepository implements CampaignsRepository {
       ];
     }
 
+    // Build status filter: exclude DELETED by default, OR apply user-selected status
     if (statusFilter) {
-      where.status = statusFilter;
+      // User selected specific statuses - use those but exclude DELETED
+      const selectedStatuses = Array.isArray(statusFilter.in) ? statusFilter.in : [statusFilter.equals];
+      const filteredStatuses = selectedStatuses.filter(s => s !== 'DELETED');
+      if (filteredStatuses.length > 0) {
+        where.status = filteredStatuses.length === 1 ? { equals: filteredStatuses[0] } : { in: filteredStatuses };
+      }
+    } else {
+      // No user filter - exclude DELETED by default
+      where.status = { not: 'DELETED' };
     }
 
     if (platformFilter) {

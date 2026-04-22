@@ -58,7 +58,19 @@ export class LineAdsIntegrationController {
     async disconnect(@Req() req: any) {
         const tenantId = req.user.tenantId;
 
-        // Delete all LINE Ads accounts for this tenant
+        // First, soft delete all campaigns for this tenant and platform LINE_ADS
+        await this.prisma.campaign.updateMany({
+            where: {
+                tenantId,
+                platform: 'LINE_ADS',
+                status: { not: 'DELETED' },
+            },
+            data: {
+                status: 'DELETED',
+            },
+        });
+
+        // Then, delete all LINE Ads accounts for this tenant
         await this.prisma.lineAdsAccount.deleteMany({
             where: { tenantId },
         });
