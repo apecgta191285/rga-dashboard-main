@@ -33,32 +33,38 @@ interface MetricConfig {
     accentColor: 'indigo' | 'violet' | 'cyan' | 'amber';
 }
 
+// Helper: ensure numeric values are finite, fallback to 0
+const safeNumber = (v: any, fallback = 0) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : fallback;
+};
+
 const metricsConfig: MetricConfig[] = [
     {
         title: 'Total Spend',
         icon: CreditCard,
-        getValue: (s) => formatCurrencyTHB(s.totalCost),
+        getValue: (s) => formatCurrencyTHB(safeNumber(s.totalCost)),
         getTrend: (g) => g.costGrowth,
         accentColor: 'indigo',
     },
     {
         title: 'Impressions',
         icon: Eye,
-        getValue: (s) => formatNumber(s.totalImpressions),
+        getValue: (s) => formatNumber(safeNumber(s.totalImpressions)),
         getTrend: (g) => g.impressionsGrowth,
         accentColor: 'violet',
     },
     {
         title: 'Clicks',
         icon: MousePointerClick,
-        getValue: (s) => formatNumber(s.totalClicks),
+        getValue: (s) => formatNumber(safeNumber(s.totalClicks)),
         getTrend: (g) => g.clicksGrowth,
         accentColor: 'cyan',
     },
     {
         title: 'Conversions',
         icon: Target,
-        getValue: (s) => formatNumber(s.totalConversions),
+        getValue: (s) => formatNumber(safeNumber(s.totalConversions)),
         getTrend: (g) => g.conversionsGrowth,
         accentColor: 'amber',
     },

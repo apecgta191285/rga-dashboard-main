@@ -15,6 +15,7 @@ export function useAiSummary(enabled: boolean = true): UseQueryResult<AiDetailSu
         queryKey: ['ai', 'summary', 'full', tenantId],
         queryFn: () => aiSummaryService.getFullSummary(
             tenantId ?? '',
+            user?.id ?? '',
             'Generate a daily dashboard summary'
         ),
         enabled: !!tenantId && enabled,
@@ -39,6 +40,7 @@ export function useAiSummaryCards(): UseQueryResult<AiSummaryCard[], Error> {
         queryKey: ['ai', 'summary', 'cards', tenantId],
         queryFn: () => aiSummaryService.getSummaryCards(
             tenantId ?? '',
+            user?.id ?? '',
             'Get summary cards for the dashboard'
         ),
         enabled: !!tenantId,

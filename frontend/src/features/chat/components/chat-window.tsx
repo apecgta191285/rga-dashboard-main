@@ -148,10 +148,11 @@ export function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
 
     const { user } = useAuthStore();
     /** Floating widget only: direct n8n webhook (CORS must allow your origin). */
+    const backendBase = (typeof import.meta !== 'undefined' ? import.meta.env.VITE_API_URL : '') || '/api/v1';
     const widgetWebhookUrl =
         (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHAT_WIDGET_WEBHOOK_URL : '') ||
         (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHATBOT_WEBHOOK_URL : '') ||
-        '/api/ai/webhook/general';
+        `${backendBase}/ai/webhook/general`;
 
     const handleSendMessage = async () => {
         if (!inputValue.trim()) return;

@@ -13,7 +13,7 @@ export interface AiSummaryCard {
 interface AiSummaryResponse extends AiDetailSummaryData { }
 
 // Path relative to apiClient baseURL
-const BACKEND_WEBHOOK_PATH = '/ai/webhook/summary';
+const BACKEND_WEBHOOK_PATH = (import.meta.env.VITE_API_URL || '/api/v1') + '/ai/webhook/summary';
 
 const normalizeSummaryResponse = (responseData: any) => {
     let payload = responseData;
@@ -49,8 +49,9 @@ const normalizeSummaryResponse = (responseData: any) => {
 };
 
 export const aiSummaryService = {
-    getFullSummary: async (tenantId: string, message: string): Promise<AiSummaryResponse> => {
+    getFullSummary: async (tenantId: string, userId: string, message: string): Promise<AiSummaryResponse> => {
         const response = await apiClient.post(BACKEND_WEBHOOK_PATH, {
+            userId,
             tenantId,
             message,
             timestamp: new Date().toISOString(),
@@ -65,8 +66,9 @@ export const aiSummaryService = {
         };
     },
 
-    getSummaryCards: async (tenantId: string, message: string): Promise<AiSummaryCard[]> => {
+    getSummaryCards: async (tenantId: string, userId: string, message: string): Promise<AiSummaryCard[]> => {
         const response = await apiClient.post(BACKEND_WEBHOOK_PATH, {
+            userId,
             tenantId,
             message,
             timestamp: new Date().toISOString(),

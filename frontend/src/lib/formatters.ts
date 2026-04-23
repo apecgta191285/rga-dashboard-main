@@ -1,34 +1,43 @@
-export const formatCurrency = (value: number, currency: string = 'USD'): string => {
+export const toNumber = (v: any, fallback = 0) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : fallback;
+};
+
+export const formatCurrency = (value: number | string, currency: string = 'USD'): string => {
+    const n = toNumber(value, 0);
     return new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency: currency,
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
-    }).format(value);
+    }).format(n);
 };
 
 /**
  * Format currency as Thai Baht (THB)
  */
-export const formatCurrencyTHB = (value: number): string => {
+export const formatCurrencyTHB = (value: number | string): string => {
+    const n = toNumber(value, 0);
     return new Intl.NumberFormat('th-TH', {
         style: 'currency',
         currency: 'THB',
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
-    }).format(value);
+    }).format(n);
 };
 
-export const formatNumber = (value: number): string => {
-    return new Intl.NumberFormat('en-US').format(value);
+export const formatNumber = (value: number | string): string => {
+    const n = toNumber(value, 0);
+    return new Intl.NumberFormat('en-US').format(n);
 };
 
-export const formatCompactNumber = (value: number): string => {
+export const formatCompactNumber = (value: number | string): string => {
+    const n = toNumber(value, 0);
     return new Intl.NumberFormat('en-US', {
         notation: "compact",
         compactDisplay: "short",
         maximumFractionDigits: 1,
-    }).format(value);
+    }).format(n);
 };
 
 /**
@@ -50,35 +59,38 @@ export const formatDate = (date: string | Date): string => {
 /**
  * Format currency as Thai Baht with 2 decimal places
  */
-export const formatCurrencyTHBDecimal = (value: number): string => {
+export const formatCurrencyTHBDecimal = (value: number | string): string => {
+    const n = toNumber(value, 0);
     return new Intl.NumberFormat('th-TH', {
         style: 'currency',
         currency: 'THB',
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
-    }).format(value);
+    }).format(n);
 };
 
 /**
  * Format currency in compact notation (e.g., $1.2M)
  */
-export const formatCompactCurrency = (value: number, currency = 'USD'): string => {
+export const formatCompactCurrency = (value: number | string, currency = 'USD'): string => {
+    const n = toNumber(value, 0);
     return new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency,
         notation: 'compact',
         maximumFractionDigits: 2,
-    }).format(value);
+    }).format(n);
 };
 
 /**
  * Format currency with full amount (no decimals)
  */
-export const formatCurrencyFull = (value: number, currency = 'USD'): string => {
+export const formatCurrencyFull = (value: number | string, currency = 'USD'): string => {
+    const n = toNumber(value, 0);
     return new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency,
         maximumFractionDigits: 0,
-    }).format(value);
+    }).format(n);
 };
 

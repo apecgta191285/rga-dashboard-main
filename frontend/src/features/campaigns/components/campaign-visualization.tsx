@@ -27,14 +27,17 @@ interface CampaignVisualizationProps {
 }
 
 // Format currency for chart
-const formatMoney = (val: number) => {
+const formatMoney = (val?: number) => {
+    if (val == null || Number.isNaN(val)) return '-';
     if (val >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
     if (val >= 1000) return `${(val / 1000).toFixed(0)}k`;
     return val.toString();
 };
 
-const formatCurrencyFull = (val: number) =>
-    new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 0 }).format(val);
+const formatCurrencyFull = (val?: number) => {
+    if (val == null || Number.isNaN(val)) return '-';
+    return new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 0 }).format(val);
+};
 
 export function CampaignVisualization({ campaigns, summary, onDownload }: CampaignVisualizationProps) {
     if (!summary || campaigns.length === 0) return null;

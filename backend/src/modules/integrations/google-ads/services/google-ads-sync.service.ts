@@ -115,7 +115,7 @@ export class GoogleAdsSyncService {
     async syncCampaignMetrics(
         accountId: string,
         campaignId: string,
-        days: number = 90,
+        days: number = 90,  // ← 3 เดือน
     ) {
         this.logger.log(
             `Syncing metrics for campaign ${campaignId} (last ${days} days)`,

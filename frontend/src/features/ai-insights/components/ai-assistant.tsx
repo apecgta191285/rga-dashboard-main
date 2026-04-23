@@ -130,7 +130,7 @@ export function AiAssistant() {
 
         try {
             const route = envWebhookSummary ? 'summary' : 'general';
-            const response = await fetch(`/api/ai/webhook/${route}`, {
+            const response = await fetch(`${backendBase}/ai/webhook/${route}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -194,6 +194,7 @@ export function AiAssistant() {
             : activeRole === 'seo'
                 ? envWebhookSeo
                 : envWebhookGeneral || envWebhookSummary;
+    const backendBase = (typeof import.meta !== 'undefined' ? import.meta.env.VITE_API_URL : '') || '/api/v1';
     const activeSessionId = activeSessionIdByRole[activeRole];
 
     const tryParseSummaryData = (value: any): AiDetailSummaryData | null => {
@@ -409,7 +410,7 @@ export function AiAssistant() {
 
                 console.log(`[AI Assistant] Sending to webhook route: ${route} (activeRole=${activeRole})`);
 
-                const response = await fetch(`/api/ai/webhook/${route}`, {
+                const response = await fetch(`${backendBase}/ai/webhook/${route}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

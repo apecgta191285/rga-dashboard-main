@@ -238,9 +238,9 @@ export class UnifiedSyncService {
             // 4. Fetch & Save Metrics
             if (platform === AdPlatform.GOOGLE_ANALYTICS) {
                 // GA4 Logic: Fetch Account Level Metrics
-                const days = lookbackDays || 30;
+                const days = lookbackDays || 90;
                 const dateRange = {
-                    startDate: new Date(Date.now() - days * 24 * 60 * 60 * 1000), 
+                    startDate: new Date(Date.now() - days * 24 * 60 * 60 * 1000),
                     endDate: new Date(),
                 };
 
@@ -273,7 +273,7 @@ export class UnifiedSyncService {
 
                     const days = lookbackDays || 365;
                     const dateRange = {
-                        startDate: new Date(Date.now() - days * 24 * 60 * 60 * 1000), 
+                        startDate: new Date(Date.now() - days * 24 * 60 * 60 * 1000),
                         endDate: new Date(),
                     };
 

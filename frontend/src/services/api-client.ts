@@ -36,7 +36,13 @@ import { dispatchSessionExpired } from '@/lib/auth-events';
 
 
 
-const API_BASE_URL = '/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
+
+// Debug helper: print the resolved API base URL at runtime
+try {
+    // eslint-disable-next-line no-console
+    console.info('[apiClient] API_BASE_URL =', API_BASE_URL);
+} catch (e) { }
 
 
 
