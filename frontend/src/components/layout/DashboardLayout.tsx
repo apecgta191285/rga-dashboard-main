@@ -22,7 +22,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Main Content Area */}
       <SidebarInset>
         {/* Mobile Header with Trigger */}
-        <header className="flex h-14 items-center gap-4 border-b bg-background px-4 md:hidden">
+        <header className="sticky top-0 z-50 flex h-14 items-center gap-4 border-b border-slate-200/70 bg-background/95 backdrop-blur-sm px-4 shadow-sm md:hidden">
           <SidebarTrigger />
         </header>
 

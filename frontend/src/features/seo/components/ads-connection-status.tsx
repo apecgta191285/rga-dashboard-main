@@ -1,18 +1,11 @@
-import { useQuery } from '@tanstack/react-query';
 import { AlertCircle, Loader2, Link, Unlink } from "lucide-react";
-import { integrationService } from '@/features/data-sources/api/integration-service';
+import { useIntegrationStatus } from '@/hooks/useIntegrationStatus';
 
 export function AdsConnectionStatus() {
-    const { data, isLoading, error } = useQuery({
-        queryKey: ['ga-connection-status'],
-        queryFn: async () => {
-            return integrationService.getStatus('google-analytics');
-        },
-        retry: 1,
-    });
+    const { status, ga4Account, isLoading, error } = useIntegrationStatus();
 
     const baseClasses = "inline-flex items-center gap-2.5 px-4 py-2.5 rounded-lg border transition-all duration-200 backdrop-blur-sm";
-    const isConnected = data?.isConnected === true;
+    const isConnected = status.googleAnalytics === true;
 
     if (isLoading) {
         return (
@@ -40,9 +33,16 @@ export function AdsConnectionStatus() {
         return (
             <div className={`${baseClasses} bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200 shadow-sm hover:shadow-md`}>
                 <Link className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                <span className="text-sm font-semibold text-emerald-900 tracking-wide">
-                    เชื่อมต่อ Google Analytics แล้ว
-                </span>
+                <div className="flex flex-col gap-0.5">
+                    <span className="text-sm font-semibold text-emerald-900 tracking-wide">
+                        เชื่อมต่อ Google Analytics แล้ว
+                    </span>
+                    {ga4Account?.propertyName && (
+                        <span className="text-xs text-emerald-800 opacity-90">
+                            {ga4Account.propertyName}
+                        </span>
+                    )}
+                </div>
             </div>
         );
     }

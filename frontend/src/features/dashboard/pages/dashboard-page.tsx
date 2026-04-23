@@ -211,18 +211,18 @@ export function DashboardPage() {
 
     return (
         <DashboardLayout>
-            <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+            <div className="flex flex-1 flex-col gap-4 p-4 sm:p-5 md:gap-6 md:p-8">
                 {/* Page Header */}
-                <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                     <div className="space-y-1">
-                        <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-                        <p className="text-muted-foreground">
+                        <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Dashboard</h2>
+                        <p className="text-sm text-muted-foreground sm:text-base">
                             Monitor your advertising performance across all platforms.
                         </p>
                     </div>
                 </div>
 
-                <section id="integration-checklist">
+                <section id="integration-checklist" className="w-full">
                     <h3 className="sr-only">Integration Checklist</h3>
                     <IntegrationChecklist />
                 </section>
@@ -231,7 +231,7 @@ export function DashboardPage() {
                 {error && <ErrorState error={error} onRetry={refetch} />}
 
                 {/* Metrics Grid */}
-                <section>
+                <section className="w-full">
                     <h3 className="sr-only">Key Performance Metrics</h3>
                     <DashboardMetrics
                         summary={data?.summary}
@@ -241,25 +241,26 @@ export function DashboardPage() {
                 </section>
 
                 {/* AI Summaries */}
-                <section>
+                <section className="w-full">
                     <h3 className="sr-only">AI Summaries</h3>
                     {isLoading ? (
-                        <Skeleton className="h-[160px] w-full rounded-3xl" />
+                        <Skeleton className="h-[180px] w-full rounded-3xl sm:h-[220px]" />
                     ) : (
                         <AiSummaries summary={data?.summary} growth={data?.growth} />
                     )}
                 </section>
 
                 {/* Charts & Campaigns Grid - Responsive Layout */}
-                <section id="performance-trends">
+                <section id="performance-trends" className="w-full">
                     <h3 className="sr-only">Performance Trends & Recent Campaigns</h3>
-                    <div className="grid gap-4 grid-cols-1 lg:grid-cols-7">
+                    <div className="grid gap-4 grid-cols-1 lg:grid-cols-7 xl:gap-6 items-stretch">
                         {/* Trend Chart - 4/7 on desktop */}
-                        <div className="col-span-1 lg:col-span-4">
+                        <div className="col-span-1 lg:col-span-4 xl:col-span-4 flex h-full flex-col">
                             {isLoading ? (
-                                <Skeleton className="h-[400px] w-full rounded-lg" />
+                                <Skeleton className="h-[320px] w-full rounded-3xl sm:h-[360px] lg:h-[400px]" />
                             ) : (
                                 <TrendChart
+                                    className="h-full"
                                     data={data?.trends ?? []}
                                     period={period}
                                     onPeriodChange={setPeriod}
@@ -269,10 +270,10 @@ export function DashboardPage() {
                             )}
                         </div>
 
-                        {/* Recent Campaigns - 3/7 on desktop */}
-                        <div className="col-span-1 lg:col-span-3">
+                        {/* Recent Campaigns - wider on wide desktop */}
+                        <div className="col-span-1 lg:col-span-3 xl:col-span-3 flex h-full flex-col">
                             {isLoading ? (
-                                <Skeleton className="h-[400px] w-full rounded-lg" />
+                                <Skeleton className="h-[320px] w-full rounded-3xl sm:h-[360px] lg:h-[400px]" />
                             ) : (
                                 <RecentCampaigns campaigns={data?.recentCampaigns ?? []} />
                             )}
@@ -281,11 +282,11 @@ export function DashboardPage() {
                 </section>
 
                 {/* Financial Overview & Conversion Funnel */}
-                <section id="conversion-funnel">
+                <section id="conversion-funnel" className="w-full">
                     <h3 className="sr-only">Financial Overview & Conversion Funnel</h3>
-                    <div className="grid gap-4 grid-cols-1 xl:grid-cols-2">
+                    <div className="grid gap-4 grid-cols-1 xl:grid-cols-2 xl:gap-6">
                         {isLoading ? (
-                            <Skeleton className="h-[400px] w-full rounded-3xl" />
+                            <Skeleton className="h-[320px] w-full rounded-3xl sm:h-[360px] lg:h-[400px]" />
                         ) : (
                             <FinancialOverview
                                 subtitle="ROAS"
@@ -318,7 +319,7 @@ export function DashboardPage() {
                         )}
 
                         {isLoading ? (
-                            <Skeleton className="h-[400px] w-full rounded-3xl" />
+                            <Skeleton className="h-[320px] w-full rounded-3xl sm:h-[360px] lg:h-[400px]" />
                         ) : (
                             <ConversionFunnel stages={funnelStages} platformStages={platformFunnelStages} />
                         )}

@@ -109,28 +109,29 @@ export function RecentCampaigns({
     const hasData = campaigns && campaigns.length > 0;
 
     return (
-        <Card className={`h-[400px] flex flex-col ${className ?? ''}`}>
+        <Card className={`flex min-h-[320px] flex-col ${className ?? ''}`}>
             <CardHeader>
-                <div className="flex items-center gap-2">
-                    <CardTitle className="text-base font-semibold">
-                        Recent Campaigns
-                    </CardTitle>
-                    <RecentCampaignsInfoTooltip />
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-2">
+                        <CardTitle className="text-base font-semibold sm:text-lg">
+                            Recent Campaigns
+                        </CardTitle>
+                        <RecentCampaignsInfoTooltip />
+                    </div>
+                    <CardDescription className="text-sm text-muted-foreground sm:text-base">
+                        {hasData
+                            ? `${campaigns.length} campaign${
+                                  campaigns.length > 1 ? 's' : ''
+                              } in selected period`
+                            : 'No campaigns found'}
+                    </CardDescription>
                 </div>
-
-                <CardDescription>
-                    {hasData
-                        ? `${campaigns.length} campaign${
-                              campaigns.length > 1 ? 's' : ''
-                          } in selected period`
-                        : 'No campaigns found'}
-                </CardDescription>
             </CardHeader>
 
             <CardContent className="flex-1 min-h-0">
                 {!hasData ? (
-                    <div className="flex h-full items-center justify-center text-muted-foreground">
-                        <p className="text-sm">No campaign data available</p>
+                    <div className="flex h-full items-center justify-center text-muted-foreground px-3">
+                        <p className="text-sm sm:text-base">No campaign data available</p>
                     </div>
                 ) : (
                     <ScrollArea className="h-full pr-4">
@@ -147,7 +148,7 @@ export function RecentCampaigns({
                                 return (
                                     <div
                                         key={campaign.id}
-                                        className="flex w-full h-16 items-center gap-3 rounded-lg border p-3 transition-all duration-200 hover:bg-muted/50 hover:shadow-sm"
+                                        className="grid w-full min-w-0 gap-3 rounded-lg border bg-background/80 p-3 text-sm transition-all duration-200 hover:bg-muted/50 hover:shadow-sm overflow-hidden sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:p-4"
                                     >
                                         {/* Left: Platform Icon */}
                                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted border border-border shadow-sm">
@@ -166,40 +167,33 @@ export function RecentCampaigns({
                                         </div>
 
                                         {/* Center-Left: Campaign Info */}
-                                        <div className="min-w-0 flex-1">
-                                            <p className="truncate text-sm font-medium leading-tight">
+                                        <div className="min-w-0 overflow-hidden">
+                                            <p className="truncate font-medium leading-tight sm:text-sm">
                                                 {campaign.name}
                                             </p>
-                                            <p className="text-xs text-muted-foreground leading-tight">
+                                            <p className="truncate text-xs text-muted-foreground leading-tight sm:text-sm">
                                                 {platformName}
                                             </p>
                                         </div>
 
-                                        {/* Center-Right: Status Badge */}
-                                        <Badge
-                                            variant={statusStyle.variant}
-                                            className="text-xs shrink-0"
-                                        >
-                                            {statusStyle.label}
-                                        </Badge>
+                                        <div className="flex flex-col gap-2 sm:items-end">
+                                            <Badge
+                                                variant={statusStyle.variant}
+                                                className="text-xs shrink-0 whitespace-nowrap"
+                                            >
+                                                {statusStyle.label}
+                                            </Badge>
 
-                                        {/* Right: Spending Info */}
-                                        <div className="text-right shrink-0 w-16">
-                                            <p className="text-sm font-medium leading-tight">
-                                                {formatCurrencyTHB(
-                                                    campaign.spending
-                                                )}
-                                            </p>
-
-                                            {campaign.budgetUtilization !==
-                                                undefined && (
-                                                <p className="text-xs text-muted-foreground leading-tight">
-                                                    {campaign.budgetUtilization.toFixed(
-                                                        0
-                                                    )}
-                                                    % used
+                                            <div className="min-w-[80px] max-w-[140px] text-right">
+                                                <p className="truncate font-medium leading-tight sm:text-sm">
+                                                    {formatCurrencyTHB(campaign.spending)}
                                                 </p>
-                                            )}
+                                                {campaign.budgetUtilization !== undefined && (
+                                                    <p className="truncate text-xs text-muted-foreground leading-tight sm:text-sm">
+                                                        {campaign.budgetUtilization.toFixed(0)}% used
+                                                    </p>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 );
