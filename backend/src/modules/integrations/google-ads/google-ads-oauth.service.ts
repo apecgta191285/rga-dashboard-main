@@ -172,10 +172,13 @@ export class GoogleAdsOAuthService {
   }
 
   async completeConnection(tempToken: string, customerId: string, tenantId: string) {
+    this.logger.log(`[OAuth Connect] Starting connection for tenant=${tenantId}, customerId=${customerId}, tempToken=${tempToken?.substring(0, 8)}...`);
+
     const tokens = await this.cacheManager.get<any>(`google_ads_temp_tokens:${tempToken}`);
 
     if (!tokens || !tokens.refresh_token) {
-      throw new BadRequestException('Session expired or invalid token');
+      this.logger.error(`[OAuth Connect] ❌ Failed: tempToken not found or missing refresh_token in cache`);
+      throw new BadRequestException('ไม่พบข้อมูลการยืนยันตัวตน หรือ Session หมดอายุ กรุณาเริ่มขั้นตอนเชื่อต่อใหม่อีกครั้ง');
     }
 
     const refreshToken = tokens.refresh_token;
@@ -183,12 +186,17 @@ export class GoogleAdsOAuthService {
     const tokenExpiresAt = tokens.expiry_date ? new Date(tokens.expiry_date) : null;
 
     const cachedAccounts = await this.cacheManager.get<any[]>(`google_ads_temp_accounts:${tempToken}`);
+    if (!cachedAccounts) {
+      this.logger.warn(`[OAuth Connect] ⚠️ Warning: cachedAccounts not found for tempToken`);
+    }
+
     const selectedAccount = cachedAccounts?.find(acc => acc.id === customerId);
     const accountName = selectedAccount?.name || `Account ${customerId}`;
     const parentMccId = selectedAccount?.parentMccId || null;
     const isMccAccount = selectedAccount?.type === 'MANAGER' ? true : false;
 
-    const cleanCustomerId = customerId.replace('customers/', '');
+    // Ensure customerId is clean (no "customers/" prefix or dashes)
+    const cleanCustomerId = customerId.replace('customers/', '').replace(/-/g, '');
 
     // Check if exists
     const existing = await this.prisma.googleAdsAccount.findFirst({
@@ -197,77 +205,61 @@ export class GoogleAdsOAuthService {
 
     let accountId: string;
 
-    if (existing) {
-      await this.prisma.googleAdsAccount.update({
-        where: { id: existing.id },
-        data: {
-          refreshToken: this.encryptionService.encrypt(refreshToken),
-          accountName, // Update with proper name from MCC
-          loginCustomerId: parentMccId,
-          isMccAccount,
-          status: 'ENABLED',
-          updatedAt: new Date()
-        }
-      });
-      accountId = existing.id;
-    } else {
-      const newAccount = await this.prisma.googleAdsAccount.create({
-        data: {
-          customerId: cleanCustomerId,
-          accountName, // Use name from MCC flatten
-          loginCustomerId: parentMccId,
-          isMccAccount,
-          refreshToken: this.encryptionService.encrypt(refreshToken),
-          status: 'ENABLED',
-          tenantId: tenantId,
-          accessToken: accessToken ? this.encryptionService.encrypt(accessToken) : 'placeholder',
-          tokenExpiresAt: tokenExpiresAt,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        }
-      });
-      accountId = newAccount.id;
-    }
-
-    // Clear cache
-    await this.cacheManager.del(`google_ads_temp_tokens:${tempToken}`);
-    await this.cacheManager.del(`google_ads_temp_accounts:${tempToken}`);
-
-    // 🚀 Trigger Initial Sync immediately and return sync result
-    let syncSuccess = false;
-    let syncErrorMessage: string | null = null;
-
     try {
-      this.logger.log(`[OAuth] Google Ads account connected`);
-      this.logger.log(`[OAuth] tenantId=${tenantId}, accountId=${accountId}, customerId=${cleanCustomerId}, accountName=${accountName}`);
-      this.logger.log(`[OAuth Sync] ========================================`);
-      this.logger.log(`[OAuth Sync] Starting initial sync`);
-      this.logger.log(`[OAuth Sync] accountId=${accountId}`);
-      this.logger.log(`[OAuth Sync] tenantId=${tenantId}`);
-      this.logger.log(`[OAuth Sync] customerId=${cleanCustomerId}`);
-      this.logger.log(`[OAuth Sync] Calling unifiedSyncService.syncAccount...`);
-
-      await this.unifiedSyncService.syncAccount(AdPlatform.GOOGLE_ADS, accountId, tenantId);
-
-      syncSuccess = true;
-      this.logger.log(`[OAuth Sync] ✅ Initial sync completed successfully`);
-    } catch (syncError: any) {
-      syncErrorMessage = syncError?.message || 'Unknown sync error';
-      this.logger.error(`[OAuth Sync] ❌ Initial sync failed`);
-      this.logger.error(`[OAuth Sync] Error: ${syncErrorMessage}`);
-      this.logger.error(`[OAuth Sync] Stack: ${syncError?.stack}`);
+      if (existing) {
+        this.logger.log(`[OAuth Connect] Updating existing account: ${existing.id}`);
+        await this.prisma.googleAdsAccount.update({
+          where: { id: existing.id },
+          data: {
+            refreshToken: this.encryptionService.encrypt(refreshToken),
+            accountName,
+            loginCustomerId: parentMccId,
+            isMccAccount,
+            status: 'ENABLED',
+            updatedAt: new Date()
+          }
+        });
+        accountId = existing.id;
+      } else {
+        this.logger.log(`[OAuth Connect] Creating new account for customerId: ${cleanCustomerId}`);
+        const newAccount = await this.prisma.googleAdsAccount.create({
+          data: {
+            customerId: cleanCustomerId,
+            accountName,
+            loginCustomerId: parentMccId,
+            isMccAccount,
+            refreshToken: this.encryptionService.encrypt(refreshToken),
+            status: 'ENABLED',
+            tenantId: tenantId,
+            accessToken: accessToken ? this.encryptionService.encrypt(accessToken) : 'placeholder',
+            tokenExpiresAt: tokenExpiresAt,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }
+        });
+        accountId = newAccount.id;
+      }
+    } catch (dbError: any) {
+      this.logger.error(`[OAuth Connect] ❌ Database error: ${dbError.message}`);
+      throw new BadRequestException(`บันทึกข้อมูลไม่สำเร็จ: ${dbError.message}`);
     }
 
-    this.logger.log(`[OAuth Sync] ========================================`);
-    this.logger.log(`[OAuth Sync] Returning to client: syncSuccess=${syncSuccess}`);
+    // Clear cache only after successful DB update
+    try {
+      await this.cacheManager.del(`google_ads_temp_tokens:${tempToken}`);
+      await this.cacheManager.del(`google_ads_temp_accounts:${tempToken}`);
+    } catch (e) {}
+
+    // 🚀 Trigger Initial Sync in BACKGROUND (non-blocking) to prevent timeouts
+    // This solves the issue where the request feels like it failed but actually succeeded
+    this.triggerInitialSync(accountId, tenantId).catch(err => 
+      this.logger.error(`[OAuth Connect] Background sync launch failed: ${err.message}`)
+    );
 
     return {
       success: true,
       accountId,
-      syncResult: {
-        success: syncSuccess,
-        error: syncErrorMessage,
-      },
+      message: 'เชื่อมต่อบัญชีสำเร็จแล้ว ระบบกำลังเริ่มดึงข้อมูลในพื้นหลัง',
     };
   }
 

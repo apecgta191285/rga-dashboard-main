@@ -30,7 +30,14 @@ export function SeoPage() {
         backlinks: null,
         referringDomains: null,
         keywords: null,
-        trafficCost: null
+        trafficCost: null,
+        activeUsers: 0,
+        activeUsersTrend: 0,
+        screenPageViews: 0,
+        screenPageViewsTrend: 0,
+        engagementRate: 0,
+        engagementRateTrend: 0,
+        bounceRateTrend: 0
     };
 
 

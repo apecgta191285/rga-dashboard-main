@@ -9,10 +9,10 @@ export const SEO_KEYS = {
     adsConnections: () => [...SEO_KEYS.all, 'ads-connections'] as const,
 };
 
-export function useSeoSummary() {
+export function useSeoSummary(days?: number) {
     return useQuery({
-        queryKey: SEO_KEYS.summary(),
-        queryFn: SeoService.getSummary,
+        queryKey: [...SEO_KEYS.summary(), days],
+        queryFn: () => SeoService.getSummary(days),
     });
 }
 

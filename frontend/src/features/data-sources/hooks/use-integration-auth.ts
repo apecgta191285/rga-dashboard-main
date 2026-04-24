@@ -175,9 +175,10 @@ export function useIntegrationAuth() {
             // Refresh dashboard data (demo -> live switch)
             queryClient.invalidateQueries({ queryKey: dashboardKeys.overview() });
         },
-        onError: (error: Error, variables) => {
+        onError: (error: any, variables) => {
             const platformName = PLATFORM_CONFIGS[variables.platform].name;
-            toast.error(`Failed to connect ${platformName}: ${error.message}`);
+            const backendMessage = error.response?.data?.message || error.message;
+            toast.error(`Failed to connect ${platformName}: ${backendMessage}`);
         },
     });
 
