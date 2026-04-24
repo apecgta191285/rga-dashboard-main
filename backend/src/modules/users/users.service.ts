@@ -18,10 +18,18 @@ export class UsersService {
     // Hash password
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
 
+    // Derive firstName/lastName from name when provided
+    const firstName = createUserDto.firstName || (createUserDto.name ? createUserDto.name.split(' ')[0] : undefined);
+    const lastName = createUserDto.lastName || (createUserDto.name ? createUserDto.name.split(' ').slice(1).join(' ') : undefined);
+
     // Create user
     const user = await this.repository.create(tenantId, {
-      ...createUserDto,
+      email: createUserDto.email,
       password: hashedPassword,
+      role: createUserDto.role || 'CLIENT',
+      isActive: createUserDto.isActive !== undefined ? createUserDto.isActive : true,
+      firstName: firstName || null,
+      lastName: lastName || null,
     });
 
     return this.sanitizeUser(user);
@@ -57,6 +65,12 @@ export class UsersService {
 
     const data: UpdateUserDto = {};
 
+    if (updateUserDto.name !== undefined) {
+      const [firstName, ...rest] = updateUserDto.name.trim().split(' ');
+      data.firstName = firstName;
+      data.lastName = rest.join(' ') || null;
+    }
+
     if (updateUserDto.firstName !== undefined) {
       data.firstName = updateUserDto.firstName;
     }
@@ -86,7 +100,7 @@ export class UsersService {
     // Check if user exists
     await this.findOne(tenantId, id);
 
-    // Soft delete by setting isActive to false
+    // Hard delete user and related data (cascade for relations configured in Prisma schema)
     const user = await this.repository.remove(tenantId, id);
 
     return this.sanitizeUser(user);
@@ -94,6 +108,12 @@ export class UsersService {
 
   private sanitizeUser(user: any) {
     const { password, ...result } = user;
-    return result;
+
+    // Ensure `name` is set for UI compatibility (full name)
+    const fullName = [result.firstName, result.lastName].filter(Boolean).join(' ').trim();
+    return {
+      ...result,
+      name: fullName || result.email || '',
+    };
   }
 }

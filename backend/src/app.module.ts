@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 import { ResponseTransformInterceptor } from './common/interceptors/response-transform.interceptor';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -40,6 +42,14 @@ import { AiModule } from './modules/ai/ai.module';
       validationSchema: envValidationSchema,
       validationOptions: {
         abortEarly: true,
+      },
+    }),
+    ServeStaticModule.forRoot({
+      // ชี้ไปที่โฟลเดอร์ public ภายใน client ที่เก็บไฟล์ index.html จริงๆ
+      rootPath: join(__dirname, '..', 'client', 'public'),
+      renderPath: '*',
+      serveStaticOptions: {
+        index: 'index.html',
       },
     }),
     ScheduleModule.forRoot(),

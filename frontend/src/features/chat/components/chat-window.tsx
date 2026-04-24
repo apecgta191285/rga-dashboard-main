@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuthStore } from '@/stores/auth-store';
 
 // Add Speech Recognition Type Definition
 declare global {
@@ -25,6 +26,72 @@ interface Message {
 interface ChatWindowProps {
     isOpen: boolean;
     onClose: () => void;
+}
+
+// Clean text by removing escape sequences and JSON structure
+function cleanText(text: string | any): string {
+    if (!text) return '';
+
+    let result = typeof text === 'string' ? text : JSON.stringify(text);
+
+    // Handle JSON.stringify double-encoded strings (e.g., "{\"key\":...}")
+    try {
+        // If it looks like a JSON string, try to parse it
+        if (result.startsWith('"') && result.endsWith('"')) {
+            result = JSON.parse(result);
+        }
+    } catch (e) {
+        // Not a JSON string, continue
+    }
+
+    // Remove JSON structure - extract just the text content
+    // Match patterns like {"parts":[{"text":"..."}]} or similar
+    const jsonMatch = result.match(/"text"\s*:\s*"([^"]+(?:\\.[^"]*)*)"/) ||
+        result.match(/"text"\s*:\s*"([^"]*)"/);
+    if (jsonMatch && jsonMatch[1]) {
+        result = JSON.parse('"' + jsonMatch[1] + '"'); // Parse the captured string properly
+    }
+
+    // Now clean escape sequences multiple times to handle nested encoding
+    for (let i = 0; i < 3; i++) {
+        const before = result;
+
+        result = result
+            // Handle escaped quotes and backslashes (do this first)
+            .replace(/\\\\"/g, '\x00ESCAPED_QUOTE\x00') // Temporarily replace \\"
+            .replace(/\\"/g, '"') // Convert \" to "
+            .replace(/\\'/g, "'") // Convert \' to '
+            // Handle newlines and other whitespace
+            .replace(/\\n/g, '\n')
+            .replace(/\\r/g, '\r')
+            .replace(/\\t/g, '\t')
+            // Handle other escapes
+            .replace(/\\\//g, '/')
+            .replace(/\\\\/g, '\\') // Handle \\
+            // Restore temporarily replaced content
+            .replace(/\x00ESCAPED_QUOTE\x00/g, '"')
+            // Decode HTML entities
+            .replace(/&quot;/g, '"')
+            .replace(/&apos;/g, "'")
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&amp;/g, '&');
+
+        // If nothing changed, stop looping
+        if (before === result) break;
+    }
+
+    // Remove any remaining JSON structure characters
+    result = result
+        // Remove leading/trailing JSON characters
+        .replace(/^[\{\[\"]/, '') // Remove leading {, [, "
+        .replace(/[\}\]\""]$/, '') // Remove trailing }, ], "
+        // Remove null bytes and control characters
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+        // Trim whitespace from start and end
+        .trim();
+
+    return result;
 }
 
 export function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
@@ -79,7 +146,15 @@ export function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
         }
     }, [inputValue]);
 
-    const handleSendMessage = () => {
+    const { user } = useAuthStore();
+    /** Floating widget only: direct n8n webhook (CORS must allow your origin). */
+    const backendBase = (typeof import.meta !== 'undefined' ? import.meta.env.VITE_API_URL : '') || '/api/v1';
+    const widgetWebhookUrl =
+        (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHAT_WIDGET_WEBHOOK_URL : '') ||
+        (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHATBOT_WEBHOOK_URL : '') ||
+        `${backendBase}/ai/webhook/general`;
+
+    const handleSendMessage = async () => {
         if (!inputValue.trim()) return;
 
         const newUserMessage: Message = {
@@ -90,31 +165,104 @@ export function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
         };
 
         setMessages(prev => [...prev, newUserMessage]);
+        const userInput = inputValue;
         setInputValue("");
         setIsTyping(true);
         if (textareaRef.current) textareaRef.current.style.height = 'auto';
 
-        // Simulate AI Response
-        setTimeout(() => {
-            const aiResponses = [
-                "I understand. As an AI assistant, I'm here to help guide you through the dashboard.",
-                "Could you provide more details about that?",
-                "I can help you navigate to the Campaigns or SEO sections if you need.",
-                "That's a great question. Let me check the documentation for you.",
-                "I'm designed to assist with data visualization and reporting."
-            ];
-            const randomResponse = aiResponses[Math.floor(Math.random() * aiResponses.length)];
+        try {
+            const response = await fetch(widgetWebhookUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    tenant_id: user?.tenantId ?? 'anonymous',
+                    question: userInput,
+                }),
+            });
 
-            const newAiMessage: Message = {
-                id: (Date.now() + 1).toString(),
-                text: randomResponse,
-                sender: 'ai',
-                timestamp: new Date()
-            };
+            const contentType = response.headers.get('content-type') || '';
+            const raw = await response.text();
+            let aiText = '';
 
-            setMessages(prev => [...prev, newAiMessage]);
+            if (!response.ok) {
+                let errorMessage = raw;
+                if (contentType.includes('application/json')) {
+                    try {
+                        const data = JSON.parse(raw);
+                        errorMessage = data?.error || data?.message || JSON.stringify(data);
+                    } catch {
+                        // fallback to raw string
+                    }
+                }
+                console.warn('[ChatWindow] Webhook returned non-OK response, suppressed user message.', {
+                    status: response.status,
+                    contentType,
+                    errorMessage,
+                });
+                return;
+            }
+
+            if (contentType.includes('application/json')) {
+                if (!raw || raw.trim() === '') {
+                    console.warn('[ChatWindow] Empty JSON body returned from webhook.');
+                    console.log('[ChatWindow] Webhook raw response:', { raw, status: response.status, contentType });
+                } else {
+                    try {
+                        const data = JSON.parse(raw);
+                        console.log('[ChatWindow] API Response:', data);
+
+                        let extractedText =
+                            (typeof data === 'string' ? data : '') ||
+                            data?.text ||
+                            data?.reply ||
+                            data?.message ||
+                            data?.output ||
+                            data?.response ||
+                            data?.answer ||
+                            data?.analysis ||
+                            data?.content ||
+                            (data?.parts?.[0]?.text) ||
+                            (data?.candidates?.[0]?.content?.parts?.[0]?.text) ||
+                            '';
+
+                        if (!extractedText && data?.success === false && data?.error) {
+                            extractedText = data.error;
+                        }
+                        if (!extractedText && data?.success === false && data?.message) {
+                            extractedText = data.message;
+                        }
+
+                        if (!extractedText && (data?.session_id ?? data?.id)) {
+                            console.warn('[ChatWindow] Webhook returned no reply text; keys:', Object.keys(data || {}));
+                        }
+
+                        aiText = cleanText(extractedText);
+                    } catch (parseErr) {
+                        console.warn('[ChatWindow] Failed to parse webhook JSON response. Raw:', raw);
+                        aiText = cleanText(raw);
+                    }
+                }
+            } else {
+                aiText = cleanText(raw);
+            }
+
+            console.log('[ChatWindow] Extracted AI Text:', aiText);
+
+            if (aiText && aiText.trim().length > 0) {
+                const newAiMessage: Message = {
+                    id: (Date.now() + 1).toString(),
+                    text: aiText,
+                    sender: 'ai',
+                    timestamp: new Date()
+                };
+
+                setMessages(prev => [...prev, newAiMessage]);
+            }
+        } catch (error) {
+            console.error('Chat error:', error);
+        } finally {
             setIsTyping(false);
-        }, 1500);
+        }
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {

@@ -12,20 +12,25 @@
  */
 
 // ✅ Single source of truth for date range options
-// Sprint 2: Only 7d and 30d as per specification
-export const DATE_RANGE_OPTIONS = ['7d', '30d'] as const;
+export const DATE_RANGE_OPTIONS = ['1d', '7d', '30d', '90d'] as const;
 
 // ✅ Type derived from the constant (DRY principle)
 export type DateRangeOption = typeof DATE_RANGE_OPTIONS[number];
 
 // ✅ Human-readable labels for UI
 export const DATE_RANGE_LABELS: Record<DateRangeOption, string> = {
-    '7d': 'Last 7 days',
-    '30d': 'Last 30 days',
+    '1d': 'Today',
+    '7d': 'Last 7 day',
+    '30d': 'last month',
+    '90d': '3 month',
 };
 
-// ✅ For API calls that need "XdaysAgo" format
+// ✅ For API calls that need GA4 start date values
 export const getStartDateString = (option: DateRangeOption): string => {
+    if (option === '1d') {
+        return 'today';
+    }
+
     const days = parseInt(option.replace('d', ''));
     return `${days}daysAgo`;
 };

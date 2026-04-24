@@ -1,35 +1,73 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Request, Query, Delete, Req, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Request, Query, Delete, Req, BadRequestException, Logger } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { GoogleAdsOAuthService } from './google-ads-oauth.service';
 import { UnifiedSyncService } from '../../sync/unified-sync.service';
+import { GoogleAdsApiService } from './services/google-ads-api.service';
 import { AdPlatform } from '@prisma/client';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @ApiTags('integrations/google-ads')
 @Controller('integrations/google-ads')
-@UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class GoogleAdsIntegrationController {
+  private readonly logger = new Logger(GoogleAdsIntegrationController.name);
+
   constructor(
     private readonly oauthService: GoogleAdsOAuthService,
     private readonly unifiedSyncService: UnifiedSyncService,
+    private readonly apiService: GoogleAdsApiService,
+    private readonly prisma: PrismaService,
   ) { }
 
+  /**
+   * 🔎 ระบบวินิจฉัย: ตรวจสอบความถูกต้องของ API โดยตรง
+   * เรียกใช้: /api/v1/integrations/google-ads/debug/verify/:customerId
+   */
+  @Get('debug/verify/:customerId')
+  @UseGuards(JwtAuthGuard)
+  async verifyApi(@Param('customerId') customerId: string, @Req() req: any) {
+    this.logger.log(`[Diagnostic] Verifying API for tenant ${req.user.tenantId}, customer ${customerId}`);
+    
+    // ค้นหาบัญชีใน DB ก่อน
+    const account = await this.prisma.googleAdsAccount.findFirst({
+        where: { tenantId: req.user.tenantId, customerId: customerId.replace(/-/g, '') }
+    });
+
+    if (!account) return { error: `Account ${customerId} not found in database for your tenant.` };
+
+    try {
+        const results = await this.apiService.fetchCampaigns(account);
+        return {
+            success: true,
+            accountInDb: { id: account.id, name: account.accountName },
+            campaignCount: results.length,
+            sampleData: results.slice(0, 2)
+        };
+    } catch (e) {
+        return {
+            success: false,
+            error: e.message,
+            stack: e.stack
+        };
+    }
+  }
+
   @Get('status')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Check Google Ads integration status' })
   async getStatus(@Req() req: any) {
     const tenantId = req.user.tenantId;
     const result = await this.oauthService.getConnectedAccounts(tenantId);
 
-    // Map to standardized IntegrationStatusResponse format
     const mappedAccounts = result.accounts.map(account => ({
       id: account.id,
-      externalId: account.customerId,        // Map customerId -> externalId
+      externalId: account.customerId,
       name: account.accountName || 'Unnamed Account',
       status: account.status,
+      lastSyncAt: account.lastSyncAt ? account.lastSyncAt.toISOString() : null,
     }));
 
-    // Get latest sync time across all accounts
     const lastSyncAt = result.accounts.length > 0
       ? result.accounts
         .map(a => a.lastSyncAt)
@@ -45,6 +83,7 @@ export class GoogleAdsIntegrationController {
   }
 
   @Get('auth-url')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get Google Ads OAuth authorization URL' })
   async getAuthUrl(@Request() req) {
     const url = await this.oauthService.generateAuthUrl(
@@ -70,6 +109,7 @@ export class GoogleAdsIntegrationController {
   }
 
   @Post('connect')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Connect a Google Ads account' })
   async connectAccount(
     @Body('tempToken') tempToken: string,
@@ -84,42 +124,47 @@ export class GoogleAdsIntegrationController {
   }
 
   @Get('accounts')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get connected accounts' })
   async getConnectedAccounts(@Request() req) {
     return this.oauthService.getConnectedAccounts(req.user.tenantId);
   }
 
   @Delete()
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Disconnect Google Ads integration' })
   async disconnect(@Request() req) {
     return this.oauthService.disconnect(req.user.tenantId);
   }
 
   @Post('sync')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Trigger manual sync for Google Ads' })
   async triggerSync(@Request() req) {
-    // Use UnifiedSyncService to sync all accounts for this platform
-    // Note: In a multi-tenant system, syncPlatform might sync ALL tenants if not careful.
-    // UnifiedSyncService.syncPlatform currently syncs ALL accounts in DB.
-    // We should probably use syncAccount for specific accounts or update UnifiedSyncService to filter by tenant.
-    // For now, let's iterate connected accounts and sync them individually using UnifiedSyncService.
-
     const tenantId = req.user.tenantId;
+    this.logger.log(`[SYNC-TRIGGER] Manual sync triggered for tenant ${tenantId}`);
+
     const result = await this.oauthService.getConnectedAccounts(tenantId);
+    this.logger.log(`[SYNC-TRIGGER] Found ${result.accounts.length} connected accounts`);
 
     if (result.accounts.length === 0) {
+      this.logger.warn(`[SYNC-TRIGGER] No Google Ads account connected for tenant ${tenantId}`);
       throw new BadRequestException('No Google Ads account connected');
     }
 
     const syncResults = [];
     for (const account of result.accounts) {
+      this.logger.log(`[SYNC-TRIGGER] Starting sync for account ${account.id} (${account.customerId})`);
+      // 🚀 Force sequential sync for stability on Hostinger
       await this.unifiedSyncService.syncAccount(AdPlatform.GOOGLE_ADS, account.id, tenantId);
-      syncResults.push({ accountId: account.id, status: 'STARTED' });
+      syncResults.push({ accountId: account.id, status: 'COMPLETED' });
+      this.logger.log(`[SYNC-TRIGGER] Completed sync for account ${account.id}`);
     }
 
+    this.logger.log(`[SYNC-TRIGGER] Manual sync completed for tenant ${tenantId}`);
     return {
       success: true,
-      message: 'Sync started for all connected accounts',
+      message: 'Sync completed for all connected accounts',
       results: syncResults
     };
   }

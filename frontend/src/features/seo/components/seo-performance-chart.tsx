@@ -17,7 +17,7 @@ import { useQuery } from '@tanstack/react-query';
 import { SeoService } from "../api";
 import { DashboardDateFilter } from "@/features/dashboard/components/dashboard-date-filter";
 
-type PeriodEnum = '7d' | '30d' | 'this_month' | 'last_month' | 'custom';
+type PeriodEnum = '1d' | '7d' | '30d' | '90d' | 'this_month' | 'last_month' | 'custom';
 type MetricKey =
     | 'organicTraffic'
     | 'paidTraffic'

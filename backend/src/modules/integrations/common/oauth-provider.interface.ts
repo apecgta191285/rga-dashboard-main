@@ -70,6 +70,8 @@ export interface OAuthConnectionResult {
     success: boolean;
     accountId: string;
     accountName?: string;
+    initialSyncSucceeded?: boolean;
+    initialSyncError?: string;
 }
 
 /**

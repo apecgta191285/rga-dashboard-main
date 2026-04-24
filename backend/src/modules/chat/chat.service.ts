@@ -69,8 +69,9 @@ export class ChatService {
             throw new NotFoundException(`Chat session with ID ${sessionId} not found`);
         }
 
-        // 2. Create message
-        const message = await this.prisma.chatMessage.create({
+        // 2. Save message (user or assistant)
+        // NOTE: N8N calling is done by frontend via AiWebhookController, NOT here to avoid duplicates
+        const savedMessage = await this.prisma.chatMessage.create({
             data: {
                 sessionId,
                 role: createMessageDto.role,
@@ -84,7 +85,7 @@ export class ChatService {
             data: { updatedAt: new Date() },
         });
 
-        // Update title if it's the first user message and title is default
+        // 4. Update title if first user message
         if (createMessageDto.role === 'user' && session.title === 'New Chat') {
             const firstFewWords = createMessageDto.content.split(' ').slice(0, 5).join(' ');
             await this.prisma.chatSession.update({
@@ -93,7 +94,8 @@ export class ChatService {
             });
         }
 
-        return message;
+        this.logger.log(`Message saved: sessionId=${sessionId}, role=${createMessageDto.role}`);
+        return savedMessage;
     }
 
     async updateSessionTitle(id: string, title: string) {

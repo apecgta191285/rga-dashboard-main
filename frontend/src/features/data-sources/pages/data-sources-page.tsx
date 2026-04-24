@@ -24,7 +24,7 @@ import {
 import { useState } from 'react';
 
 // Platforms to display (in order)
-const DISPLAY_PLATFORMS: PlatformId[] = ['google', 'facebook', 'tiktok'];
+const DISPLAY_PLATFORMS: PlatformId[] = ['google', 'google-analytics', 'facebook', 'tiktok'];
 
 export default function DataSourcesPage() {
     const {
@@ -75,7 +75,7 @@ export default function DataSourcesPage() {
                 </div>
 
                 {/* Platform Cards Grid */}
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {DISPLAY_PLATFORMS.map((platform) => (
                         <DataSourceCard
                             key={platform}

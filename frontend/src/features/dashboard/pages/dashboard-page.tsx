@@ -91,27 +91,27 @@ const PLATFORM_ORDER: AdPlatform[] = [
     'LINE_ADS',
 ];
 
-function buildPlatformBreakdown(campaigns: RecentCampaign[] | undefined) {
+function buildPlatformBreakdown(platformDataArray: any[] | undefined) {
     const sums = new Map<AdPlatform, number>();
     for (const key of PLATFORM_ORDER) sums.set(key, 0);
 
-    for (const c of campaigns ?? []) {
+    for (const d of platformDataArray ?? []) {
         // Skip GA4 - it's web analytics, not an ad platform
-        if (c.platform === 'GOOGLE_ANALYTICS') continue;
+        if (d.platform === 'GOOGLE_ANALYTICS') continue;
 
-        const prev = sums.get(c.platform) ?? 0;
-        sums.set(c.platform, prev + (c.spending ?? 0));
+        const prev = sums.get(d.platform) ?? 0;
+        sums.set(d.platform, prev + (d.spend ?? d.spending ?? 0));
     }
 
     return PLATFORM_ORDER.map((platform) => ({
         name: PLATFORM_LABELS[platform] ?? platform,
         value: sums.get(platform) ?? 0,
         color: PLATFORM_COLORS[platform] ?? '#94a3b8',
-    }));
+    })).filter(p => p.value > 0);
 }
 
-function buildPlatformFunnelStages(campaigns: RecentCampaign[] | undefined) {
-    const platformData = new Map<AdPlatform, {
+function buildPlatformFunnelStages(platformDataArray: any[] | undefined) {
+    const platformDataMap = new Map<AdPlatform, {
         impressions: number;
         clicks: number;
         conversions: number;
@@ -119,24 +119,24 @@ function buildPlatformFunnelStages(campaigns: RecentCampaign[] | undefined) {
 
     // Initialize
     for (const platform of PLATFORM_ORDER) {
-        platformData.set(platform, { impressions: 0, clicks: 0, conversions: 0 });
+        platformDataMap.set(platform, { impressions: 0, clicks: 0, conversions: 0 });
     }
 
     // Aggregate by platform
-    for (const campaign of campaigns ?? []) {
-        if (campaign.platform === 'GOOGLE_ANALYTICS') continue;
+    for (const item of platformDataArray ?? []) {
+        if (item.platform === 'GOOGLE_ANALYTICS') continue;
 
-        const current = platformData.get(campaign.platform);
+        const current = platformDataMap.get(item.platform);
         if (current) {
-            current.impressions += campaign.impressions;
-            current.clicks += campaign.clicks;
-            current.conversions += campaign.conversions;
+            current.impressions += item.impressions || 0;
+            current.clicks += item.clicks || 0;
+            current.conversions += item.conversions || 0;
         }
     }
 
     // Convert to funnel stages
     return PLATFORM_ORDER.map((platform) => {
-        const data = platformData.get(platform)!;
+        const data = platformDataMap.get(platform)!;
         return {
             platform: PLATFORM_LABELS[platform] ?? platform,
             impressions: data.impressions,
@@ -164,14 +164,14 @@ export function DashboardPage() {
     });
 
     const financialBreakdown = useMemo(
-        () => buildPlatformBreakdown(data?.recentCampaigns),
-        [data?.recentCampaigns]
+        () => buildPlatformBreakdown(data?.platformBreakdown ?? data?.recentCampaigns),
+        [data?.platformBreakdown, data?.recentCampaigns]
     );
 
     // Calculate platform funnel stages from campaigns
     const platformFunnelStages = useMemo(
-        () => buildPlatformFunnelStages(data?.recentCampaigns),
-        [data?.recentCampaigns]
+        () => buildPlatformFunnelStages(data?.platformBreakdown ?? data?.recentCampaigns),
+        [data?.platformBreakdown, data?.recentCampaigns]
     );
 
     // Calculate funnel stages from data
@@ -186,19 +186,19 @@ export function DashboardPage() {
             {
                 label: 'Impressions',
                 value: impressions,
-                barClassName: 'bg-gradient-to-r from-blue-400 to-blue-500',
+                barClassName: 'bg-linear-to-r from-blue-400 to-blue-500',
                 dotClassName: 'bg-blue-500',
             },
             {
                 label: 'Clicks',
                 value: clicks,
-                barClassName: 'bg-gradient-to-r from-emerald-400 to-emerald-500',
+                barClassName: 'bg-linear-to-r from-emerald-400 to-emerald-500',
                 dotClassName: 'bg-emerald-500',
             },
             {
                 label: 'Conversions',
                 value: conversions,
-                barClassName: 'bg-gradient-to-r from-violet-400 to-violet-500',
+                barClassName: 'bg-linear-to-r from-violet-400 to-violet-500',
                 dotClassName: 'bg-violet-500',
             },
         ];
@@ -211,18 +211,18 @@ export function DashboardPage() {
 
     return (
         <DashboardLayout>
-            <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+            <div className="flex flex-1 flex-col gap-4 p-4 sm:p-5 md:gap-6 md:p-8">
                 {/* Page Header */}
-                <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                     <div className="space-y-1">
-                        <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-                        <p className="text-muted-foreground">
+                        <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Dashboard</h2>
+                        <p className="text-sm text-muted-foreground sm:text-base">
                             Monitor your advertising performance across all platforms.
                         </p>
                     </div>
                 </div>
 
-                <section id="integration-checklist">
+                <section id="integration-checklist" className="w-full">
                     <h3 className="sr-only">Integration Checklist</h3>
                     <IntegrationChecklist />
                 </section>
@@ -231,7 +231,7 @@ export function DashboardPage() {
                 {error && <ErrorState error={error} onRetry={refetch} />}
 
                 {/* Metrics Grid */}
-                <section>
+                <section className="w-full">
                     <h3 className="sr-only">Key Performance Metrics</h3>
                     <DashboardMetrics
                         summary={data?.summary}
@@ -241,25 +241,26 @@ export function DashboardPage() {
                 </section>
 
                 {/* AI Summaries */}
-                <section>
+                <section className="w-full">
                     <h3 className="sr-only">AI Summaries</h3>
                     {isLoading ? (
-                        <Skeleton className="h-[160px] w-full rounded-3xl" />
+                        <Skeleton className="h-[180px] w-full rounded-3xl sm:h-[220px]" />
                     ) : (
                         <AiSummaries summary={data?.summary} growth={data?.growth} />
                     )}
                 </section>
 
                 {/* Charts & Campaigns Grid - Responsive Layout */}
-                <section id="performance-trends">
+                <section id="performance-trends" className="w-full">
                     <h3 className="sr-only">Performance Trends & Recent Campaigns</h3>
-                    <div className="grid gap-4 grid-cols-1 lg:grid-cols-7">
+                    <div className="grid gap-4 grid-cols-1 lg:grid-cols-7 xl:gap-6 items-stretch">
                         {/* Trend Chart - 4/7 on desktop */}
-                        <div className="col-span-1 lg:col-span-4">
+                        <div className="col-span-1 lg:col-span-4 xl:col-span-4 flex h-full flex-col">
                             {isLoading ? (
-                                <Skeleton className="h-[400px] w-full rounded-lg" />
+                                <Skeleton className="h-[320px] w-full rounded-3xl sm:h-[360px] lg:h-[400px]" />
                             ) : (
                                 <TrendChart
+                                    className="h-full"
                                     data={data?.trends ?? []}
                                     period={period}
                                     onPeriodChange={setPeriod}
@@ -269,10 +270,10 @@ export function DashboardPage() {
                             )}
                         </div>
 
-                        {/* Recent Campaigns - 3/7 on desktop */}
-                        <div className="col-span-1 lg:col-span-3">
+                        {/* Recent Campaigns - wider on wide desktop */}
+                        <div className="col-span-1 lg:col-span-3 xl:col-span-3 flex h-full flex-col">
                             {isLoading ? (
-                                <Skeleton className="h-[400px] w-full rounded-lg" />
+                                <Skeleton className="h-[320px] w-full rounded-3xl sm:h-[360px] lg:h-[400px]" />
                             ) : (
                                 <RecentCampaigns campaigns={data?.recentCampaigns ?? []} />
                             )}
@@ -281,15 +282,16 @@ export function DashboardPage() {
                 </section>
 
                 {/* Financial Overview & Conversion Funnel */}
-                <section id="conversion-funnel">
+                <section id="conversion-funnel" className="w-full">
                     <h3 className="sr-only">Financial Overview & Conversion Funnel</h3>
-                    <div className="grid gap-4 grid-cols-1 xl:grid-cols-2">
+                    <div className="grid gap-4 grid-cols-1 xl:grid-cols-2 xl:gap-6">
                         {isLoading ? (
-                            <Skeleton className="h-[400px] w-full rounded-3xl" />
+                            <Skeleton className="h-[320px] w-full rounded-3xl sm:h-[360px] lg:h-[400px]" />
                         ) : (
                             <FinancialOverview
                                 subtitle="ROAS"
                                 roi={data?.summary.averageRoas ?? 0}
+                                roiDelta={data?.growth.roasGrowth ?? 0}
                                 total={totalCost}
                                 currency="THB"
                                 breakdown={financialBreakdown}
@@ -317,7 +319,7 @@ export function DashboardPage() {
                         )}
 
                         {isLoading ? (
-                            <Skeleton className="h-[400px] w-full rounded-3xl" />
+                            <Skeleton className="h-[320px] w-full rounded-3xl sm:h-[360px] lg:h-[400px]" />
                         ) : (
                             <ConversionFunnel stages={funnelStages} platformStages={platformFunnelStages} />
                         )}

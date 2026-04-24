@@ -1,12 +1,24 @@
-import { useRef } from 'react';
-import { Download } from 'lucide-react';
+import { useRef, useState, useEffect } from 'react';
+import { Download, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle
+} from '@/components/ui/card';
 import { BrandLogo } from '@/components/ui/brand-logo';
 import { cn } from '@/lib/utils';
 import { formatCompactNumber, formatNumber } from '@/lib/formatters';
 import { downloadCsv } from '@/lib/download-utils';
 import { ExportDropdown } from '@/components/ui/export-dropdown';
+import {
+    Tooltip as UiTooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 export interface FunnelStage {
     label: string;
@@ -45,6 +57,35 @@ function buildFunnelCsv(stages: FunnelStage[]) {
     return ['stage,value,percentage', ...rows].join('\n');
 }
 
+// =============================================================================
+// Info Tooltip Component
+// =============================================================================
+
+function ConversionFunnelInfoTooltip() {
+    return (
+        <TooltipProvider>
+            <UiTooltip>
+                <TooltipTrigger asChild>
+                    <button
+                        type="button"
+                        className="inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                        <Info className="h-4 w-4" />
+                    </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs text-sm leading-relaxed">
+                    <p className="font-semibold mb-1">Conversion Funnel</p>
+                    <p>
+                        This chart shows how users move through each stage of the customer journey,
+                        from impressions to clicks and conversions. It helps identify drop-off points,
+                        measure conversion efficiency, and optimize campaign performance.
+                    </p>
+                </TooltipContent>
+            </UiTooltip>
+        </TooltipProvider>
+    );
+}
+
 export function ConversionFunnel({
     stages = [],
     platformStages = [],
@@ -58,6 +99,13 @@ export function ConversionFunnel({
     const max = Math.max(1, ...displayStages.map((s) => s.value));
 
     const cardRef = useRef<HTMLDivElement>(null);
+    const [targetElement, setTargetElement] = useState<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        if (cardRef.current) {
+            setTargetElement(cardRef.current);
+        }
+    }, []);
 
     const handleExportCsv = () => {
         downloadCsv(
@@ -67,17 +115,28 @@ export function ConversionFunnel({
     };
 
     return (
-        <Card ref={cardRef} className={cn('h-auto rounded-3xl border border-border shadow-lg', className)}>
+        <Card
+            ref={cardRef}
+            className={cn(
+                'h-auto rounded-3xl border border-border shadow-lg',
+                className
+            )}
+        >
             <CardHeader className="space-y-1 pb-2">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="space-y-1">
-                        <CardTitle className="text-lg font-bold">{title}</CardTitle>
+                        <div className="flex items-center gap-2">
+                            <CardTitle className="text-lg font-bold">
+                                {title}
+                            </CardTitle>
+                            <ConversionFunnelInfoTooltip />
+                        </div>
                         <CardDescription>{description}</CardDescription>
                     </div>
 
                     <ExportDropdown
                         filename="conversion-funnel"
-                        targetElement={cardRef.current}
+                        targetElement={targetElement}
                         onExportCsv={hasData ? handleExportCsv : undefined}
                         disabled={!hasData}
                     />
@@ -89,11 +148,21 @@ export function ConversionFunnel({
                     {/* Main Funnel Visualization */}
                     <div className="space-y-4 pt-2">
                         {displayStages.map((stage, index) => {
-                            const widthPct = clamp((stage.value / max) * 100, 0, 100);
+                            const widthPct = clamp(
+                                (stage.value / max) * 100,
+                                0,
+                                100
+                            );
+
                             const nextStage = displayStages[index + 1];
-                            const conversionRate = nextStage && stage.value > 0
-                                ? ((nextStage.value / stage.value) * 100).toFixed(1)
-                                : null;
+
+                            const conversionRate =
+                                nextStage && stage.value > 0
+                                    ? (
+                                        (nextStage.value / stage.value) *
+                                        100
+                                    ).toFixed(1)
+                                    : null;
 
                             return (
                                 <div key={stage.label}>
@@ -103,16 +172,27 @@ export function ConversionFunnel({
                                                 'relative h-10 overflow-hidden rounded-full shadow-sm transition-all duration-700 ease-out group-hover:shadow-lg group-hover:scale-[1.01] brightness-105',
                                                 stage.barClassName
                                             )}
-                                            style={{ width: `${widthPct}%`, minWidth: '40px' }}
+                                            style={{
+                                                width: `${widthPct}%`,
+                                                minWidth: '40px',
+                                            }}
                                         >
                                             <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent)] mix-blend-overlay" />
                                         </div>
 
                                         <div className="flex flex-col items-end min-w-[100px] text-right">
-                                            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{stage.label}</span>
+                                            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                                {stage.label}
+                                            </span>
                                             <span className="text-2xl font-bold tracking-tight text-foreground">
-                                                <span className="md:hidden">{formatCompactNumber(stage.value)}</span>
-                                                <span className="hidden md:inline">{formatNumber(stage.value)}</span>
+                                                <span className="md:hidden">
+                                                    {formatCompactNumber(
+                                                        stage.value
+                                                    )}
+                                                </span>
+                                                <span className="hidden md:inline">
+                                                    {formatNumber(stage.value)}
+                                                </span>
                                             </span>
                                         </div>
                                     </div>
@@ -122,7 +202,9 @@ export function ConversionFunnel({
                                         <div className="relative h-8 ml-8 my-1 flex items-center">
                                             <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/40 px-2 py-0.5 rounded-md">
                                                 <span>↓</span>
-                                                <span className="font-medium">{conversionRate}% conversion</span>
+                                                <span className="font-medium">
+                                                    {conversionRate}% conversion
+                                                </span>
                                             </div>
                                         </div>
                                     )}
@@ -131,9 +213,13 @@ export function ConversionFunnel({
                         })}
                     </div>
 
+                    {/* Platform Performance */}
                     {hasPlatformData && (
                         <div className="pt-4 border-t border-border/60">
-                            <h4 className="text-sm font-semibold mb-4 text-foreground/80">Platform Performance</h4>
+                            <h4 className="text-sm font-semibold mb-4 text-foreground/80">
+                                Platform Performance
+                            </h4>
+
                             <div className="grid gap-3 sm:grid-cols-1">
                                 {platformStages?.map((platform) => (
                                     <div
@@ -142,31 +228,71 @@ export function ConversionFunnel({
                                     >
                                         <div className="flex items-center gap-3 min-w-[120px]">
                                             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted border border-border shadow-sm">
-                                                <BrandLogo platformId={platform.platform} className="h-4 w-4" />
+                                                <BrandLogo
+                                                    platformId={
+                                                        platform.platform
+                                                    }
+                                                    className="h-4 w-4"
+                                                />
                                             </div>
-                                            <span className="text-sm font-semibold">{platform.platform}</span>
+
+                                            <span className="text-sm font-semibold">
+                                                {platform.platform}
+                                            </span>
                                         </div>
 
                                         <div className="flex flex-1 items-center justify-end gap-x-6 gap-y-2 flex-wrap text-sm">
                                             <div className="flex flex-col items-end">
-                                                <span className="text-[10px] text-muted-foreground uppercase">Impr.</span>
+                                                <span className="text-[10px] text-muted-foreground uppercase">
+                                                    Impr.
+                                                </span>
                                                 <span className="font-medium tabular-nums">
-                                                    <span className="md:hidden">{formatCompactNumber(platform.impressions)}</span>
-                                                    <span className="hidden md:inline">{formatNumber(platform.impressions)}</span>
+                                                    <span className="md:hidden">
+                                                        {formatCompactNumber(
+                                                            platform.impressions
+                                                        )}
+                                                    </span>
+                                                    <span className="hidden md:inline">
+                                                        {formatNumber(
+                                                            platform.impressions
+                                                        )}
+                                                    </span>
                                                 </span>
                                             </div>
+
                                             <div className="flex flex-col items-end">
-                                                <span className="text-[10px] text-muted-foreground uppercase">Clicks</span>
+                                                <span className="text-[10px] text-muted-foreground uppercase">
+                                                    Clicks
+                                                </span>
                                                 <span className="font-medium tabular-nums">
-                                                    <span className="md:hidden">{formatCompactNumber(platform.clicks)}</span>
-                                                    <span className="hidden md:inline">{formatNumber(platform.clicks)}</span>
+                                                    <span className="md:hidden">
+                                                        {formatCompactNumber(
+                                                            platform.clicks
+                                                        )}
+                                                    </span>
+                                                    <span className="hidden md:inline">
+                                                        {formatNumber(
+                                                            platform.clicks
+                                                        )}
+                                                    </span>
                                                 </span>
                                             </div>
+
                                             <div className="flex flex-col items-end min-w-[60px]">
-                                                <span className="text-[10px] text-muted-foreground uppercase">Conv.</span>
+                                                <span className="text-[10px] text-muted-foreground uppercase">
+                                                    Conv.
+                                                </span>
                                                 <span className="font-bold tabular-nums text-foreground">
-                                                    <span className="md:hidden">{formatCompactNumber(platform.conversions)}</span>
-                                                    <span className="hidden md:inline">{formatNumber(platform.conversions)}</span>
+                                                    <span className="md:hidden">
+                                                        {formatCompactNumber(
+                                                            platform.conversions
+                                                        )}
+                                                    </span>
+                                                    <span className="hidden md:inline">
+                                                        {formatNumber(
+                                                            platform.conversions
+                                                        )}
+                                                    </span>
                                                 </span>
                                             </div>
                                         </div>
@@ -179,7 +305,9 @@ export function ConversionFunnel({
             ) : (
                 <CardContent className="flex h-[280px] items-center justify-center">
                     <div className="text-center">
-                        <p className="text-sm font-medium text-foreground">No funnel data yet</p>
+                        <p className="text-sm font-medium text-foreground">
+                            No funnel data yet
+                        </p>
                         <p className="mt-1 text-xs text-muted-foreground">
                             Connect a data source to start seeing funnel metrics.
                         </p>

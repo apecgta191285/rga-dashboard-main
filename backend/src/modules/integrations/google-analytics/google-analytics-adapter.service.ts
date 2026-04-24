@@ -59,12 +59,20 @@ export class GoogleAnalyticsAdapterService implements MarketingPlatformAdapter {
                     { name: 'sessions' },
                     { name: 'conversions' },
                     { name: 'totalRevenue' },
+                    { name: 'newUsers' },
+                    { name: 'engagementRate' },
+                    { name: 'screenPageViews' },
+                    { name: 'bounceRate' },
+                    { name: 'averageSessionDuration' }
                 ],
             });
 
             if (!response || !response.rows) {
+                this.logger.log(`No rows returned for GA4 property ${credentials.accountId}`);
                 return [];
             }
+
+            this.logger.log(`Fetched ${response.rows.length} rows from GA4`);
 
             const metrics: Partial<Metric>[] = response.rows.map((row: any) => {
                 const revenue = Number(row.metricValues[3].value);
@@ -77,6 +85,13 @@ export class GoogleAnalyticsAdapterService implements MarketingPlatformAdapter {
                     revenue: new Prisma.Decimal(revenue),
                     spend: new Prisma.Decimal(0), // GA4 doesn't track ad spend directly unless linked
                     roas: new Prisma.Decimal(0),
+                    metadata: {
+                        newUsers: Number(row.metricValues[4]?.value || 0),
+                        engagementRate: Number(row.metricValues[5]?.value || 0),
+                        screenPageViews: Number(row.metricValues[6]?.value || 0),
+                        bounceRate: Number(row.metricValues[7]?.value || 0),
+                        averageSessionDuration: Number(row.metricValues[8]?.value || 0),
+                    } as any,
                 };
             });
 

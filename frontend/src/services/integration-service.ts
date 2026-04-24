@@ -59,6 +59,7 @@ export const integrationService = {
     // ============================================
     // Google Analytics
     // ============================================
+    syncGoogleAnalytics: () => apiClient.post('/sync/platform/google-analytics'),
     disconnectGoogleAnalytics: () => apiClient.delete('/integrations/google-analytics'),
 
     // ============================================

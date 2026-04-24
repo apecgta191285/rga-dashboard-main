@@ -20,8 +20,14 @@ export class GoogleAnalyticsOAuthService {
         @Inject(CACHE_MANAGER) private cacheManager: Cache,
         private readonly unifiedSyncService: UnifiedSyncService,
         private readonly encryptionService: EncryptionService,
-    ) {
-        this.oauth2Client = new google.auth.OAuth2(
+    ) { }
+
+    /**
+     * Create a fresh OAuth2Client instance for each request
+     * Prevents Singleton State Pollution / Race Conditions
+     */
+    private createOAuthClient() {
+        return new google.auth.OAuth2(
             this.configService.get('GOOGLE_CLIENT_ID'),
             this.configService.get('GOOGLE_CLIENT_SECRET'),
             this.configService.get('GOOGLE_REDIRECT_URI_GA4'),
@@ -37,13 +43,16 @@ export class GoogleAnalyticsOAuthService {
             JSON.stringify({ userId, tenantId, timestamp: Date.now() }),
         ).toString('base64');
 
-        const authUrl = this.oauth2Client.generateAuthUrl({
+        const oauth2Client = this.createOAuthClient();
+
+        const authUrl = oauth2Client.generateAuthUrl({
             access_type: 'offline',
             scope: scopes,
             state: state,
             prompt: 'consent',
         });
 
+        this.logger.log(`Generated GA4 Auth URL with redirect_uri: ${this.configService.get('GOOGLE_REDIRECT_URI_GA4')}`);
         return authUrl;
     }
 
@@ -54,10 +63,16 @@ export class GoogleAnalyticsOAuthService {
             );
             const { tenantId } = stateData;
 
-            const { tokens } = await this.oauth2Client.getToken(code);
+            const oauth2Client = this.createOAuthClient();
+            const { tokens } = await oauth2Client.getToken(code);
 
-            if (!tokens.access_token || !tokens.refresh_token) {
-                throw new BadRequestException('Failed to get tokens from Google');
+            if (!tokens.access_token) {
+                throw new BadRequestException('Failed to get access token from Google');
+            }
+
+            if (!tokens.refresh_token) {
+                this.logger.warn(`[GA4 OAuth] No refresh_token received for tenant ${tenantId}`);
+                throw new BadRequestException('ไม่ได้รับ Refresh Token จาก Google. กรุณาไปที่ Google Account -> Security -> Third-party apps และกด Remove Access ของแอปนี้ออกก่อน แล้วลองเชื่อมต่อใหม่อีกครั้ง');
             }
 
             // Fetch accessible properties
@@ -147,6 +162,26 @@ export class GoogleAnalyticsOAuthService {
         return { success: true, accountId };
     }
 
+    async disconnect(tenantId: string) {
+        // First, soft delete all campaigns for this tenant and platform GOOGLE_ANALYTICS
+        await this.prisma.campaign.updateMany({
+            where: {
+                tenantId,
+                platform: 'GOOGLE_ANALYTICS',
+                status: { not: 'DELETED' },
+            },
+            data: {
+                status: 'DELETED',
+            },
+        });
+
+        // Then, delete all accounts for this tenant
+        await this.prisma.googleAnalyticsAccount.deleteMany({
+            where: { tenantId },
+        });
+        return true;
+    }
+
     private async triggerInitialSync(accountId: string, tenantId: string) {
         try {
             this.logger.log(`[Initial Sync] Starting sync for GA4 account ${accountId}`);
@@ -227,6 +262,7 @@ export class GoogleAnalyticsOAuthService {
                 propertyId: true,
                 propertyName: true,
                 status: true,
+                lastSyncAt: true,
                 createdAt: true,
             }
         });

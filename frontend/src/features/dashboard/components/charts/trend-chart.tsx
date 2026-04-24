@@ -14,10 +14,17 @@ import {
     Tooltip,
     ResponsiveContainer,
 } from 'recharts';
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp, Info } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import {
+    Tooltip as UiTooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
+
 import { formatCurrencyTHB, formatCompactNumber } from '@/lib/formatters';
 import type { TrendDataPoint, PeriodEnum } from '../../schemas';
 import { DashboardDateFilter } from '../../components/dashboard-date-filter';
@@ -38,25 +45,25 @@ interface MetricConfig {
 const METRIC_CONFIG: Record<MetricKey, MetricConfig> = {
     cost: {
         label: 'Cost',
-        color: '#10b981', // Emerald-500
+        color: '#10b981',
         gradientId: 'gradientCost',
         formatValue: formatCurrencyTHB,
     },
     impressions: {
         label: 'Impressions',
-        color: '#3b82f6', // Blue-500
+        color: '#3b82f6',
         gradientId: 'gradientImpressions',
         formatValue: formatCompactNumber,
     },
     clicks: {
         label: 'Clicks',
-        color: '#f59e0b', // Amber-500
+        color: '#f59e0b',
         gradientId: 'gradientClicks',
         formatValue: formatCompactNumber,
     },
     conversions: {
         label: 'Conversions',
-        color: '#8b5cf6', // Violet-500
+        color: '#8b5cf6',
         gradientId: 'gradientConversions',
         formatValue: formatCompactNumber,
     },
@@ -93,6 +100,36 @@ function EmptyState() {
 }
 
 // =============================================================================
+// Info Tooltip Component
+// =============================================================================
+
+function TrendInfoTooltip() {
+    return (
+        <TooltipProvider>
+            <UiTooltip>
+                <TooltipTrigger asChild>
+                    <button
+                        type="button"
+                        className="inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                        <Info className="h-4 w-4" />
+                    </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs text-sm leading-relaxed">
+                    <p className="font-semibold mb-1">Performance Trends</p>
+                    <p>
+                        This chart displays trend data over time for important campaign metrics
+                        including Cost, Impressions, Clicks, and Conversions.
+                        It helps track performance movement, compare metric growth,
+                        and identify optimization opportunities.
+                    </p>
+                </TooltipContent>
+            </UiTooltip>
+        </TooltipProvider>
+    );
+}
+
+// =============================================================================
 // Custom Tooltip Component
 // =============================================================================
 
@@ -118,22 +155,28 @@ function CustomTooltip({ active, payload, activeMetrics }: CustomTooltipProps) {
 
     return (
         <div className="rounded-xl border bg-popover/95 backdrop-blur-sm px-4 py-3 shadow-xl">
-            <p className="text-xs font-semibold text-muted-foreground mb-2 pb-2 border-b">{formattedDate}</p>
+            <p className="text-xs font-semibold text-muted-foreground mb-2 pb-2 border-b">
+                {formattedDate}
+            </p>
             <div className="flex flex-col gap-1.5">
                 {activeMetrics.map(metricKey => {
                     const config = METRIC_CONFIG[metricKey];
-                    // Find the payload item for this metric
                     const item = payload.find(p => p.dataKey === metricKey);
                     if (!item) return null;
 
                     return (
-                        <div key={metricKey} className="flex items-center justify-between gap-6 min-w-[140px]">
+                        <div
+                            key={metricKey}
+                            className="flex items-center justify-between gap-6 min-w-[140px]"
+                        >
                             <div className="flex items-center gap-2">
                                 <div
                                     className="h-2 w-2 rounded-full ring-2 ring-transparent"
                                     style={{ backgroundColor: config.color }}
                                 />
-                                <span className="text-sm text-foreground/80">{config.label}</span>
+                                <span className="text-sm text-foreground/80">
+                                    {config.label}
+                                </span>
                             </div>
                             <span className="text-sm font-bold font-mono">
                                 {config.formatValue(item.value)}
@@ -158,17 +201,19 @@ export function TrendChart({
     customRange,
     onCustomRangeChange
 }: TrendChartProps) {
-    const [activeMetrics, setActiveMetrics] = useState<MetricKey[]>(['cost', 'impressions', 'clicks']);
+    const [activeMetrics, setActiveMetrics] = useState<MetricKey[]>([
+        'cost',
+        'impressions',
+        'clicks'
+    ]);
 
     // Toggle metric selection
     const toggleMetric = (metric: MetricKey) => {
         setActiveMetrics((prev) => {
-            // If already active, remove it (but prevent removing the last one)
             if (prev.includes(metric)) {
-                if (prev.length === 1) return prev; // Keep at least one active
+                if (prev.length === 1) return prev;
                 return prev.filter((m) => m !== metric);
             }
-            // Otherwise add it
             return [...prev, metric];
         });
     };
@@ -210,9 +255,13 @@ export function TrendChart({
         <Card className={`h-[400px] flex flex-col ${className ?? ''}`}>
             <CardHeader className="flex flex-col gap-4 space-y-0 pb-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex flex-wrap items-center gap-4">
-                    <CardTitle className="text-base font-semibold">
-                        Performance Trends
-                    </CardTitle>
+                    <div className="flex items-center gap-2">
+                        <CardTitle className="text-base font-semibold">
+                            Performance Trends
+                        </CardTitle>
+                        <TrendInfoTooltip />
+                    </div>
+
                     <DashboardDateFilter
                         value={period}
                         onValueChange={onPeriodChange}
@@ -226,6 +275,7 @@ export function TrendChart({
                     {(Object.keys(METRIC_CONFIG) as MetricKey[]).map((key) => {
                         const config = METRIC_CONFIG[key];
                         const isActive = activeMetrics.includes(key);
+
                         return (
                             <button
                                 key={key}
@@ -239,12 +289,14 @@ export function TrendChart({
                                 `}
                                 style={isActive ? {
                                     borderColor: config.color,
-                                    backgroundColor: `${config.color}15`, // 15 = roughly 8% opacity hex
+                                    backgroundColor: `${config.color}15`,
                                     color: config.color
                                 } : undefined}
                             >
                                 <div
-                                    className={`h-2 w-2 rounded-full transition-all ${isActive ? 'opacity-100' : 'opacity-40 grayscale'}`}
+                                    className={`h-2 w-2 rounded-full transition-all ${
+                                        isActive ? 'opacity-100' : 'opacity-40 grayscale'
+                                    }`}
                                     style={{ backgroundColor: config.color }}
                                 />
                                 {config.label}
@@ -264,11 +316,13 @@ export function TrendChart({
                             margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
                         >
                             {gradientDefs}
+
                             <CartesianGrid
                                 strokeDasharray="3 3"
                                 className="stroke-muted/30"
                                 vertical={false}
                             />
+
                             <XAxis
                                 dataKey="date"
                                 tickFormatter={formatXAxis}
@@ -278,6 +332,7 @@ export function TrendChart({
                                 className="text-muted-foreground"
                                 dy={10}
                             />
+
                             <YAxis
                                 tickFormatter={(v) => formatCompactNumber(v)}
                                 tick={false}
@@ -286,14 +341,23 @@ export function TrendChart({
                                 width={45}
                                 className="text-muted-foreground"
                             />
+
                             <Tooltip
-                                content={<CustomTooltip activeMetrics={activeMetrics} />}
-                                cursor={{ stroke: 'var(--muted-foreground)', strokeWidth: 1, strokeDasharray: '4 4' }}
+                                content={
+                                    <CustomTooltip activeMetrics={activeMetrics} />
+                                }
+                                cursor={{
+                                    stroke: 'var(--muted-foreground)',
+                                    strokeWidth: 1,
+                                    strokeDasharray: '4 4'
+                                }}
                             />
+
                             {(Object.keys(METRIC_CONFIG) as MetricKey[]).map((key) => {
-                                // Only render if active
                                 if (!activeMetrics.includes(key)) return null;
+
                                 const config = METRIC_CONFIG[key];
+
                                 return (
                                     <Area
                                         key={key}

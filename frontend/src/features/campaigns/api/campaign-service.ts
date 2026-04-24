@@ -71,7 +71,7 @@ interface BackendCampaign {
     status: string;      // UPPERCASE: "ACTIVE", "PAUSED", "DRAFT", etc.
     platform: string;    // UPPERCASE: "GOOGLE_ADS", "FACEBOOK", "TIKTOK"
     budget: number;
-    spend?: number;
+    spent?: number;
     impressions?: number;
     clicks?: number;
     startDate: string;
@@ -131,6 +131,30 @@ const STATUS_REVERSE_MAP: Record<CampaignStatus, string> = {
     completed: 'COMPLETED',
 };
 
+// Helper to coerce numeric values and guard against NaN/Infinity
+function safeNumber(v: any, fallback = 0): number {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : fallback;
+}
+
+function normalizeSummaryMetrics(raw?: Partial<CampaignSummaryMetrics>): CampaignSummaryMetrics | undefined {
+    if (!raw || typeof raw !== 'object') return undefined;
+
+    return {
+        spend: safeNumber(raw.spend, 0),
+        budget: safeNumber(raw.budget, 0),
+        impressions: safeNumber(raw.impressions, 0),
+        clicks: safeNumber(raw.clicks, 0),
+        revenue: safeNumber(raw.revenue, 0),
+        conversions: safeNumber(raw.conversions, 0),
+        roas: safeNumber(raw.roas, 0),
+        roi: safeNumber(raw.roi, 0),
+        ctr: safeNumber(raw.ctr, 0),
+        cpc: safeNumber(raw.cpc, 0),
+        cpm: safeNumber(raw.cpm, 0),
+    };
+}
+
 // =============================================================================
 // Normalizer Function: Backend -> Frontend
 // =============================================================================
@@ -141,20 +165,20 @@ function normalizeCampaign(raw: BackendCampaign): Campaign {
         name: raw.name,
         status: STATUS_MAP[raw.status] || 'draft',
         platform: PLATFORM_MAP[raw.platform] || 'google',
-        budget: raw.budget ?? 0,
-        spent: raw.spend ?? 0,
-        impressions: raw.impressions ?? 0,
-        clicks: raw.clicks ?? 0,
+        budget: safeNumber(raw.budget, 0),
+        spent: safeNumber(raw.spent, 0),
+        impressions: safeNumber(raw.impressions, 0),
+        clicks: safeNumber(raw.clicks, 0),
         startDate: raw.startDate,
         endDate: raw.endDate ?? '',
-        // Calculated metrics from backend
-        ctr: raw.ctr ?? 0,
-        cpc: raw.cpc ?? 0,
-        cpm: raw.cpm ?? 0,
-        roas: raw.roas ?? 0,
-        roi: raw.roi ?? 0,
-        revenue: raw.revenue ?? 0,
-        conversions: raw.conversions ?? 0,
+        // Calculated metrics from backend (guard against invalid numbers)
+        ctr: safeNumber(raw.ctr, 0),
+        cpc: safeNumber(raw.cpc, 0),
+        cpm: safeNumber(raw.cpm, 0),
+        roas: safeNumber(raw.roas, 0),
+        roi: safeNumber(raw.roi, 0),
+        revenue: safeNumber(raw.revenue, 0),
+        conversions: safeNumber(raw.conversions, 0),
     };
 }
 
@@ -278,7 +302,7 @@ export const CampaignService = {
             items = rawData.data || rawData.items || [];
             meta = rawData.meta || meta;
             if ('summary' in rawData) {
-                summary = rawData.summary;
+                summary = normalizeSummaryMetrics(rawData.summary as Partial<CampaignSummaryMetrics>);
             }
         } else if (Array.isArray(rawData)) {
             items = rawData;

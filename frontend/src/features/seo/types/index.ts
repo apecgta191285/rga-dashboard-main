@@ -19,6 +19,15 @@ export interface SeoMetricSummary {
     referringDomains: number | null;
     keywords: number | null;
     trafficCost: number | null;
+
+    // Web Analytics
+    screenPageViews?: number;
+    screenPageViewsTrend?: number;
+    engagementRate?: number;
+    engagementRateTrend?: number;
+    activeUsers?: number;
+    activeUsersTrend?: number;
+    bounceRateTrend?: number;
 }
 
 export interface SeoTrendData {

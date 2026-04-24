@@ -1,0 +1,15 @@
+﻿173afd4 update deploy
+7c3c82e update
+8887876 fix: resolve NestJS v10/v11 conflict and prisma generate permission error
+9a96808 feat/audit: add Google Ads API readiness audit and oauth plan
+9de0b95 Merge remote-tracking branch 'origin/feature/email-verification-sync-2026-02-13' into integration/all-2026-02-18
+fd6fffb feat(db): add AI analytics tables
+3f65917 fix: resolve TypeScript compilation errors
+b295a81 feat: merge main updates with forgot password feature
+97fc702 Fix: Add default value for cpc in SeoTopKeywords and fix historyData variable assignment in seo.service.ts
+9cc5ae2 Fix: Rename SEO model fields to camelCase in schema.prisma to match codebase
+bf33797 Merge fix: Resolved remaining conflicts in schema.prisma, seo.service.ts and seo.controller.ts (Singoun 17/02/2026)
+0de07fd Merge fix: Resolved all conflicts for seo-db-fix (17/02/2026 SINGOUN)
+cb03233 feat: implement forgot password feature
+0a1ff72 feat: Update email template to professional English and fix SEO data display
+d968140 feat: email verification flow and seo updates

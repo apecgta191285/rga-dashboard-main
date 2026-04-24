@@ -4,8 +4,9 @@ import { apiClient } from '@/services/api-client';
 import { SeoMetricSummary } from '../types';
 
 export const SeoService = {
-    getSummary: async (): Promise<SeoMetricSummary> => {
-        const response = await apiClient.get('/seo/summary');
+    getSummary: async (days?: number): Promise<SeoMetricSummary> => {
+        const url = days ? `/seo/summary?days=${days}` : '/seo/summary';
+        const response = await apiClient.get(url);
         return response.data;
     },
     getHistory: async (days: number = 30): Promise<any[]> => {

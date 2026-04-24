@@ -1,7 +1,7 @@
 # compiled output
-/dist
 /node_modules
-
+/dist
+/build
 # Logs
 logs
 *.log
@@ -44,3 +44,5 @@ lerna-debug.log*
 *.db-journal
 prisma/migrations/
 !prisma/migrations/**
+# Temp Scripts
+/test-scripts/

@@ -10,7 +10,7 @@ import { z } from 'zod';
 // Enums
 // =============================================================================
 
-export const PeriodEnumSchema = z.enum(['7d', '30d', 'this_month', 'last_month', 'custom']);
+export const PeriodEnumSchema = z.enum(['1d', '7d', '30d', '90d', 'this_month', 'last_month', 'custom']);
 export type PeriodEnum = z.infer<typeof PeriodEnumSchema>;
 
 export const CampaignStatusSchema = z.enum([
@@ -153,6 +153,21 @@ export const RecentCampaignSchema = z
 export type RecentCampaign = z.infer<typeof RecentCampaignSchema>;
 
 /**
+ * Platform Breakdown Data
+ */
+export const PlatformBreakdownSchema = z
+    .object({
+        platform: AdPlatformSchema,
+        spend: z.number().nonnegative(),
+        impressions: z.number().int().nonnegative().optional().default(0),
+        clicks: z.number().int().nonnegative().optional().default(0),
+        conversions: z.number().int().nonnegative().optional().default(0),
+    })
+    .strict();
+
+export type PlatformBreakdown = z.infer<typeof PlatformBreakdownSchema>;
+
+/**
  * Response metadata
  */
 export const ResponseMetaSchema = z
@@ -191,6 +206,7 @@ export const DashboardOverviewDataSchema = z
         growth: GrowthMetricsSchema,
         trends: z.array(TrendDataPointSchema),
         recentCampaigns: z.array(RecentCampaignSchema),
+        platformBreakdown: z.array(PlatformBreakdownSchema).optional().nullable(),
         isDemo: z.boolean().optional(),
     })
     .strict();
