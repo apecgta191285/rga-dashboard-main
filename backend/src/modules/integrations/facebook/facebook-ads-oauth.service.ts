@@ -207,6 +207,19 @@ export class FacebookAdsOAuthService {
     async disconnect(tenantId: string): Promise<boolean> {
         this.logger.log(`Disconnecting Facebook Ads for tenant: ${tenantId}`);
 
+        // First, soft delete all campaigns for this tenant and platform FACEBOOK
+        await this.prisma.campaign.updateMany({
+            where: {
+                tenantId,
+                platform: 'FACEBOOK',
+                status: { not: 'DELETED' },
+            },
+            data: {
+                status: 'DELETED',
+            },
+        });
+
+        // Then, delete all accounts for this tenant
         await this.prisma.facebookAdsAccount.deleteMany({
             where: { tenantId },
         });

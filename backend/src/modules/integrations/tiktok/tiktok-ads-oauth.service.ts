@@ -563,6 +563,19 @@ export class TikTokAdsOAuthService implements OAuthProvider, SandboxSupport {
     async disconnect(tenantId: string): Promise<boolean> {
         this.logger.log(`[TikTok OAuth] Disconnecting all accounts for tenant: ${tenantId}`);
 
+        // First, soft delete all campaigns for this tenant and platform TIKTOK
+        await this.prisma.campaign.updateMany({
+            where: {
+                tenantId,
+                platform: 'TIKTOK',
+                status: { not: 'DELETED' },
+            },
+            data: {
+                status: 'DELETED',
+            },
+        });
+
+        // Then, delete all accounts for this tenant
         await this.prisma.tikTokAdsAccount.deleteMany({
             where: { tenantId },
         });

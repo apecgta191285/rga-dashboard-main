@@ -163,6 +163,19 @@ export class GoogleAnalyticsOAuthService {
     }
 
     async disconnect(tenantId: string) {
+        // First, soft delete all campaigns for this tenant and platform GOOGLE_ANALYTICS
+        await this.prisma.campaign.updateMany({
+            where: {
+                tenantId,
+                platform: 'GOOGLE_ANALYTICS',
+                status: { not: 'DELETED' },
+            },
+            data: {
+                status: 'DELETED',
+            },
+        });
+
+        // Then, delete all accounts for this tenant
         await this.prisma.googleAnalyticsAccount.deleteMany({
             where: { tenantId },
         });

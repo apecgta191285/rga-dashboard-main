@@ -785,15 +785,28 @@ export class DashboardService {
     });
 
     // 4. Get recent campaigns with spending
-    // 4. Get recent campaigns with spending (REFACTORED for performance & reliability)
-    // Instead of fetching ALL campaigns and filtering relation, use metric aggregation
+    // 4. Get recent campaigns (MODIFIED: Show all recent campaigns regardless of period filter)
 
-    // Step A: Find top 5 campaigns by spend in this period
-    const topCampaignMetrics = await this.prisma.metric.groupBy({
+    // Step A: Fetch recent campaigns (latest created, limit 5, exclude deleted)
+    const campaignDetails = await this.prisma.campaign.findMany({
+      where: {
+        tenantId,
+        status: { not: CampaignStatus.DELETED }
+      },
+      select: { id: true, name: true, status: true, platform: true, budget: true },
+      orderBy: { createdAt: 'desc' },
+      take: 5
+    });
+
+    // Step B: Get spending data for these campaigns (from all time, not filtered by period)
+    const campaignIds = campaignDetails.map(c => c.id);
+
+    const campaignMetrics = campaignIds.length > 0 ? await this.prisma.metric.groupBy({
       by: ['campaignId'],
       where: {
-        ...buildMetricWhere(tenantId, startDate, endDate, hideMockData, useMockCurrent),
+        campaignId: { in: campaignIds },
         campaign: { tenantId },
+        ...(hideMockData && { isMock: false }),
       },
       _sum: {
         spend: true,
@@ -801,68 +814,28 @@ export class DashboardService {
         clicks: true,
         conversions: true,
       },
-      orderBy: {
-        _sum: { spend: 'desc' }
-      },
-      take: 5
-    });
+    }) : [];
 
-    // Step B: Fetch campaign details for these IDs
-    const campaignIds = topCampaignMetrics.map(m => m.campaignId);
-
-    // If no metrics found, fetch latest created campaigns as fallback
-    let campaignDetails: Array<{ id: string; name: string; status: any; platform: any; budget: any }> = [];
-
-    if (campaignIds.length > 0) {
-      campaignDetails = await this.prisma.campaign.findMany({
-        where: { id: { in: campaignIds }, tenantId },
-        select: { id: true, name: true, status: true, platform: true, budget: true }
-      });
-    } else {
-      // Fallback: 5 most recently updated campaigns
-      campaignDetails = await this.prisma.campaign.findMany({
-        where: { tenantId },
-        orderBy: { updatedAt: 'desc' },
-        take: 5,
-        select: { id: true, name: true, status: true, platform: true, budget: true }
-      });
-    }
-
-    const campaignMap = new Map(campaignDetails.map(c => [c.id, c]));
+    const metricsMap = new Map(campaignMetrics.map(m => [m.campaignId, m._sum]));
 
     // Step C: Combine data
-    // If we have metric data, use it. If fallback, metrics are 0.
-    const recentCampaigns = campaignIds.length > 0
-      ? topCampaignMetrics.map(m => {
-        const c = campaignMap.get(m.campaignId);
-        if (!c) return null; // Should not happen if referential integrity holds
+    const recentCampaigns = campaignDetails.map(c => {
+      const metrics = metricsMap.get(c.id);
+      const spending = toNumber(metrics?.spend || 0);
+      const budget = Number(c.budget) || 0;
 
-        const spending = toNumber(m._sum.spend);
-        const budget = Number(c.budget) || 0;
-
-        return {
-          id: c.id,
-          name: c.name,
-          status: c.status,
-          platform: c.platform,
-          spending,
-          impressions: m._sum.impressions || 0,
-          clicks: m._sum.clicks || 0,
-          conversions: toNumber(m._sum.conversions),
-          budgetUtilization: budget > 0 ? (spending / budget) * 100 : 0,
-        };
-      }).filter(Boolean)
-      : campaignDetails.map(c => ({
+      return {
         id: c.id,
         name: c.name,
         status: c.status,
         platform: c.platform,
-        spending: 0,
-        impressions: 0,
-        clicks: 0,
-        conversions: 0,
-        budgetUtilization: 0
-      }));
+        spending,
+        impressions: metrics?.impressions || 0,
+        clicks: metrics?.clicks || 0,
+        conversions: toNumber(metrics?.conversions || 0),
+        budgetUtilization: budget > 0 ? (spending / budget) * 100 : 0,
+      };
+    });
 
     // 5. Calculate Summary Metrics
     const totalCost = toNumber(currentMetrics._sum.spend);

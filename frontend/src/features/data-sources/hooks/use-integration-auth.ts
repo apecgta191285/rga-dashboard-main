@@ -16,6 +16,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { integrationService, parseOAuthCallback, isOAuthCallback } from '../api/integration-service';
 import { dashboardKeys } from '@/features/dashboard/hooks/use-dashboard';
+import { campaignKeys } from '@/features/campaigns/hooks/use-campaigns';
 import { useAuthStore, selectUser } from '@/stores/auth-store';
 import type {
     PlatformId,
@@ -251,10 +252,18 @@ export function useIntegrationAuth() {
         },
         onSuccess: (data, platform) => {
             toast.success(`${PLATFORM_CONFIGS[platform].name} disconnected`);
+            
+            // Invalidate all integration-related queries
             queryClient.invalidateQueries({ queryKey: integrationQueryKeys.allStatuses(tenantId) });
-
-            // Refresh dashboard data (live -> demo switch)
+            
+            // Invalidate campaigns to hide deleted campaigns
+            queryClient.invalidateQueries({ queryKey: campaignKeys.all });
+            
+            // Refresh dashboard data
             queryClient.invalidateQueries({ queryKey: dashboardKeys.overview() });
+            
+            // Reload page to ensure clean state
+            setTimeout(() => window.location.reload(), 500);
         },
         onError: (error, platform) => {
             toast.error(`Failed to disconnect ${PLATFORM_CONFIGS[platform].name}`);
