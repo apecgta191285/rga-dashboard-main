@@ -57,6 +57,14 @@ export default function Users() {
     entityName: 'User',
     defaultFormData: DEFAULT_FORM_DATA,
     queryKey: ['users'],
+    transformUpdate: (data) => {
+      const updatePayload: any = { ...data };
+      delete updatePayload.email;
+      if (!updatePayload.password) {
+        delete updatePayload.password;
+      }
+      return updatePayload;
+    },
     validateForm: (data, editingItem) => {
       const errors: Record<string, string> = {};
       const isEdit = !!editingItem;

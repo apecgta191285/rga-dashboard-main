@@ -55,10 +55,76 @@ export async function getDashboardOverview(
     );
 
     // ✅ Runtime validation using Zod
-    // This catches any backend contract violations early
-    const validatedData = DashboardOverviewDataSchema.parse(response.data);
+    // We wrap parse in try/catch so we can log the raw response when validation fails,
+    // which helps debug NaN/invalid numeric values coming from the backend.
+    try {
+        const validatedData = DashboardOverviewDataSchema.parse(response.data);
 
-    return validatedData;
+        // Development-time sanity checks for numeric fields (catch non-finite values)
+        if (import.meta.env.MODE === 'development') {
+            const s = validatedData.summary;
+            const badFields: string[] = [];
+            const check = (v: any, name: string) => {
+                if (!Number.isFinite(Number(v))) badFields.push(name);
+            };
+
+            check(s.totalCost, 'summary.totalCost');
+            check(s.totalImpressions, 'summary.totalImpressions');
+            check(s.totalClicks, 'summary.totalClicks');
+            check(s.totalConversions, 'summary.totalConversions');
+            check(s.averageCtr, 'summary.averageCtr');
+            check(s.averageRoas, 'summary.averageRoas');
+            check(s.averageCpm, 'summary.averageCpm');
+            check(s.averageRoi, 'summary.averageRoi');
+
+            if (badFields.length > 0) {
+                // eslint-disable-next-line no-console
+                console.warn('[getDashboardOverview] Non-finite numeric fields in summary:', {
+                    badFields,
+                    summary: s,
+                    rawResponse: response.data,
+                });
+
+                // Also POST to local dev log server if available (non-blocking)
+                try {
+                    void fetch('http://localhost:9999/log', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            level: 'warn',
+                            message: 'Non-finite numeric fields in dashboard summary',
+                            context: { badFields, summary: s, rawResponse: response.data },
+                        }),
+                    }).catch(() => { });
+                } catch (e) {
+                    // ignore
+                }
+            }
+        }
+
+        return validatedData;
+    } catch (err) {
+        // Log raw response to help backend debugging before rethrowing the validation error.
+        // eslint-disable-next-line no-console
+        console.error('[getDashboardOverview] Dashboard overview validation failed', {
+            error: err,
+            rawResponse: response?.data,
+        });
+        try {
+            void fetch('http://localhost:9999/log', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    level: 'error',
+                    message: 'Dashboard overview validation failed',
+                    context: { error: String(err), rawResponse: response?.data },
+                }),
+            }).catch(() => { });
+        } catch (e) {
+            // ignore
+        }
+        throw err;
+    }
 }
 
 // =============================================================================

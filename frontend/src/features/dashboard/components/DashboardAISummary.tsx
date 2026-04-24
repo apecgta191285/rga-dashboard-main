@@ -10,22 +10,24 @@ export const DashboardAISummary = ({ overview }: DashboardAISummaryProps) => {
     const generateSummary = () => {
         if (!overview?.current) return "Gathering data to generate insights...";
 
-        const { spend, conversions, clicks } = overview.current;
+        const { spend, conversions, clicks } = overview.current || { spend: 0, conversions: 0, clicks: 0 };
         const trends = overview.trends || {};
 
         const insights = [];
 
-        if (trends.spend > 10) {
-            insights.push(`Ad spend has increased by ${trends.spend.toFixed(1)}%. Monitor ROI closely.`);
-        } else if (trends.spend < -10) {
-            insights.push(`Ad spend is down by ${Math.abs(trends.spend).toFixed(1)}%. Check if campaigns are capped.`);
+        const spendTrend = Number(trends?.spend ?? 0);
+        if (spendTrend > 10) {
+            insights.push(`Ad spend has increased by ${spendTrend.toFixed(1)}%. Monitor ROI closely.`);
+        } else if (spendTrend < -10) {
+            insights.push(`Ad spend is down by ${Math.abs(spendTrend).toFixed(1)}%. Check if campaigns are capped.`);
         }
 
-        if (trends.conversions > 0) {
-            insights.push(`Great job! Conversions are up by ${trends.conversions.toFixed(1)}%.`);
+        const convTrend = Number(trends?.conversions ?? 0);
+        if (convTrend > 0) {
+            insights.push(`Great job! Conversions are up by ${convTrend.toFixed(1)}%.`);
         }
 
-        if (clicks > 1000 && conversions === 0) {
+        if (Number(clicks ?? 0) > 1000 && Number(conversions ?? 0) === 0) {
             insights.push("High traffic but no conversions. Consider optimizing your landing page.");
         }
 

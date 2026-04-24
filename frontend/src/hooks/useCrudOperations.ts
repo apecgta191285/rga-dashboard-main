@@ -15,6 +15,7 @@ interface CrudOptions<T> {
     entityName: string;
     defaultFormData: any;
     validateForm?: (data: any, editingItem: T | null) => Record<string, string>; // Returns errors object
+    transformUpdate?: (data: any, editingItem: T | null) => any;
     queryKey: string[]; // Required for React Query caching
 }
 
@@ -23,6 +24,7 @@ export function useCrudOperations<T extends { id: string; name?: string }>({
     entityName,
     defaultFormData,
     validateForm,
+    transformUpdate,
     queryKey,
 }: CrudOptions<T>) {
     const queryClient = useQueryClient();
@@ -121,7 +123,8 @@ export function useCrudOperations<T extends { id: string; name?: string }>({
                 return;
             }
         }
-        updateMutation.mutate({ id: editingItem.id, data: formData });
+        const updateData = transformUpdate ? transformUpdate(formData, editingItem) : formData;
+        updateMutation.mutate({ id: editingItem.id, data: updateData });
     };
 
     const handleDelete = async (id: string, name: string) => {
