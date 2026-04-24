@@ -121,22 +121,22 @@ export function DataSourceCard({
             />
 
             <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
                         <div
-                            className="flex h-12 w-12 items-center justify-center rounded-lg"
+                            className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg"
                             style={{ backgroundColor: `${config.color}10` }}
                         >
                             {PlatformIcons[platform]}
                         </div>
-                        <div>
-                            <CardTitle className="text-lg">{config.name}</CardTitle>
-                            <CardDescription className="text-sm">
+                        <div className="min-w-0 flex-1">
+                            <CardTitle className="text-base sm:text-lg truncate">{config.name}</CardTitle>
+                            <CardDescription className="text-xs sm:text-sm line-clamp-2">
                                 {config.description}
                             </CardDescription>
                         </div>
                     </div>
-                    <Badge variant={isConnected ? 'default' : 'secondary'}>
+                    <Badge variant={isConnected ? 'default' : 'secondary'} className="flex-shrink-0">
                         {isConnected ? 'Connected' : 'Not Connected'}
                     </Badge>
                 </div>

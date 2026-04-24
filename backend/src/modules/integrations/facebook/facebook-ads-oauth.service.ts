@@ -53,7 +53,7 @@ export class FacebookAdsOAuthService {
         // Cache state for validation
         await this.cacheManager.set(`fb_auth_state:${state}`, { userId, tenantId }, 600000); // 10 mins
 
-        const scopes = ['ads_management', 'ads_read', 'read_insights'];
+        const scopes = ['ads_management', 'ads_read'];
 
         const url = new URL(`https://www.facebook.com/${this.apiVersion}/dialog/oauth`);
         url.searchParams.append('client_id', this.appId);
