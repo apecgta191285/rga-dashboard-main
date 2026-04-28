@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { DateRangeUtil } from '../../common/utils/date-range.util';
 import { GoogleSearchConsoleService } from './google-search-console.service';
+import { PeriodEnum } from '../dashboard/dto/dashboard-overview.dto';
 
 function toNumber(value: Prisma.Decimal | number | string | null | undefined, defaultValue = 0): number {
     if (value === null || value === undefined) return defaultValue;
@@ -595,8 +596,13 @@ export class SeoService {
 
     async getOverview(tenantId: string, period?: string) {
         const hideMockData = process.env.HIDE_MOCK_DATA === 'true';
-        const days = DateRangeUtil.parsePeriodDays(period || '30d');
-        const { startDate, endDate } = DateRangeUtil.getDateRange(days);
+
+        const selectedPeriod = (period || PeriodEnum.LAST_MONTH) as PeriodEnum;
+        const { startDate, endDate } = DateRangeUtil.getDateRangeByPeriod(selectedPeriod);
+
+        const days = Math.ceil(
+            (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+        ) + 1;
 
         const tenant = await this.prisma.tenant.findUnique({
             where: { id: tenantId },
@@ -739,10 +745,11 @@ export class SeoService {
 
     async getDashboard(tenantId: string, period?: string, limit: number = 10) {
         const hideMockData = process.env.HIDE_MOCK_DATA === 'true';
-        const days = DateRangeUtil.parsePeriodDays(period || '30d');
-        const { startDate, endDate } = DateRangeUtil.getDateRange(days);
 
-        const overview = await this.getOverview(tenantId, period);
+        const selectedPeriod = (period || PeriodEnum.LAST_MONTH) as PeriodEnum;
+        const { startDate, endDate } = DateRangeUtil.getDateRangeByPeriod(selectedPeriod);
+
+        const overview = await this.getOverview(tenantId, selectedPeriod);
 
         const ga4Daily = await this.prisma.webAnalyticsDaily.findMany({
             where: { tenantId, date: { gte: startDate, lte: endDate }, ...(hideMockData ? { isMockData: false } : {}) },

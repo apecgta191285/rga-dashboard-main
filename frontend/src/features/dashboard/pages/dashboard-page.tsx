@@ -153,14 +153,16 @@ function buildPlatformFunnelStages(platformDataArray: any[] | undefined) {
 
 export function DashboardPage() {
     // Period state for date filtering
-    const [period, setPeriod] = useState<PeriodEnum>('30d');
+    const [period, setPeriod] = useState<PeriodEnum>('this_month');
     const [customRange, setCustomRange] = useState<{ from: Date; to: Date } | undefined>();
 
     // Fetch dashboard data with selected period or custom range
+    const isCustomRange = period === 'custom' && customRange?.from && customRange?.to;
+
     const { data, isLoading, error, refetch } = useDashboardOverview({
-        period,
-        startDate: customRange?.from ? format(customRange.from, 'yyyy-MM-dd') : undefined,
-        endDate: customRange?.to ? format(customRange.to, 'yyyy-MM-dd') : undefined,
+        period: isCustomRange ? undefined : period,
+        startDate: isCustomRange ? format(customRange.from, 'yyyy-MM-dd') : undefined,
+        endDate: isCustomRange ? format(customRange.to, 'yyyy-MM-dd') : undefined,
     });
 
     const financialBreakdown = useMemo(
@@ -173,6 +175,14 @@ export function DashboardPage() {
         () => buildPlatformFunnelStages(data?.platformBreakdown ?? data?.recentCampaigns),
         [data?.platformBreakdown, data?.recentCampaigns]
     );
+
+    const handlePeriodChange = (nextPeriod: PeriodEnum) => {
+        setPeriod(nextPeriod);
+
+        if (nextPeriod !== 'custom') {
+            setCustomRange(undefined);
+        }
+    };
 
     // Calculate funnel stages from data
     const funnelStages = useMemo(() => {
@@ -263,7 +273,7 @@ export function DashboardPage() {
                                     className="h-full"
                                     data={data?.trends ?? []}
                                     period={period}
-                                    onPeriodChange={setPeriod}
+                                    onPeriodChange={handlePeriodChange}
                                     customRange={customRange}
                                     onCustomRangeChange={setCustomRange}
                                 />

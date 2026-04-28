@@ -73,20 +73,37 @@ export function useDashboardOverview(options: UseDashboardOverviewOptions = {}) 
     const authTenantId = user?.tenantId ?? user?.tenant?.id;
 
     const {
-        period = '7d',
+        period,
         startDate,
         endDate,
         tenantId,
         enabled = true,
         refetchInterval = 0,
-        staleTime = 5 * 60 * 1000, // 5 minutes default
+        staleTime = 5 * 60 * 1000,
     } = options;
+
+    const isCustomRange = Boolean(startDate && endDate);
+    const effectivePeriod = isCustomRange ? undefined : (period ?? 'this_month');
 
     const tenantIdForCacheKey = tenantId ?? authTenantId;
 
     return useQuery<DashboardOverviewData, Error>({
-        queryKey: dashboardKeys.overviewByPeriod(period, tenantIdForCacheKey),
-        queryFn: () => getDashboardOverview({ period, startDate, endDate, tenantId }),
+        queryKey: [
+            ...dashboardKeys.overview(),
+            {
+                period: effectivePeriod,
+                startDate,
+                endDate,
+                tenantId: tenantIdForCacheKey,
+            },
+        ],
+        queryFn: () =>
+            getDashboardOverview({
+                period: effectivePeriod,
+                startDate,
+                endDate,
+                tenantId,
+            }),
         enabled,
         staleTime,
         refetchInterval: refetchInterval > 0 ? refetchInterval : undefined,

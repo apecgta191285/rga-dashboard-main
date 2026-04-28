@@ -40,13 +40,15 @@ const DASHBOARD_ENDPOINTS = {
 export async function getDashboardOverview(
     params: DashboardOverviewQuery = {}
 ): Promise<DashboardOverviewData> {
-    const { period = '7d', tenantId, startDate, endDate } = params;
+    const { period, tenantId, startDate, endDate } = params;
+
+    const isCustomRange = Boolean(startDate && endDate);
 
     const response = await apiClient.get<DashboardOverviewData>(
         DASHBOARD_ENDPOINTS.OVERVIEW,
         {
             params: {
-                period,
+                ...(!isCustomRange && { period: period ?? 'this_month' }),
                 ...(tenantId && { tenantId }),
                 ...(startDate && { startDate }),
                 ...(endDate && { endDate }),

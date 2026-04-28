@@ -17,7 +17,15 @@ import { useQuery } from '@tanstack/react-query';
 import { SeoService } from "../api";
 import { DashboardDateFilter } from "@/features/dashboard/components/dashboard-date-filter";
 
-type PeriodEnum = '1d' | '7d' | '30d' | '90d' | 'this_month' | 'last_month' | 'custom';
+type PeriodEnum =
+    | '1d'
+    | 'yesterday'
+    | '7d'
+    | '14d'
+    | 'this_month'
+    | 'last_month'
+    | 'last_3_months'
+    | 'custom';
 type MetricKey =
     | 'organicTraffic'
     | 'paidTraffic'
@@ -143,24 +151,46 @@ function EmptyState() {
 }
 
 export function SeoPerformanceChart() {
-    const [period, setPeriod] = useState<PeriodEnum>('30d');
+    const [period, setPeriod] = useState<PeriodEnum>('this_month');
     const [customRange, setCustomRange] = useState<{ from: Date; to: Date } | undefined>();
     const [activeMetrics, setActiveMetrics] = useState<MetricKey[]>(['organicTraffic', 'avgPosition']);
 
     // Helper to calculate days for API based on period
     const getDaysFromPeriod = (p: PeriodEnum, custom?: { from: Date; to: Date }): number => {
+        if (p === '1d') return 1;
+
+        if (p === 'yesterday') return 1;
+
         if (p === '7d') return 7;
-        if (p === '30d') return 30;
+
+        if (p === '14d') return 14;
+
         if (p === 'this_month') {
             const now = new Date();
-            return now.getDate(); // Days so far this month
+            return now.getDate();
         }
-        if (p === 'last_month') return 30; // Approximation for now
+
+        if (p === 'last_month') {
+            const now = new Date();
+            return new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+        }
+
+        if (p === 'last_3_months') {
+            const now = new Date();
+            const start = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+            const end = new Date(now.getFullYear(), now.getMonth(), 0);
+
+            return Math.ceil(
+                (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
+            ) + 1;
+        }
+
         if (p === 'custom' && custom) {
             const diffTime = Math.abs(custom.to.getTime() - custom.from.getTime());
-            return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
         }
-        return 30;
+
+        return new Date().getDate();
     };
 
     const days = getDaysFromPeriod(period, customRange);

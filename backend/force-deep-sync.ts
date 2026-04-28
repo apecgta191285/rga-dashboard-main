@@ -32,7 +32,7 @@ async function bootstrap() {
     return;
   }
 
-  console.log(`=== Starting Deep Sync (90 days) for ${email} ===`);
+  console.log(`=== Starting Deep Sync (Last 3 months until yesterday) for ${email} ===`);
   
   const adapter = factory.getAdapter(AdPlatform.GOOGLE_ADS);
 
@@ -48,24 +48,51 @@ async function bootstrap() {
 
   console.log(`Found ${campaigns.length} campaigns to sync metrics for.`);
 
+  const now = new Date();
+
+  const startDate = new Date(
+    now.getFullYear(),
+    now.getMonth() - 3,
+    1,
+    0,
+    0,
+    0,
+    0
+  );
+
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  yesterday.setHours(23, 59, 59, 999);
+
+  const dateRange = {
+    startDate,
+    endDate: yesterday,
+  };
+
   for (const campaign of campaigns) {
     if (!campaign.externalId) continue;
-    
-    // FETCH 90 DAYS (Jan 1 to today)
-    const dateRange = {
-      startDate: new Date('2026-01-01'),
-      endDate: new Date(),
-    };
 
     console.log(`  Syncing ${campaign.name} [${campaign.externalId}]...`);
+
     try {
-        const metrics = await adapter.fetchMetrics(credentials, campaign.externalId, dateRange);
+        const metrics = await adapter.fetchMetrics(
+          credentials, 
+          campaign.externalId, 
+          dateRange
+        );
+
         console.log(`    Fetched ${metrics.length} metric records.`);
+
         if (metrics.length > 0) {
-            await (syncService as any).saveCampaignMetrics(user.tenantId, AdPlatform.GOOGLE_ADS, campaign.id, metrics);
+          await (syncService as any).saveCampaignMetrics(
+            user.tenantId, 
+            AdPlatform.GOOGLE_ADS, 
+            campaign.id, 
+            metrics
+          );
         }
     } catch (e: any) {
-        console.log(`    Error: ${e.message}`);
+      console.log(`    Error: ${e.message}`);
     }
   }
 

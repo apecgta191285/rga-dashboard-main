@@ -29,14 +29,16 @@ const GA4Icon = () => (
 
 export function AnalyticsWidget() {
     // ✅ Use global date range context
-    const { dateRange, dateRangeLabel, startDateString } = useDateRange();
+    const { dateRange, dateRangeLabel, startDate, endDate } = useDateRange();
     const user = useAuthStore(selectUser);
     const tenantId = user?.tenantId;
 
     const { data, isLoading, error } = useQuery<AnalyticsData>({
-        queryKey: ['analytics', tenantId, 'basic', dateRange], // Include dateRange in query key for refetch
+        queryKey: ['analytics', tenantId, 'basic', dateRange, startDate, endDate],
         queryFn: async () => {
-            const response = await apiClient.get(`/integrations/google-analytics/basic?startDate=${startDateString}`);
+            const response = await apiClient.get(
+                `/integrations/google-analytics/basic?startDate=${startDate}&endDate=${endDate}`
+            );
             return response.data;
         },
         // Refresh every 5 minutes

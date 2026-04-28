@@ -11,11 +11,18 @@ import { CampaignStatus, AdPlatform } from '@prisma/client';
  */
 export enum PeriodEnum {
     ONE_DAY = '1d',
+    YESTERDAY = 'yesterday',
     SEVEN_DAYS = '7d',
+    FOURTEEN_DAYS = '14d',
+
+    // legacy / fallback
     THIRTY_DAYS = '30d',
     NINETY_DAYS = '90d',
+
     THIS_MONTH = 'this_month',
     LAST_MONTH = 'last_month',
+    LAST_3_MONTHS = 'last_3_months',
+    CUSTOM = 'custom',
 }
 
 /**
@@ -29,7 +36,7 @@ export class GetDashboardOverviewDto {
     })
     @IsOptional()
     @IsEnum(PeriodEnum, {
-        message: 'period must be one of: 1d, 7d, 30d, 90d, this_month, last_month',
+        message: 'period must be one of: 1d, yesterday, 7d, 14d, 30d, 90d, this_month, last_month, last_3_months, custom',
     })
     period?: PeriodEnum = PeriodEnum.SEVEN_DAYS;
 

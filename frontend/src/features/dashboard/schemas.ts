@@ -10,7 +10,18 @@ import { z } from 'zod';
 // Enums
 // =============================================================================
 
-export const PeriodEnumSchema = z.enum(['1d', '7d', '30d', '90d', 'this_month', 'last_month', 'custom']);
+export const PeriodEnumSchema = z.enum([
+    '1d',
+    'yesterday',
+    '7d',
+    '14d',
+    '30d',
+    '90d',
+    'this_month',
+    'last_month',
+    'last_3_months',
+    'custom',
+]);
 export type PeriodEnum = z.infer<typeof PeriodEnumSchema>;
 
 export const CampaignStatusSchema = z.enum([
