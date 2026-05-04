@@ -806,7 +806,7 @@ export class DashboardService {
       where: {
         campaignId: { in: campaignIds },
         campaign: { tenantId },
-        ...(hideMockData && { isMock: false }),
+        ...(hideMockData && { isMockData: false }),
       },
       _sum: {
         spend: true,

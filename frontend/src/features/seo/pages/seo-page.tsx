@@ -11,10 +11,14 @@ import { AdsConnectionStatus } from '../components/ads-connection-status';
 import { SeoAnchorText } from '../components/seo-anchor-text';
 import { TopOrganicKeywords } from '../components/top-organic-keywords';
 import { SeoOffPageMetrics } from '../components/seo-offpage-metrics';
+import { useSyncGsc } from '../hooks';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
 
 export function SeoPage() {
     const { data, isLoading } = useSeoSummary();
     const { status: integrationStatus, isLoading: integrationLoading, error: integrationError } = useIntegrationStatus();
+    const { mutate: syncGsc, isPending: isSyncing } = useSyncGsc();
 
     // Default fallback data if API fails or is loading (to prevent crash)
     const displayData: SeoMetricSummary = data || {
@@ -46,7 +50,19 @@ export function SeoPage() {
             <div className="space-y-4 p-4 sm:space-y-6 sm:p-6 md:p-8">
                 <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start">
                     <div className="space-y-2">
-                        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl">SEO & Web Analytics</h1>
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl">SEO & Web Analytics</h1>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => syncGsc(30)}
+                                disabled={isSyncing}
+                                className="h-9 w-9 rounded-full shadow-sm hover:shadow-md transition-all active:scale-95"
+                                title="Sync data from Search Console"
+                            >
+                                <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                            </Button>
+                        </div>
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                             <AdsConnectionStatus
                                 data={integrationStatus}

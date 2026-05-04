@@ -25,3 +25,24 @@ export function useAdsConnections() {
         },
     });
 }
+
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+
+export function useSyncGsc() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (days?: number) => SeoService.syncGsc(days),
+        onSuccess: (data) => {
+            if (data.success) {
+                toast.success(`Successfully synced ${data.fetched} rows from Search Console`);
+                queryClient.invalidateQueries({ queryKey: SEO_KEYS.all });
+            } else {
+                toast.error(data.message || 'Failed to sync GSC data');
+            }
+        },
+        onError: (error: any) => {
+            toast.error(error.response?.data?.message || 'Error connecting to GSC API');
+        }
+    });
+}
