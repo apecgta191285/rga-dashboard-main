@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MetricsService } from './metrics.service';
 import { stringify } from 'csv-stringify';
 import { PassThrough } from 'stream';
-import * as PDFDocument from 'pdfkit';
+import PDFDocument from 'pdfkit';
 
 // ============================================================================
 // Constants

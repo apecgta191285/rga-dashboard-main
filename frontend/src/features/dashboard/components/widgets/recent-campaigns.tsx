@@ -14,14 +14,27 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatCurrencyTHB } from '@/lib/formatters';
 import { BrandLogo } from '@/components/ui/brand-logo';
-import { HelpCircle } from 'lucide-react';
+import { HelpCircle, Info } from 'lucide-react';
+import {
+    Tooltip as UiTooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
+
 import type { RecentCampaign, CampaignStatus, AdPlatform } from '../../schemas';
 
 // =============================================================================
 // Status Badge Styling
 // =============================================================================
 
-const STATUS_STYLES: Record<CampaignStatus, { variant: 'default' | 'secondary' | 'destructive' | 'outline'; label: string }> = {
+const STATUS_STYLES: Record<
+    CampaignStatus,
+    {
+        variant: 'default' | 'secondary' | 'destructive' | 'outline';
+        label: string;
+    }
+> = {
     ACTIVE: { variant: 'default', label: 'Active' },
     PAUSED: { variant: 'secondary', label: 'Paused' },
     PENDING: { variant: 'outline', label: 'Pending' },
@@ -57,21 +70,59 @@ interface RecentCampaignsProps {
 }
 
 // =============================================================================
+// Info Tooltip Component
+// =============================================================================
+
+function RecentCampaignsInfoTooltip() {
+    return (
+        <TooltipProvider>
+            <UiTooltip>
+                <TooltipTrigger asChild>
+                    <button
+                        type="button"
+                        className="inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                        <Info className="h-4 w-4" />
+                    </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs text-sm leading-relaxed">
+                    <p className="font-semibold mb-1">Recent Campaigns</p>
+                    <p>
+                        This section displays the 5 most recent campaigns.
+                        It helps monitor campaign status, advertising platform, spending amount,
+                        and budget utilization so you can quickly review current campaign performance.
+                    </p>
+                </TooltipContent>
+            </UiTooltip>
+        </TooltipProvider>
+    );
+}
+
+// =============================================================================
 // Main Component
 // =============================================================================
 
-export function RecentCampaigns({ campaigns, className }: RecentCampaignsProps) {
+export function RecentCampaigns({
+    campaigns,
+    className
+}: RecentCampaignsProps) {
     const hasData = campaigns && campaigns.length > 0;
 
     return (
         <Card className={`h-[400px] flex flex-col ${className ?? ''}`}>
             <CardHeader>
-                <CardTitle className="text-base font-semibold">
-                    Recent Campaigns
-                </CardTitle>
+                <div className="flex items-center gap-2">
+                    <CardTitle className="text-base font-semibold">
+                        Recent Campaigns
+                    </CardTitle>
+                    <RecentCampaignsInfoTooltip />
+                </div>
+
                 <CardDescription>
                     {hasData
-                        ? `${campaigns.length} campaign${campaigns.length > 1 ? 's' : ''} in selected period`
+                        ? `${campaigns.length} most recent campaign${
+                              campaigns.length > 1 ? 's' : ''
+                          }`
                         : 'No campaigns found'}
                 </CardDescription>
             </CardHeader>
@@ -85,48 +136,70 @@ export function RecentCampaigns({ campaigns, className }: RecentCampaignsProps) 
                     <ScrollArea className="h-full pr-4">
                         <div className="space-y-4">
                             {campaigns.map((campaign) => {
-                                const statusStyle = STATUS_STYLES[campaign.status] || STATUS_STYLES.PENDING;
-                                const platformName = PLATFORM_NAMES[campaign.platform] || campaign.platform;
+                                const statusStyle =
+                                    STATUS_STYLES[campaign.status] ||
+                                    STATUS_STYLES.PENDING;
+
+                                const platformName =
+                                    PLATFORM_NAMES[campaign.platform] ||
+                                    campaign.platform;
 
                                 return (
                                     <div
                                         key={campaign.id}
-                                        className="flex items-center justify-between gap-4 rounded-lg border p-3 transition-all duration-200 hover:bg-muted/50 hover:shadow-sm"
+                                        className="flex w-full h-16 items-center gap-3 rounded-lg border p-3 transition-all duration-200 hover:bg-muted/50 hover:shadow-sm"
                                     >
-                                        {/* Left: Platform Icon + Info */}
-                                        <div className="flex items-center gap-3 min-w-0">
-                                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted border border-border shadow-sm">
-                                                <BrandLogo platformId={campaign.platform} className="h-6 w-6" />
-                                                {/* Fallback if BrandLogo returns null */}
-                                                {!BrandLogo({ platformId: campaign.platform, className: "h-6 w-6" }) && (
-                                                    <HelpCircle className="h-5 w-5 text-muted-foreground" />
-                                                )}
-                                            </div>
-                                            <div className="min-w-0">
-                                                <p className="truncate text-sm font-medium leading-none">
-                                                    {campaign.name}
-                                                </p>
-                                                <p className="mt-1 text-xs text-muted-foreground">
-                                                    {platformName}
-                                                </p>
-                                            </div>
+                                        {/* Left: Platform Icon */}
+                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted border border-border shadow-sm">
+                                            <BrandLogo
+                                                platformId={campaign.platform}
+                                                className="h-6 w-6"
+                                            />
+
+                                            {/* Fallback if BrandLogo returns null */}
+                                            {!BrandLogo({
+                                                platformId: campaign.platform,
+                                                className: 'h-6 w-6',
+                                            }) && (
+                                                <HelpCircle className="h-5 w-5 text-muted-foreground" />
+                                            )}
                                         </div>
 
-                                        {/* Right: Badge + Spend */}
-                                        <div className="flex items-center gap-3 shrink-0">
-                                            <Badge variant={statusStyle.variant} className="text-xs">
-                                                {statusStyle.label}
-                                            </Badge>
-                                            <div className="text-right">
-                                                <p className="text-sm font-medium">
-                                                    {formatCurrencyTHB(campaign.spending)}
-                                                </p>
-                                                {campaign.budgetUtilization !== undefined && (
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {campaign.budgetUtilization.toFixed(0)}% used
-                                                    </p>
+                                        {/* Center-Left: Campaign Info */}
+                                        <div className="min-w-0 flex-1">
+                                            <p className="truncate text-sm font-medium leading-tight">
+                                                {campaign.name}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground leading-tight">
+                                                {platformName}
+                                            </p>
+                                        </div>
+
+                                        {/* Center-Right: Status Badge */}
+                                        <Badge
+                                            variant={statusStyle.variant}
+                                            className="text-xs shrink-0"
+                                        >
+                                            {statusStyle.label}
+                                        </Badge>
+
+                                        {/* Right: Spending Info */}
+                                        <div className="text-right shrink-0 w-16">
+                                            <p className="text-sm font-medium leading-tight">
+                                                {formatCurrencyTHB(
+                                                    campaign.spending
                                                 )}
-                                            </div>
+                                            </p>
+
+                                            {campaign.budgetUtilization !==
+                                                undefined && (
+                                                <p className="text-xs text-muted-foreground leading-tight">
+                                                    {campaign.budgetUtilization.toFixed(
+                                                        0
+                                                    )}
+                                                    % used
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
                                 );

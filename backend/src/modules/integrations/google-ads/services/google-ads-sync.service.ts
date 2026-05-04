@@ -39,6 +39,7 @@ export class GoogleAdsSyncService {
         let updatedCount = 0;
 
         this.logger.log(`Syncing ${campaigns.length} campaigns for account ${accountId}`);
+        this.logger.log(`Campaign data sample: ${JSON.stringify(campaigns.slice(0, 1), null, 2)}`);
 
         for (const campaign of campaigns) {
             // Check if campaign already exists
@@ -57,6 +58,9 @@ export class GoogleAdsSyncService {
                     data: {
                         name: campaign.name,
                         status: campaign.status,
+                        budget: campaign.budget,
+                        startDate: campaign.startDate,
+                        endDate: campaign.endDate,
                         googleAdsAccount: {
                             connect: { id: accountId },
                         },
@@ -72,6 +76,9 @@ export class GoogleAdsSyncService {
                         platform: 'GOOGLE_ADS',
                         status: campaign.status,
                         externalId: campaign.externalId,
+                        budget: campaign.budget,
+                        startDate: campaign.startDate,
+                        endDate: campaign.endDate,
                         googleAdsAccount: {
                             connect: { id: accountId },
                         },
@@ -86,6 +93,9 @@ export class GoogleAdsSyncService {
         }
 
         this.logger.log(`Campaign sync result: ${createdCount} created, ${updatedCount} updated`);
+
+        // Log final result
+        this.logger.log(`[SYNC] Final result: ${syncedCampaigns.length} campaigns synced for account ${accountId}`);
 
         // Sync metrics for all campaigns (including generating mock data)
         await this.syncAllCampaignMetrics(accountId);
@@ -105,7 +115,7 @@ export class GoogleAdsSyncService {
     async syncCampaignMetrics(
         accountId: string,
         campaignId: string,
-        days: number = 30,
+        days: number = 90,  // ← 3 เดือน
     ) {
         this.logger.log(
             `Syncing metrics for campaign ${campaignId} (last ${days} days)`,

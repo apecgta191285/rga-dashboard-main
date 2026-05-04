@@ -76,14 +76,16 @@ export function CampaignSummary({ summary, isLoading = false }: CampaignSummaryP
     }
 
     // Formatters
-    const currency = (val: number) => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(val);
-    const currencyShort = (val: number) => {
-        if (val >= 1000000) return `฿${(val / 1000000).toFixed(1)}M`;
-        if (val >= 1000) return `฿${(val / 1000).toFixed(0)}K`;
-        return `฿${val}`;
+    const safeValue = (val?: number) => (val === undefined || val === null || Number.isNaN(val) ? 0 : val);
+    const currency = (val?: number) => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(safeValue(val));
+    const currencyShort = (val?: number) => {
+        const safe = safeValue(val);
+        if (safe >= 1000000) return `฿${(safe / 1000000).toFixed(1)}M`;
+        if (safe >= 1000) return `฿${(safe / 1000).toFixed(0)}K`;
+        return `฿${safe}`;
     };
-    const number = (val: number) => new Intl.NumberFormat('th-TH').format(val);
-    const percent = (val: number) => `${val.toFixed(2)}%`;
+    const number = (val?: number) => new Intl.NumberFormat('th-TH').format(safeValue(val));
+    const percent = (val?: number) => `${safeValue(val).toFixed(2)}%`;
 
     const safe = (val: number | undefined) => {
         if (val === undefined || val === null || isNaN(val)) return 0;

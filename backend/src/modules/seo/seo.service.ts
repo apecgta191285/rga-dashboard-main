@@ -41,17 +41,29 @@ export class SeoService {
     // HEAD Methods (Legacy/Simple Aggregations)
     // ========================================================================
 
-    async getSeoSummary(tenantId: string) {
+    async getSeoSummary(tenantId: string, days?: number) {
         try {
-            // Current Period (Last 30 days)
             const endDate = new Date();
-            const startDate = new Date();
-            startDate.setDate(startDate.getDate() - 30);
+            let startDate: Date;
+            let previousStartDate: Date;
+            let previousEndDate: Date;
 
-            // Previous Period (30-60 days ago)
-            const previousStartDate = new Date(startDate);
-            previousStartDate.setDate(previousStartDate.getDate() - 30);
-            const previousEndDate = new Date(startDate);
+            if (days) {
+                // Specific Period
+                startDate = new Date();
+                startDate.setDate(startDate.getDate() - days);
+                
+                previousStartDate = new Date(startDate);
+                previousStartDate.setDate(previousStartDate.getDate() - days);
+                previousEndDate = new Date(startDate);
+            } else {
+                // All Time
+                startDate = new Date('2000-01-01');
+                
+                // For all time, there is no previous period to compare against
+                previousStartDate = new Date('1999-01-01');
+                previousEndDate = new Date('1999-12-31');
+            }
 
             // 1. Get web analytics data (Current & Previous)
             const webAnalyticsData = await this.prisma.webAnalyticsDaily.findMany({
@@ -67,7 +79,7 @@ export class SeoService {
                     tenantId,
                     date: { gte: previousStartDate, lte: previousEndDate }
                 },
-                select: { sessions: true, newUsers: true, avgSessionDuration: true }
+                select: { sessions: true, newUsers: true, avgSessionDuration: true, activeUsers: true, screenPageViews: true, engagementRate: true, bounceRate: true }
             });
 
             // 2. Get SEO offpage metrics (Latest snapshot only)
@@ -131,6 +143,30 @@ export class SeoService {
             const prevAvgSessionDuration = previousWebAnalyticsData.length > 0 ?
                 previousWebAnalyticsData.reduce((sum, day) => sum + toNumber(day.avgSessionDuration), 0) / previousWebAnalyticsData.length : 65;
             const avgSessionDurationTrend = prevAvgSessionDuration > 0 ? ((avgSessionDuration - prevAvgSessionDuration) / prevAvgSessionDuration) * 100 : 0;
+
+            // Active Users
+            const totalActiveUsers = webAnalyticsData.reduce((sum, day) => sum + day.activeUsers, 0);
+            const prevActiveUsers = previousWebAnalyticsData.reduce((sum, day) => sum + (day.activeUsers || 0), 0);
+            const activeUsersTrend = prevActiveUsers > 0 ? ((totalActiveUsers - prevActiveUsers) / prevActiveUsers) * 100 : 0;
+
+            // Screen Page Views
+            const totalScreenPageViews = webAnalyticsData.reduce((sum, day) => sum + day.screenPageViews, 0);
+            const prevScreenPageViews = previousWebAnalyticsData.reduce((sum, day) => sum + (day.screenPageViews || 0), 0);
+            const screenPageViewsTrend = prevScreenPageViews > 0 ? ((totalScreenPageViews - prevScreenPageViews) / prevScreenPageViews) * 100 : 0;
+
+            // Engagement Rate
+            const avgEngagementRate = webAnalyticsData.length > 0 ?
+                webAnalyticsData.reduce((sum, day) => sum + toNumber(day.engagementRate), 0) / webAnalyticsData.length : 0;
+            const prevEngagementRate = previousWebAnalyticsData.length > 0 ?
+                previousWebAnalyticsData.reduce((sum, day) => sum + toNumber(day.engagementRate), 0) / previousWebAnalyticsData.length : 0;
+            const engagementRateTrend = prevEngagementRate > 0 ? ((avgEngagementRate - prevEngagementRate) / prevEngagementRate) * 100 : 0;
+
+            // Bounce Rate
+            const avgBounceRate = webAnalyticsData.length > 0 ?
+                webAnalyticsData.reduce((sum, day) => sum + toNumber(day.bounceRate), 0) / webAnalyticsData.length : 0;
+            const prevBounceRate = previousWebAnalyticsData.length > 0 ?
+                previousWebAnalyticsData.reduce((sum, day) => sum + toNumber(day.bounceRate), 0) / previousWebAnalyticsData.length : 0;
+            const bounceRateTrend = prevBounceRate > 0 ? ((avgBounceRate - prevBounceRate) / prevBounceRate) * 100 : 0;
 
             // Goal Completions (Estimated 4.5% of sessions)
             const goalCompletions = Math.round(totalOrganicSessions * 0.045);
@@ -197,7 +233,14 @@ export class SeoService {
                 goalCompletionsTrend: pickFallback(parseFloat(goalCompletionsTrend.toFixed(1)), seoMetrics.goalCompletionsTrend),
                 avgPosition: pickFallback(parseFloat(avgPosition.toFixed(1)), seoMetrics.avgPosition),
                 avgPositionTrend: pickFallback(parseFloat(avgPositionTrend.toFixed(1)), seoMetrics.avgPositionTrend),
-                bounceRate: pickFallback(Number(latestWebAnalytics?.bounceRate || 0), seoMetrics.bounceRate),
+                bounceRate: pickFallback(Number(avgBounceRate.toFixed(1)) || 0, seoMetrics.bounceRate),
+                bounceRateTrend: parseFloat(bounceRateTrend.toFixed(1)),
+                screenPageViews: totalScreenPageViews,
+                screenPageViewsTrend: parseFloat(screenPageViewsTrend.toFixed(1)),
+                engagementRate: Number(avgEngagementRate.toFixed(1)) || 0,
+                engagementRateTrend: parseFloat(engagementRateTrend.toFixed(1)),
+                activeUsers: totalActiveUsers,
+                activeUsersTrend: parseFloat(activeUsersTrend.toFixed(1)),
                 ur: pickFallback(avgUR, seoMetrics.ur),
                 dr: pickFallback(avgDR, seoMetrics.dr),
                 backlinks: pickFallback(backlinks, seoMetrics.backlinks),
@@ -225,6 +268,13 @@ export class SeoService {
                 avgPosition: 0,
                 avgPositionTrend: 0,
                 bounceRate: 0,
+                bounceRateTrend: 0,
+                screenPageViews: 0,
+                screenPageViewsTrend: 0,
+                engagementRate: 0,
+                engagementRateTrend: 0,
+                activeUsers: 0,
+                activeUsersTrend: 0,
                 ur: 0,
                 dr: 0,
                 backlinks: 0,
@@ -241,10 +291,16 @@ export class SeoService {
         }
     }
 
-    async getSeoHistory(tenantId: string, days: number = 30) {
+    async getSeoHistory(tenantId: string, days?: number) {
         const endDate = new Date();
-        const startDate = new Date();
-        startDate.setDate(startDate.getDate() - days);
+        let startDate: Date;
+        
+        if (days) {
+            startDate = new Date();
+            startDate.setDate(startDate.getDate() - days);
+        } else {
+            startDate = new Date('2000-01-01');
+        }
 
         // 1. Fetch Organic Data (WebAnalyticsDaily) - aggregate for 30 days
         const organicData = await this.prisma.webAnalyticsDaily.findMany({

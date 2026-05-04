@@ -1,4 +1,4 @@
-﻿import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { AuthRepository } from './auth.repository';
@@ -153,8 +153,9 @@ export class AuthService {
       throw new InvalidCredentialsException();
     }
 
+    const normalizedEmail = (email || '').trim().toLowerCase();
     const user = await this.prisma.user.findFirst({
-      where: { email },
+      where: { email: normalizedEmail },
     });
 
     if (!user) {
@@ -176,7 +177,10 @@ export class AuthService {
     });
 
     try {
-      await this.sendVerificationEmail(email, token);
+      const result: any = await this.sendVerificationEmail(email, token);
+      if (result?.error) {
+        throw new Error(result.error);
+      }
       return { message: 'Verification email sent' };
     } catch (e: any) {
       this.logger.error(
@@ -194,9 +198,11 @@ export class AuthService {
    * - Track session with IP and UserAgent
    */
   async login(dto: LoginDto, request?: Request) {
+    const normalizedEmail = (dto.email || '').trim().toLowerCase();
+
     // For login, we look up user by email globally (email is unique across system)
     const user = await this.prisma.user.findFirst({
-      where: { email: dto.email },
+      where: { email: normalizedEmail },
       include: { tenant: true },
     }) as UserWithTenant;
 
@@ -447,8 +453,9 @@ export class AuthService {
   }
 
   async forgotPassword(dto: ForgotPasswordDto) {
+    const normalizedEmail = (dto.email || '').trim().toLowerCase();
     const user = await this.prisma.user.findFirst({
-      where: { email: dto.email },
+      where: { email: normalizedEmail },
     });
 
     if (!user) {
@@ -458,7 +465,7 @@ export class AuthService {
 
     // Generate password reset token
     const { token, tokenHash, expiresAt } = this.generatePasswordResetToken();
-    
+
     await this.prisma.user.update({
       where: { id: user.id },
       data: {
@@ -468,7 +475,10 @@ export class AuthService {
     });
 
     try {
-      await this.sendPasswordResetEmail(user.email, token);
+      const result: any = await this.sendPasswordResetEmail(user.email, token);
+      if (result?.error) {
+        throw new Error(result.error);
+      }
     } catch (e: any) {
       this.logger.error(
         `Failed to send password reset email to ${user.email}: ${e?.message || e}`,
@@ -481,7 +491,7 @@ export class AuthService {
 
   async resetPassword(dto: ResetPasswordDto) {
     const tokenHash = this.hashToken(dto.token);
-    
+
     const user = await this.prisma.user.findFirst({
       where: {
         passwordResetTokenHash: tokenHash,
@@ -551,5 +561,38 @@ export class AuthService {
       subject,
       html,
     });
+  }
+
+  /**
+   * Internal debug: Test SMTP connection and sending
+   */
+  async debugTestMail(to: string) {
+    const target = to || 'test@example.com';
+    try {
+      const result = await this.mailService.sendMail({
+        to: target,
+        subject: 'Debug: RGA SMTP Test',
+        html: `<h1>SMTP Debug</h1><p>Time: ${new Date().toISOString()}</p>`,
+      });
+      return { success: true, ...result };
+    } catch (err: any) {
+      return { success: false, error: err?.message || err };
+    }
+  }
+
+  /**
+   * Internal debug: Check if ENV variables are loaded
+   */
+  async debugConfig() {
+    return {
+      host: this.config.get('SMTP_HOST'),
+      port: this.config.get('SMTP_PORT'),
+      secure: this.config.get('SMTP_SECURE'),
+      user: this.config.get('SMTP_USER'),
+      from: this.config.get('SMTP_FROM') || this.config.get('EMAIL_FROM') || this.config.get('SMTP_USER'),
+      nodeEnv: process.env.NODE_ENV,
+      hasPassword: !!this.config.get('SMTP_PASSWORD'),
+      passMasked: (this.config.get('SMTP_PASSWORD') || '').substring(0, 2) + '****',
+    };
   }
 }

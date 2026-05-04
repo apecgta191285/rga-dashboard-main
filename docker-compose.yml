@@ -5,13 +5,15 @@ services:
     build: ./backend
     ports:
       - "3000:3000"
-    command: ["sh", "-c", "npx prisma db push && npm run start:prod"]
+    command: [ "sh", "-c", "npx prisma db push && npm run start:prod" ]
     environment:
-      - NODE_ENV=development
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/rga_dashboard?schema=public
-      - DIRECT_URL=postgresql://postgres:postgres@postgres:5432/rga_dashboard?schema=public
-      - JWT_SECRET=super-secret-jwt-key-change-this-in-production-32chars
-      - JWT_REFRESH_SECRET=super-secret-refresh-key-change-this-in-production-32chars
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres.lbyodfrbdwtbezyyilhu:iSjPjSQZGQx6Qdxy@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres?pgbouncer=true&connect_timeout=30
+      - DIRECT_URL=postgresql://postgres.lbyodfrbdwtbezyyilhu:iSjPjSQZGQx6Qdxy@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres?connect_timeout=30
+      - JWT_SECRET=b5d7f9a1c3e5b7d9f1a3c5e7b9d1f3a5c7e9b1d3f5a7c9e1b3d5f7a9c1e3b5d7
+      - JWT_REFRESH_SECRET=c7e9b1d3f5a7c9e1b3d5f7a9c1e3b5d7f9a1c3e5b7d9f1a3c5e7b9d1f3a5c7e9
+      - FRONTEND_URL=https://saddlebrown-eagle-972006.hostingersite.com
+      - CORS_ORIGINS=https://saddlebrown-eagle-972006.hostingersite.com,http://localhost
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     volumes:

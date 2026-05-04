@@ -16,6 +16,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { integrationService, parseOAuthCallback, isOAuthCallback } from '../api/integration-service';
 import { dashboardKeys } from '@/features/dashboard/hooks/use-dashboard';
+import { campaignKeys } from '@/features/campaigns/hooks/use-campaigns';
 import { useAuthStore, selectUser } from '@/stores/auth-store';
 import type {
     PlatformId,
@@ -129,13 +130,7 @@ export function useIntegrationAuth() {
                 return;
             }
 
-            // If only one account, auto-connect
-            if (accounts.length === 1) {
-                await handleCompleteConnection(platform, tempToken, accounts[0].id);
-                return;
-            }
-
-            // Multiple accounts - show selection dialog
+            // Always show selection dialog so user can confirm which account to connect
             setCallbackState({
                 platform,
                 tempToken,
@@ -181,9 +176,10 @@ export function useIntegrationAuth() {
             // Refresh dashboard data (demo -> live switch)
             queryClient.invalidateQueries({ queryKey: dashboardKeys.overview() });
         },
-        onError: (error: Error, variables) => {
+        onError: (error: any, variables) => {
             const platformName = PLATFORM_CONFIGS[variables.platform].name;
-            toast.error(`Failed to connect ${platformName}: ${error.message}`);
+            const backendMessage = error.response?.data?.message || error.message;
+            toast.error(`Failed to connect ${platformName}: ${backendMessage}`);
         },
     });
 
@@ -234,7 +230,15 @@ export function useIntegrationAuth() {
             }
         } catch (error) {
             console.error('[useIntegrationAuth] Connect error:', error);
-            toast.error(`Failed to start ${PLATFORM_CONFIGS[platform].name} connection`);
+
+            // Handle specific Facebook configuration errors
+            if (platform === 'facebook' && (error as any)?.response?.status === 400) {
+                toast.error('Facebook integration is not configured. Please contact administrator to set up Facebook App credentials.');
+            } else {
+                const errorMessage = (error as any)?.response?.data?.message || (error as any)?.message || 'Unknown error';
+                toast.error(`Failed to start ${PLATFORM_CONFIGS[platform].name} connection: ${errorMessage}`);
+            }
+
             setPendingPlatform(null);
         }
     }, [queryClient]);
@@ -248,10 +252,18 @@ export function useIntegrationAuth() {
         },
         onSuccess: (data, platform) => {
             toast.success(`${PLATFORM_CONFIGS[platform].name} disconnected`);
+            
+            // Invalidate all integration-related queries
             queryClient.invalidateQueries({ queryKey: integrationQueryKeys.allStatuses(tenantId) });
-
-            // Refresh dashboard data (live -> demo switch)
+            
+            // Invalidate campaigns to hide deleted campaigns
+            queryClient.invalidateQueries({ queryKey: campaignKeys.all });
+            
+            // Refresh dashboard data
             queryClient.invalidateQueries({ queryKey: dashboardKeys.overview() });
+            
+            // Reload page to ensure clean state
+            setTimeout(() => window.location.reload(), 500);
         },
         onError: (error, platform) => {
             toast.error(`Failed to disconnect ${PLATFORM_CONFIGS[platform].name}`);
@@ -336,6 +348,8 @@ function normalizePlatformId(platform: string): PlatformId | null {
     const map: Record<string, PlatformId> = {
         'google': 'google',
         'ads': 'google', // Legacy: platform=ads means Google Ads
+        'google-analytics': 'google-analytics',
+        'ga4': 'google-analytics',
         'facebook': 'facebook',
         'tiktok': 'tiktok',
         'line': 'line',

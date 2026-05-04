@@ -89,16 +89,16 @@ export function MarketingTools({ onBack }: MarketingToolsProps) {
     return (
         <div className="flex flex-col items-center w-full h-full overflow-y-auto custom-scrollbar pb-12 space-y-8 relative">
             {onBack && (
-                <div className="h-16 w-full border-b border-slate-100 flex items-center justify-between px-6 bg-white/80 backdrop-blur sticky top-0 z-10">
+                <div className="h-14 sm:h-16 w-full border-b border-slate-100 flex items-center justify-between px-4 sm:px-6 bg-white/80 backdrop-blur sticky top-0 z-10">
                     <div className="flex items-center gap-3">
                         <button
                             onClick={onBack}
-                            className="group flex items-center gap-3 px-4 py-2 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-slate-300 hover:shadow-md transition-all duration-200"
+                            className="group flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-slate-300 hover:shadow-md transition-all duration-200"
                         >
-                            <div className="p-1.5 bg-indigo-50 rounded-lg group-hover:bg-indigo-100 transition-colors">
-                                <ArrowLeft className="w-4 h-4 text-indigo-600" />
+                            <div className="p-1 sm:p-1.5 bg-indigo-50 rounded-lg group-hover:bg-indigo-100 transition-colors">
+                                <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-600" />
                             </div>
-                            <span className="hidden md:inline text-sm font-bold text-slate-700 group-hover:text-slate-900">Back to AI Assistant</span>
+                            <span className="hidden sm:inline text-xs sm:text-sm font-bold text-slate-700 group-hover:text-slate-900">Back to AI Assistant</span>
                         </button>
                     </div>
                 </div>
@@ -109,15 +109,15 @@ export function MarketingTools({ onBack }: MarketingToolsProps) {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="flex flex-col items-center text-center space-y-3 max-w-2xl px-4 pt-12"
+                className="flex flex-col items-center text-center space-y-2 sm:space-y-3 max-w-2xl px-4 pt-8 sm:pt-12"
             >
-                <div className="p-3 bg-orange-50 rounded-xl mb-2">
-                    <Calculator className="w-6 h-6 text-orange-600" />
+                <div className="p-2 sm:p-3 bg-orange-50 rounded-xl mb-1 sm:mb-2">
+                    <Calculator className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" />
                 </div>
-                <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
                     Marketing Calculators
                 </h2>
-                <p className="text-slate-500 text-base max-w-lg">
+                <p className="text-slate-500 text-xs sm:text-base max-w-lg">
                     Simple calculators for your digital marketing metrics.
                 </p>
             </motion.div>
@@ -138,14 +138,14 @@ export function MarketingTools({ onBack }: MarketingToolsProps) {
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
                                 className={cn(
-                                    "flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors duration-200 relative",
+                                    "flex items-center gap-1 px-2.5 py-2 text-xs sm:text-sm font-medium transition-colors duration-200 relative whitespace-nowrap",
                                     isActive
                                         ? "text-orange-600"
                                         : "text-slate-500 hover:text-slate-700"
                                 )}
                             >
-                                <Icon className={cn("w-4 h-4", isActive ? "text-orange-600" : "text-slate-400")} />
-                                <span>{tab.label}</span>
+                                <Icon className={cn("w-4 h-4 flex-shrink-0", isActive ? "text-orange-600" : "text-slate-400")} />
+                                <span className="hidden sm:inline">{tab.label}</span>
                                 {isActive && (
                                     <motion.span
                                         layoutId="activeTab"
@@ -158,13 +158,13 @@ export function MarketingTools({ onBack }: MarketingToolsProps) {
                 </motion.div>
 
                 {/* Tab Content Panels */}
-                <div className="grid gap-8 lg:grid-cols-12 items-start">
+                <div className="grid gap-6 md:gap-8 grid-cols-1 md:grid-cols-12 items-start w-full">
                     {/* Information Side (Left) */}
                     <motion.div
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.3, duration: 0.5 }}
-                        className="lg:col-span-4 space-y-4"
+                        className="md:col-span-4 space-y-4 order-2 md:order-1"
                     >
                         <AnimatePresence mode='wait'>
                             <motion.div
@@ -173,18 +173,18 @@ export function MarketingTools({ onBack }: MarketingToolsProps) {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -10 }}
                                 transition={{ duration: 0.2 }}
-                                className="bg-slate-50 rounded-xl p-6 border border-slate-100"
+                                className="bg-slate-50 rounded-xl p-4 sm:p-6 border border-slate-100"
                             >
-                                <h3 className="text-lg font-semibold text-slate-900 mb-2 flex items-center gap-2">
-                                    {activeTab === 'conversion' && <Target className="w-5 h-5 text-orange-600" />}
-                                    {activeTab === 'roi' && <TrendingUp className="w-5 h-5 text-orange-600" />}
-                                    {activeTab === 'profit' && <DollarSign className="w-5 h-5 text-orange-600" />}
-                                    {activeTab === 'cpl' && <DollarSign className="w-5 h-5 text-orange-600" />}
-                                    {activeTab === 'lead' && <Users className="w-5 h-5 text-orange-600" />}
-                                    {activeTab === 'cpa' && <Calculator className="w-5 h-5 text-orange-600" />}
-                                    {tabs.find(t => t.id === activeTab)?.label}
+                                <h3 className="text-base sm:text-lg font-semibold text-slate-900 mb-2 flex items-center gap-2">
+                                    {activeTab === 'conversion' && <Target className="w-5 h-5 text-orange-600 flex-shrink-0" />}
+                                    {activeTab === 'roi' && <TrendingUp className="w-5 h-5 text-orange-600 flex-shrink-0" />}
+                                    {activeTab === 'profit' && <DollarSign className="w-5 h-5 text-orange-600 flex-shrink-0" />}
+                                    {activeTab === 'cpl' && <DollarSign className="w-5 h-5 text-orange-600 flex-shrink-0" />}
+                                    {activeTab === 'lead' && <Users className="w-5 h-5 text-orange-600 flex-shrink-0" />}
+                                    {activeTab === 'cpa' && <Calculator className="w-5 h-5 text-orange-600 flex-shrink-0" />}
+                                    <span className="truncate">{tabs.find(t => t.id === activeTab)?.label}</span>
                                 </h3>
-                                <p className="text-slate-600 text-sm leading-relaxed mb-4">
+                                <p className="text-slate-600 text-xs sm:text-sm leading-relaxed mb-4">
                                     {activeTab === 'conversion' && "Calculate the percentage of visitors who complete a desired action."}
                                     {activeTab === 'roi' && "Determine the profitability of your investment."}
                                     {activeTab === 'profit' && "Calculate your net profit by subtracting total costs from total revenue."}
@@ -194,7 +194,7 @@ export function MarketingTools({ onBack }: MarketingToolsProps) {
                                 </p>
                                 <div className="pt-4 border-t border-slate-200">
                                     <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Tip</span>
-                                    <p className="text-slate-600 text-sm">
+                                    <p className="text-slate-600 text-xs sm:text-sm">
                                         {activeTab === 'conversion' && "Consider load time and clear CTAs."}
                                         {activeTab === 'roi' && "Focus on high-value activities."}
                                         {activeTab === 'profit' && "Keep track of all overhead costs."}
@@ -212,7 +212,7 @@ export function MarketingTools({ onBack }: MarketingToolsProps) {
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.3, duration: 0.5 }}
-                        className="lg:col-span-8"
+                        className="md:col-span-8 order-1 md:order-2"
                     >
                         <Card className="border border-slate-200 shadow-sm bg-white rounded-xl overflow-hidden">
                             <AnimatePresence mode='wait'>
@@ -223,44 +223,44 @@ export function MarketingTools({ onBack }: MarketingToolsProps) {
                                     exit={{ opacity: 0, x: -20 }}
                                     transition={{ duration: 0.3 }}
                                 >
-                                    <CardContent className="p-6 md:p-8 space-y-6">
+                                    <CardContent className="p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6">
                                         {/* Conversion Rate Inputs */}
                                         {activeTab === 'conversion' && (
-                                            <div className="space-y-6">
-                                                <div className="grid gap-6 md:grid-cols-2">
+                                            <div className="space-y-4 sm:space-y-6">
+                                                <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2">
                                                     <div className="space-y-2">
-                                                        <Label className="text-slate-700 font-medium">Number of Actions</Label>
+                                                        <Label className="text-slate-700 font-medium text-xs sm:text-sm">Number of Actions</Label>
                                                         <Input
                                                             type="number"
-                                                            className="h-10 rounded-lg border-slate-300 focus:ring-orange-500 focus:border-orange-500"
+                                                            className="h-10 rounded-lg border-slate-300 focus:ring-orange-500 focus:border-orange-500 text-sm"
                                                             placeholder="0"
                                                             value={conversion.actions}
                                                             onChange={(e) => calculateConversion('actions', e.target.value)}
                                                         />
                                                     </div>
                                                     <div className="space-y-2">
-                                                        <Label className="text-slate-700 font-medium">Total Visitors</Label>
+                                                        <Label className="text-slate-700 font-medium text-xs sm:text-sm">Total Visitors</Label>
                                                         <Input
                                                             type="number"
-                                                            className="h-10 rounded-lg border-slate-300 focus:ring-orange-500 focus:border-orange-500"
+                                                            className="h-10 rounded-lg border-slate-300 focus:ring-orange-500 focus:border-orange-500 text-sm"
                                                             placeholder="0"
                                                             value={conversion.visitors}
                                                             onChange={(e) => calculateConversion('visitors', e.target.value)}
                                                         />
                                                     </div>
                                                 </div>
-                                                <div className="p-4 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between">
-                                                    <span className="text-slate-700 font-medium">Conversion Rate</span>
+                                                <div className="p-3 sm:p-4 bg-slate-50 rounded-lg border border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                                    <span className="text-slate-700 font-medium text-sm">Conversion Rate</span>
                                                     <div className="flex items-baseline gap-1">
                                                         <motion.span
                                                             key={conversion.result}
                                                             initial={{ opacity: 0, y: -10 }}
                                                             animate={{ opacity: 1, y: 0 }}
-                                                            className="text-3xl font-bold text-slate-900"
+                                                            className="text-2xl sm:text-3xl font-bold text-slate-900"
                                                         >
                                                             {conversion.result}
                                                         </motion.span>
-                                                        <span className="text-lg font-medium text-slate-500">%</span>
+                                                        <span className="text-base sm:text-lg font-medium text-slate-500">%</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -268,41 +268,41 @@ export function MarketingTools({ onBack }: MarketingToolsProps) {
 
                                         {/* ROI Inputs */}
                                         {activeTab === 'roi' && (
-                                            <div className="space-y-6">
-                                                <div className="grid gap-6 md:grid-cols-2">
+                                            <div className="space-y-4 sm:space-y-6">
+                                                <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2">
                                                     <div className="space-y-2">
-                                                        <Label className="text-slate-700 font-medium">Revenue (THB)</Label>
+                                                        <Label className="text-slate-700 font-medium text-xs sm:text-sm">Revenue (THB)</Label>
                                                         <Input
                                                             type="number"
-                                                            className="h-10 rounded-lg border-slate-300 focus:ring-orange-500 focus:border-orange-500"
+                                                            className="h-10 rounded-lg border-slate-300 focus:ring-orange-500 focus:border-orange-500 text-sm"
                                                             placeholder="0"
                                                             value={roi.revenue}
                                                             onChange={(e) => calculateRoi('revenue', e.target.value)}
                                                         />
                                                     </div>
                                                     <div className="space-y-2">
-                                                        <Label className="text-slate-700 font-medium">Investment Cost (THB)</Label>
+                                                        <Label className="text-slate-700 font-medium text-xs sm:text-sm">Investment Cost (THB)</Label>
                                                         <Input
                                                             type="number"
-                                                            className="h-10 rounded-lg border-slate-300 focus:ring-orange-500 focus:border-orange-500"
+                                                            className="h-10 rounded-lg border-slate-300 focus:ring-orange-500 focus:border-orange-500 text-sm"
                                                             placeholder="0"
                                                             value={roi.cost}
                                                             onChange={(e) => calculateRoi('cost', e.target.value)}
                                                         />
                                                     </div>
                                                 </div>
-                                                <div className="p-4 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between">
-                                                    <span className="text-slate-700 font-medium">Return on Investment</span>
+                                                <div className="p-3 sm:p-4 bg-slate-50 rounded-lg border border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                                    <span className="text-slate-700 font-medium text-sm">Return on Investment</span>
                                                     <div className="flex items-baseline gap-1">
                                                         <motion.span
                                                             key={roi.result}
                                                             initial={{ opacity: 0, y: -10 }}
                                                             animate={{ opacity: 1, y: 0 }}
-                                                            className="text-3xl font-bold text-slate-900"
+                                                            className="text-2xl sm:text-3xl font-bold text-slate-900"
                                                         >
                                                             {roi.result}
                                                         </motion.span>
-                                                        <span className="text-lg font-medium text-slate-500">%</span>
+                                                        <span className="text-base sm:text-lg font-medium text-slate-500">%</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -310,39 +310,39 @@ export function MarketingTools({ onBack }: MarketingToolsProps) {
 
                                         {/* Profit Inputs */}
                                         {activeTab === 'profit' && (
-                                            <div className="space-y-6">
-                                                <div className="grid gap-6 md:grid-cols-2">
+                                            <div className="space-y-4 sm:space-y-6">
+                                                <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2">
                                                     <div className="space-y-2">
-                                                        <Label className="text-slate-700 font-medium">Total Revenue (THB)</Label>
+                                                        <Label className="text-slate-700 font-medium text-xs sm:text-sm">Total Revenue (THB)</Label>
                                                         <Input
                                                             type="number"
-                                                            className="h-10 rounded-lg border-slate-300 focus:ring-orange-500 focus:border-orange-500"
+                                                            className="h-10 rounded-lg border-slate-300 focus:ring-orange-500 focus:border-orange-500 text-sm"
                                                             placeholder="0"
                                                             value={profit.revenue}
                                                             onChange={(e) => calculateProfit('revenue', e.target.value)}
                                                         />
                                                     </div>
                                                     <div className="space-y-2">
-                                                        <Label className="text-slate-700 font-medium">Total Cost (THB)</Label>
+                                                        <Label className="text-slate-700 font-medium text-xs sm:text-sm">Total Cost (THB)</Label>
                                                         <Input
                                                             type="number"
-                                                            className="h-10 rounded-lg border-slate-300 focus:ring-orange-500 focus:border-orange-500"
+                                                            className="h-10 rounded-lg border-slate-300 focus:ring-orange-500 focus:border-orange-500 text-sm"
                                                             placeholder="0"
                                                             value={profit.cost}
                                                             onChange={(e) => calculateProfit('cost', e.target.value)}
                                                         />
                                                     </div>
                                                 </div>
-                                                <div className="p-4 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between">
-                                                    <span className="text-slate-700 font-medium">Net Profit</span>
+                                                <div className="p-3 sm:p-4 bg-slate-50 rounded-lg border border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                                    <span className="text-slate-700 font-medium text-sm">Net Profit</span>
                                                     <div className="flex items-baseline gap-1">
-                                                        <span className="text-lg font-medium text-slate-500">฿</span>
+                                                        <span className="text-sm sm:text-lg font-medium text-slate-500">฿</span>
                                                         <motion.span
                                                             key={profit.result}
                                                             initial={{ opacity: 0, y: -10 }}
                                                             animate={{ opacity: 1, y: 0 }}
                                                             className={cn(
-                                                                "text-3xl font-bold",
+                                                                "text-2xl sm:text-3xl font-bold",
                                                                 profit.result >= 0 ? "text-slate-900" : "text-red-600"
                                                             )}
                                                         >
@@ -355,38 +355,38 @@ export function MarketingTools({ onBack }: MarketingToolsProps) {
 
                                         {/* CPL Inputs */}
                                         {activeTab === 'cpl' && (
-                                            <div className="space-y-6">
-                                                <div className="grid gap-6 md:grid-cols-2">
+                                            <div className="space-y-4 sm:space-y-6">
+                                                <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2">
                                                     <div className="space-y-2">
-                                                        <Label className="text-slate-700 font-medium">Total Spend (THB)</Label>
+                                                        <Label className="text-slate-700 font-medium text-xs sm:text-sm">Total Spend (THB)</Label>
                                                         <Input
                                                             type="number"
-                                                            className="h-10 rounded-lg border-slate-300 focus:ring-orange-500 focus:border-orange-500"
+                                                            className="h-10 rounded-lg border-slate-300 focus:ring-orange-500 focus:border-orange-500 text-sm"
                                                             placeholder="0"
                                                             value={cpl.cost}
                                                             onChange={(e) => calculateCpl('cost', e.target.value)}
                                                         />
                                                     </div>
                                                     <div className="space-y-2">
-                                                        <Label className="text-slate-700 font-medium">Total Leads</Label>
+                                                        <Label className="text-slate-700 font-medium text-xs sm:text-sm">Total Leads</Label>
                                                         <Input
                                                             type="number"
-                                                            className="h-10 rounded-lg border-slate-300 focus:ring-orange-500 focus:border-orange-500"
+                                                            className="h-10 rounded-lg border-slate-300 focus:ring-orange-500 focus:border-orange-500 text-sm"
                                                             placeholder="0"
                                                             value={cpl.leads}
                                                             onChange={(e) => calculateCpl('leads', e.target.value)}
                                                         />
                                                     </div>
                                                 </div>
-                                                <div className="p-4 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between">
-                                                    <span className="text-slate-700 font-medium">Cost Per Lead</span>
+                                                <div className="p-3 sm:p-4 bg-slate-50 rounded-lg border border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                                    <span className="text-slate-700 font-medium text-sm">Cost Per Lead</span>
                                                     <div className="flex items-baseline gap-1">
-                                                        <span className="text-lg font-medium text-slate-500">฿</span>
+                                                        <span className="text-sm sm:text-lg font-medium text-slate-500">฿</span>
                                                         <motion.span
                                                             key={cpl.result}
                                                             initial={{ opacity: 0, y: -10 }}
                                                             animate={{ opacity: 1, y: 0 }}
-                                                            className="text-3xl font-bold text-slate-900"
+                                                            className="text-2xl sm:text-3xl font-bold text-slate-900"
                                                         >
                                                             {cpl.result.toLocaleString()}
                                                         </motion.span>
@@ -397,41 +397,41 @@ export function MarketingTools({ onBack }: MarketingToolsProps) {
 
                                         {/* Lead Inputs */}
                                         {activeTab === 'lead' && (
-                                            <div className="space-y-6">
-                                                <div className="grid gap-6 md:grid-cols-2">
+                                            <div className="space-y-4 sm:space-y-6">
+                                                <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2">
                                                     <div className="space-y-2">
-                                                        <Label className="text-slate-700 font-medium">Monthly Traffic</Label>
+                                                        <Label className="text-slate-700 font-medium text-xs sm:text-sm">Monthly Traffic</Label>
                                                         <Input
                                                             type="number"
-                                                            className="h-10 rounded-lg border-slate-300 focus:ring-orange-500 focus:border-orange-500"
+                                                            className="h-10 rounded-lg border-slate-300 focus:ring-orange-500 focus:border-orange-500 text-sm"
                                                             placeholder="0"
                                                             value={leads.traffic}
                                                             onChange={(e) => calculateLeads('traffic', e.target.value)}
                                                         />
                                                     </div>
                                                     <div className="space-y-2">
-                                                        <Label className="text-slate-700 font-medium">Expected Conversion (%)</Label>
+                                                        <Label className="text-slate-700 font-medium text-xs sm:text-sm">Expected Conversion (%)</Label>
                                                         <Input
                                                             type="number"
-                                                            className="h-10 rounded-lg border-slate-300 focus:ring-orange-500 focus:border-orange-500"
+                                                            className="h-10 rounded-lg border-slate-300 focus:ring-orange-500 focus:border-orange-500 text-sm"
                                                             placeholder="0"
                                                             value={leads.conversionRate}
                                                             onChange={(e) => calculateLeads('conversionRate', e.target.value)}
                                                         />
                                                     </div>
                                                 </div>
-                                                <div className="p-4 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between">
-                                                    <span className="text-slate-700 font-medium">Projected Leads</span>
+                                                <div className="p-3 sm:p-4 bg-slate-50 rounded-lg border border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                                    <span className="text-slate-700 font-medium text-sm">Projected Leads</span>
                                                     <div className="flex items-baseline gap-1">
                                                         <motion.span
                                                             key={leads.result}
                                                             initial={{ opacity: 0, y: -10 }}
                                                             animate={{ opacity: 1, y: 0 }}
-                                                            className="text-3xl font-bold text-slate-900"
+                                                            className="text-2xl sm:text-3xl font-bold text-slate-900"
                                                         >
                                                             {leads.result}
                                                         </motion.span>
-                                                        <span className="text-lg font-medium text-slate-500">Leads</span>
+                                                        <span className="text-sm sm:text-lg font-medium text-slate-500">Leads</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -439,38 +439,38 @@ export function MarketingTools({ onBack }: MarketingToolsProps) {
 
                                         {/* CPA Inputs */}
                                         {activeTab === 'cpa' && (
-                                            <div className="space-y-6">
-                                                <div className="grid gap-6 md:grid-cols-2">
+                                            <div className="space-y-4 sm:space-y-6">
+                                                <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2">
                                                     <div className="space-y-2">
-                                                        <Label className="text-slate-700 font-medium">Total Cost Used (THB)</Label>
+                                                        <Label className="text-slate-700 font-medium text-xs sm:text-sm">Total Cost Used (THB)</Label>
                                                         <Input
                                                             type="number"
-                                                            className="h-10 rounded-lg border-slate-300 focus:ring-orange-500 focus:border-orange-500"
+                                                            className="h-10 rounded-lg border-slate-300 focus:ring-orange-500 focus:border-orange-500 text-sm"
                                                             placeholder="0"
                                                             value={cpa.cost}
                                                             onChange={(e) => calculateCpa('cost', e.target.value)}
                                                         />
                                                     </div>
                                                     <div className="space-y-2">
-                                                        <Label className="text-slate-700 font-medium">Number of Customers</Label>
+                                                        <Label className="text-slate-700 font-medium text-xs sm:text-sm">Number of Customers</Label>
                                                         <Input
                                                             type="number"
-                                                            className="h-10 rounded-lg border-slate-300 focus:ring-orange-500 focus:border-orange-500"
+                                                            className="h-10 rounded-lg border-slate-300 focus:ring-orange-500 focus:border-orange-500 text-sm"
                                                             placeholder="0"
                                                             value={cpa.customers}
                                                             onChange={(e) => calculateCpa('customers', e.target.value)}
                                                         />
                                                     </div>
                                                 </div>
-                                                <div className="p-4 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between">
-                                                    <span className="text-slate-700 font-medium">Cost Per Customer</span>
+                                                <div className="p-3 sm:p-4 bg-slate-50 rounded-lg border border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                                    <span className="text-slate-700 font-medium text-sm">Cost Per Customer</span>
                                                     <div className="flex items-baseline gap-1">
-                                                        <span className="text-lg font-medium text-slate-500">฿</span>
+                                                        <span className="text-sm sm:text-lg font-medium text-slate-500">฿</span>
                                                         <motion.span
                                                             key={cpa.result}
                                                             initial={{ opacity: 0, y: -10 }}
                                                             animate={{ opacity: 1, y: 0 }}
-                                                            className="text-3xl font-bold text-slate-900"
+                                                            className="text-2xl sm:text-3xl font-bold text-slate-900"
                                                         >
                                                             {cpa.result.toLocaleString()}
                                                         </motion.span>

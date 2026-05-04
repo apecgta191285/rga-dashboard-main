@@ -31,11 +31,13 @@ export class MockDataService {
         const growth = this.generateGrowth();
         const trends = this.generateTrends(days);
         const recentCampaigns = this.generateRecentCampaigns();
+        const platformBreakdown = this.generatePlatformBreakdown(recentCampaigns);
 
         return {
             summary,
             growth,
             trends,
+            platformBreakdown,
             recentCampaigns
         };
     }
@@ -46,6 +48,7 @@ export class MockDataService {
 
     private getDaysFromPeriod(period: PeriodEnum): number {
         switch (period) {
+            case PeriodEnum.ONE_DAY: return 1;
             case PeriodEnum.SEVEN_DAYS: return 7;
             case PeriodEnum.THIRTY_DAYS: return 30;
             case PeriodEnum.THIS_MONTH: return new Date().getDate();
@@ -122,6 +125,29 @@ export class MockDataService {
             });
         }
         return trends;
+    }
+
+    private generatePlatformBreakdown(campaigns: RecentCampaignDto[]) {
+        const breakdownMap = new Map<AdPlatform, any>();
+        
+        for (const c of campaigns) {
+            const current = breakdownMap.get(c.platform) || {
+                platform: c.platform,
+                spend: 0,
+                impressions: 0,
+                clicks: 0,
+                conversions: 0
+            };
+            
+            current.spend += c.spending;
+            current.impressions += c.impressions;
+            current.clicks += c.clicks;
+            current.conversions += c.conversions;
+            
+            breakdownMap.set(c.platform, current);
+        }
+        
+        return Array.from(breakdownMap.values());
     }
 
     private generateRecentCampaigns(count = 5): RecentCampaignDto[] {

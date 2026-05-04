@@ -39,6 +39,18 @@ export class AuthController {
     return this.authService.verifyEmail(token);
   }
 
+  @Get('test-mail')
+  @ApiOperation({ summary: 'INTERNAL DEBUG: Test SMTP' })
+  testMail(@Query('to') to: string) {
+    return this.authService.debugTestMail(to);
+  }
+
+  @Get('debug-config')
+  @ApiOperation({ summary: 'INTERNAL DEBUG: Check environment variables' })
+  debugConfig() {
+    return this.authService.debugConfig();
+  }
+
   @Post('resend-verification')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Resend email verification' })

@@ -3,7 +3,7 @@ import { Send, FileText, Sparkles, Plus, Mic, PenTool, TrendingUp, Lightbulb, Us
 import chatbotImage from "../../chat/chatbot.webp";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { AiDetailSummary } from "./ai-detail-summary";
+import { AiDetailSummary, AiDetailSummaryData } from "./ai-detail-summary";
 import { MarketingTools } from "./marketing-tools";
 import { chatService, ChatSession, ChatMessage } from "../services/chat-service";
 import { useAuthStore } from "@/stores/auth-store";
@@ -32,8 +32,22 @@ type Session = {
     messages: Message[];
 };
 
+const normalizeText = (text: string): string => text.replace(/\s+/g, ' ').trim();
+
+const dedupeMessages = (messages: Message[]): Message[] => {
+    const seen = new Set<string>();
+    return messages.filter((message) => {
+        const key = `${message.role}:${normalizeText(message.content)}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+};
+
+const getNewId = (): string => `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+
 const ROLE_OPTIONS = [
-    { id: 'general', label: 'ทั่วไป' },
+    { id: 'general', label: 'General' },
     { id: 'ads', label: 'Ads' },
     { id: 'seo', label: 'SEO' },
 ] as const;
@@ -56,13 +70,13 @@ export function AiAssistant() {
     const updateMessages = (updater: (prev: Message[]) => Message[]) => {
         setMessagesByRole((prev) => ({
             ...prev,
-            [activeRole]: updater(prev[activeRole] || []),
+            [activeRole]: dedupeMessages(updater(prev[activeRole] || [])),
         }));
     };
     const setMessagesForRole = (next: Message[]) => {
         setMessagesByRole((prev) => ({
             ...prev,
-            [activeRole]: next,
+            [activeRole]: dedupeMessages(next),
         }));
     };
 
@@ -74,12 +88,89 @@ export function AiAssistant() {
     });
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [viewMode, setViewMode] = useState<'chat' | 'summary' | 'tools'>('chat');
+    const [summaryData, setSummaryData] = useState<AiDetailSummaryData | null>(null);
+    const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+    const [summaryLoadingError, setSummaryLoadingError] = useState<string | null>(null);
 
+    const SUMMARY_STORAGE_KEY = 'ai-summary-data';
+    const SUMMARY_DATE_KEY = 'ai-summary-date';
+    const getTodayKey = () => new Date().toDateString();
+
+    const loadSavedSummary = (): AiDetailSummaryData | null => {
+        try {
+            const saved = localStorage.getItem(SUMMARY_STORAGE_KEY);
+            if (!saved) return null;
+            return JSON.parse(saved) as AiDetailSummaryData;
+        } catch (error) {
+            console.error('Failed to load saved AI summary:', error);
+            return null;
+        }
+    };
+
+    const saveSummary = (data: AiDetailSummaryData) => {
+        try {
+            localStorage.setItem(SUMMARY_STORAGE_KEY, JSON.stringify(data));
+            localStorage.setItem(SUMMARY_DATE_KEY, getTodayKey());
+        } catch (error) {
+            console.error('Failed to save AI summary:', error);
+        }
+    };
+
+    const shouldFetchDailySummary = () => {
+        const savedDate = localStorage.getItem(SUMMARY_DATE_KEY);
+        return savedDate !== getTodayKey();
+    };
+
+    const fetchDailySummary = async () => {
+        if (!webhookUrl) return;
+        if (!shouldFetchDailySummary()) return;
+
+        setSummaryLoadingError(null);
+        setIsSummaryLoading(true);
+
+        try {
+            const route = envWebhookSummary ? 'summary' : 'general';
+            const response = await fetch(`${backendBase}/ai/webhook/${route}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: 'Create a daily strategic summary for the dashboard. Include summary cards, a key insight with recommendation, and section details for campaigns and performance. Return valid JSON compatible with the AiDetailSummaryData interface.',
+                    role: activeRole,
+                    timestamp: new Date().toISOString(),
+                    userId: user?.id,
+                    tenantId: user?.tenantId,
+                }),
+            });
+
+            const contentType = response.headers.get('content-type') || '';
+            let parsedSummary: AiDetailSummaryData | null = null;
+            if (contentType.includes('application/json')) {
+                const data = await response.json();
+                parsedSummary = tryParseSummaryData(data.data) || tryParseSummaryData(data);
+            } else {
+                const text = await response.text();
+                parsedSummary = tryParseSummaryData(text);
+            }
+
+            if (parsedSummary) {
+                setSummaryData(parsedSummary);
+                saveSummary(parsedSummary);
+            } else {
+                setSummaryLoadingError('Failed to parse AI summary data');
+            }
+        } catch (error: any) {
+            console.error('Failed to fetch daily summary:', error);
+            setSummaryLoadingError(error?.message || 'Failed to load summary');
+        } finally {
+            setIsSummaryLoading(false);
+        }
+    };
 
     // Refs
     const scrollRef = useRef<HTMLDivElement>(null);
     const recognitionRef = useRef<any>(null); // Ref to store recognition instance
     const isProcessingRef = useRef(false); // Sync guard against duplicate sends
+    const lastSentQueryRef = useRef({ query: '', time: 0 });
     const streamIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     // Rename State
@@ -88,15 +179,69 @@ export function AiAssistant() {
 
     const { user, isAuthenticated } = useAuthStore();
     const queryClient = useQueryClient();
+    const defaultWebhook = 'https://suttipatrga1.app.n8n.cloud/webhook/chat-general';
     const envWebhookGeneral =
         (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHATBOT_WEBHOOK_URL_GENERAL : '') || '';
+    const envWebhookSummary =
+        (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHATBOT_WEBHOOK_URL_SUMMARY : '') || '';
     const envWebhookAds =
-        (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHATBOT_WEBHOOK_URL_ADS : '') || '';
+        (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHATBOT_WEBHOOK_URL_ADS : '') || defaultWebhook;
     const envWebhookSeo =
-        (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHATBOT_WEBHOOK_URL_SEO : '') || '';
+        (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHATBOT_WEBHOOK_URL_SEO : '') || defaultWebhook;
     const webhookUrl =
-        activeRole === 'ads' ? envWebhookAds : activeRole === 'seo' ? envWebhookSeo : envWebhookGeneral;
+        activeRole === 'ads'
+            ? envWebhookAds
+            : activeRole === 'seo'
+                ? envWebhookSeo
+                : envWebhookGeneral || envWebhookSummary;
+    const backendBase = (typeof import.meta !== 'undefined' ? import.meta.env.VITE_API_URL : '') || '/api/v1';
     const activeSessionId = activeSessionIdByRole[activeRole];
+
+    const tryParseSummaryData = (value: any): AiDetailSummaryData | null => {
+        if (!value) return null;
+        let parsed = value;
+
+        if (Array.isArray(parsed)) {
+            if (parsed.length === 0) return null;
+            parsed = parsed[0];
+        }
+
+        if (typeof parsed === 'string') {
+            try {
+                parsed = JSON.parse(parsed);
+            } catch {
+                return null;
+            }
+        }
+
+        if (parsed && typeof parsed === 'object') {
+            if (parsed.summaryCards && parsed.insight && parsed.sections) {
+                return parsed as AiDetailSummaryData;
+            }
+            if (parsed.data) {
+                return tryParseSummaryData(parsed.data);
+            }
+            if (parsed.output) {
+                return tryParseSummaryData(parsed.output);
+            }
+            if (parsed.reply) {
+                return tryParseSummaryData(parsed.reply);
+            }
+        }
+
+        return null;
+    };
+
+    useEffect(() => {
+        const saved = loadSavedSummary();
+        if (saved) {
+            setSummaryData(saved);
+        }
+
+        if (viewMode === 'summary') {
+            fetchDailySummary();
+        }
+    }, [viewMode, webhookUrl]);
 
     // 1. React Query: Fetch Sessions
     const { data: apiSessions = [] } = useQuery({
@@ -195,6 +340,18 @@ export function AiAssistant() {
 
         // 1. 🔒 Sync guard: block duplicate calls instantly
         if (isProcessingRef.current) return;
+
+        // 1b. Avoid rapid duplicate queries from the same input
+        const normalizedQuery = q.trim();
+        const now = Date.now();
+        if (
+            normalizedQuery === lastSentQueryRef.current.query &&
+            now - lastSentQueryRef.current.time < 2000
+        ) {
+            return;
+        }
+        lastSentQueryRef.current = { query: normalizedQuery, time: now };
+
         isProcessingRef.current = true;
         setIsThinking(true); // Disable UI immediately
 
@@ -232,7 +389,8 @@ export function AiAssistant() {
             updateMessages(prev => [...prev, userMsg]);
             setQuery(""); // Clear input AFTER adding message
 
-            // 4. Send User Message to API (skip if no session)
+            // 4. Save user message so the chat history keeps the typed text.
+            //    This is not the AI webhook request.
             if (currentSessionId) {
                 await sendMessageMutation.mutateAsync({
                     sessionId: currentSessionId,
@@ -240,59 +398,95 @@ export function AiAssistant() {
                     content: savedQuery
                 });
             }
-            // 5. Determine Response Logic (Webhook preferred, fallback to mock)
-            const lowerQ = savedQuery.toLowerCase();
-            let responseText = "";
 
+            // 5. Determine Response Logic (Webhook only - no fallback)
+            let responseText = "";
             if (webhookUrl) {
-                const response = await fetch(webhookUrl, {
+                const route = activeRole === 'ads'
+                    ? 'ads'
+                    : activeRole === 'seo'
+                        ? 'seo'
+                        : 'general';
+
+                console.log(`[AI Assistant] Sending to webhook route: ${route} (activeRole=${activeRole})`);
+
+                const response = await fetch(`${backendBase}/ai/webhook/${route}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        message: savedQuery,
-                        role: activeRole,
-                        timestamp: new Date().toISOString(),
+                        id: currentSessionId,
+                        tenant_id: user?.tenantId || '',
+                        question: savedQuery,
                     }),
                 });
 
                 const contentType = response.headers.get('content-type') || '';
-                if (contentType.includes('application/json')) {
-                    const data = await response.json();
+
+                // Check if response has a body
+                const bodyText = await response.text();
+                if (!bodyText || bodyText.trim() === '') {
                     if (!response.ok) {
-                        throw new Error(data?.error || data?.message || `HTTP ${response.status}`);
+                        throw new Error(`HTTP ${response.status}`);
                     }
-                    responseText = data.reply || data.response || data.message || data.output || '';
+                    // Don't set fallback - only Gemini response
+                    responseText = '';
+                } else if (contentType.includes('application/json')) {
+                    try {
+                        const data = JSON.parse(bodyText);
+                        if (!response.ok) {
+                            throw new Error(data?.error || data?.message || `HTTP ${response.status}`);
+                        }
+                        responseText = data.reply || data.response || data.message || data.output || '';
+                    } catch (parseErr) {
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}`);
+                        }
+                        responseText = bodyText;
+                    }
                 } else {
-                    const text = await response.text();
                     if (!response.ok) {
-                        throw new Error(text || `HTTP ${response.status}`);
+                        throw new Error(bodyText || `HTTP ${response.status}`);
                     }
-                    responseText = text;
+                    responseText = bodyText;
                 }
             }
 
-            if (!responseText) {
-                if (lowerQ.includes('caption')) {
-                    responseText = "Here are a few caption options:\n\n1. Boost your ROI with AI!\n2. Stop guessing, start scaling.\n3. Connect better with smart targeting.";
-                } else if (lowerQ.includes('performance')) {
-                    responseText = "Recent data:\n\n- CTR +15%\n- CPC $1.35\n- Suggestion: Pause 'Mobile_Feed_B'.";
-                } else if (lowerQ.includes('trend')) {
-                    responseText = "Trending:\n\n1. Short-form video (2x engagement)\n2. Sustainability messaging\n3. Interactive polls";
-                } else if (lowerQ.includes('lead') || lowerQ.includes('summarize') || lowerQ.includes('summary')) {
-                    responseText = "AI Summary Report:\n\n- Overall Performance: Strong growth in Q3.\n- Key Driver: Organic traffic increased by 22%.\n- Risk: CPA is trending up in paid channels.\n- Recommendation: Reallocate budget to high-performing ad sets.";
-                } else {
-                    responseText = `Analyzed "${savedQuery}". Metrics stable.\nRecommendation: Improve ad relevance to lower CPA.`;
-                }
+            // 6. Only show message if we have actual Gemini response
+            const trimmedResponse = responseText?.trim() || '';
+            const isHtmlResponse = /^<\/?(?:html|!doctype)/i.test(trimmedResponse) || /<html/i.test(trimmedResponse);
+            const isNoResponseText =
+                !trimmedResponse ||
+                /^no response\.?$/i.test(trimmedResponse) ||
+                isHtmlResponse;
+
+            if (isNoResponseText) {
+                setQuery(savedQuery);
+                setIsThinking(false);
+                isProcessingRef.current = false;
+                toast.error('AI did not return a valid response. Please try again or check your AI webhook.');
+                return;
             }
 
-            // 6. Simulate AI Thinking (reduced delay 400ms)
+            // 6b. Deduplicate same assistant answer (prevent multi-response duplication)
+            const normalizedResponse = normalizeText(responseText);
+            const existingAssistant = (messagesByRole[activeRole] || []).find(
+                (m) => m.role === 'assistant' && normalizeText(m.content) === normalizedResponse
+            );
+            if (existingAssistant) {
+                console.debug('[AiAssistant] duplicate assistant response suppressed', { activeRole, normalizedResponse });
+                setIsThinking(false);
+                isProcessingRef.current = false;
+                return;
+            }
+
+            // Simulate AI Thinking (reduced delay 400ms)
             await new Promise(resolve => setTimeout(resolve, 400));
 
             setIsStreaming(true); // Lock useEffect
             setIsThinking(false);
 
             // 7. Optimistic AI Message & Streaming Effect
-            const aiMsgId = (Date.now() + 1).toString();
+            const aiMsgId = getNewId();
             const aiMsg: Message = {
                 id: aiMsgId,
                 role: 'assistant',
@@ -597,7 +791,30 @@ export function AiAssistant() {
             <div className="flex-1 flex flex-col bg-white/50 backdrop-blur-xl rounded-2xl border border-slate-200/60 shadow-xl overflow-hidden relative">
 
                 {viewMode === 'summary' ? (
-                    <AiDetailSummary onBack={() => setViewMode('chat')} />
+                    isSummaryLoading ? (
+                        <div className="flex-1 flex items-center justify-center p-8">
+                            <div className="text-center space-y-4">
+                                <div className="mx-auto h-16 w-16 rounded-full border-4 border-orange-200 border-t-orange-500 animate-spin" />
+                                <div>
+                                    <h2 className="text-xl font-semibold text-slate-900">Loading AI Summary</h2>
+                                    <p className="text-sm text-slate-500 mt-2">Generating your daily strategic summary. This happens once per day. Please wait...</p>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <AiDetailSummary
+                            onBack={() => setViewMode('chat')}
+                            data={summaryData ?? {
+                                summaryCards: [],
+                                insight: {
+                                    title: "No AI Summary Yet",
+                                    message: "Ask AI to generate a daily summary first. Then refresh this page to see it here.",
+                                    recommendation: "",
+                                },
+                                sections: [],
+                            }}
+                        />
+                    )
                 ) : viewMode === 'tools' ? (
                     <MarketingTools onBack={() => setViewMode('chat')} />
                 ) : (
@@ -647,7 +864,7 @@ export function AiAssistant() {
                                 </div>
                                 {!webhookUrl && (
                                     <div className="mt-2 text-[11px] text-slate-400">
-                                        ยังไม่ได้ตั้งค่า `VITE_CHATBOT_WEBHOOK_URL_GENERAL/ADS/SEO` — ระบบจะใช้ข้อความจำลอง
+                                        Webhook URL not configured. Using mock responses.
                                     </div>
                                 )}
                             </div>
@@ -660,79 +877,85 @@ export function AiAssistant() {
                         >
                             <div className="flex flex-col space-y-6 max-w-3xl mx-auto w-full">
                                 {/* Empty State / Welcome Screen */}
-                                {messages.length === 0 && (
-                                    <motion.div
-                                        className="flex flex-col items-center justify-center py-4 space-y-6 mt-2"
-                                    >
-                                        <div className="space-y-4 text-center">
-                                            <motion.div
-                                                className="flex items-center justify-center gap-2 mb-4"
-                                            >
-                                                <div className="p-3 bg-white rounded-2xl shadow-sm border border-slate-100">
-                                                    <Sparkles className="w-8 h-8 text-orange-500 animate-pulse" />
-                                                </div>
-                                            </motion.div>
-                                            <motion.h1
-                                                className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight"
-                                            >
-                                                How can I help you?
-                                            </motion.h1>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl mt-8">
-                                            {/* AI Detail Summary Button (Primary) */}
-                                            <motion.button
-                                                whileHover={{ scale: 1.02 }}
-                                                whileTap={{ scale: 0.98 }}
-                                                onClick={() => setViewMode('summary')}
-                                                className="relative overflow-hidden px-6 py-6 rounded-2xl text-left border-0 shadow-lg group h-full"
-                                            >
+                                <AnimatePresence>
+                                    {messages.length === 0 && query.trim() === '' && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                                            transition={{ duration: 0.3, ease: "easeOut" }}
+                                            className="flex flex-col items-center justify-center py-4 space-y-6 mt-2"
+                                        >
+                                            <div className="space-y-4 text-center">
                                                 <motion.div
-                                                    className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"
-                                                    animate={{
-                                                        backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
-                                                    }}
-                                                    transition={{
-                                                        duration: 5,
-                                                        repeat: Infinity,
-                                                        ease: "easeInOut",
-                                                    }}
-                                                    style={{ backgroundSize: "200% 200%" }}
-                                                />
-                                                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20" />
-                                                <div className="relative flex flex-col justify-between h-full z-10 gap-4">
-                                                    <div className="p-3 bg-white/10 w-fit rounded-xl group-hover:bg-white/20 transition-colors backdrop-blur-sm">
-                                                        <FileText className="w-6 h-6 text-white" />
+                                                    className="flex items-center justify-center gap-2 mb-4"
+                                                >
+                                                    <div className="p-3 bg-white rounded-2xl shadow-sm border border-slate-100">
+                                                        <Sparkles className="w-8 h-8 text-orange-500 animate-pulse" />
                                                     </div>
-                                                    <div>
-                                                        <span className="text-lg font-bold text-white block mb-1">AI Detail Summary</span>
-                                                        <span className="text-indigo-100/90 text-sm font-medium">Deep dive analysis & strategic reports</span>
-                                                    </div>
-                                                </div>
-                                            </motion.button>
+                                                </motion.div>
+                                                <motion.h1
+                                                    className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight"
+                                                >
+                                                    How can I help you?
+                                                </motion.h1>
+                                            </div>
 
-                                            {/* Campaign Tools Button (Secondary) */}
-                                            <motion.button
-                                                whileHover={{ scale: 1.02, backgroundColor: 'rgba(248, 250, 252, 1)' }}
-                                                whileTap={{ scale: 0.98 }}
-                                                onClick={() => setViewMode('tools')}
-                                                className="relative px-6 py-6 rounded-2xl text-left border border-slate-200 shadow-sm bg-white hover:border-slate-300 hover:shadow-md transition-all group h-full"
-                                            >
-                                                <div className="relative flex flex-col justify-between h-full gap-4">
-                                                    <div className="p-3 bg-orange-50 w-fit rounded-xl mb-2 group-hover:bg-orange-100 transition-colors">
-                                                        <Calculator className="w-6 h-6 text-orange-600" />
-                                                    </div>
-                                                    <div>
-                                                        <div className="flex items-center gap-2 mb-1">
-                                                            <span className="text-lg font-bold text-slate-800">Marketing Calculators</span>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl mt-8">
+                                                {/* AI Detail Summary Button (Primary) */}
+                                                <motion.button
+                                                    whileHover={{ scale: 1.02 }}
+                                                    whileTap={{ scale: 0.98 }}
+                                                    onClick={() => setViewMode('summary')}
+                                                    className="relative overflow-hidden px-6 py-6 rounded-2xl text-left border-0 shadow-lg group h-full"
+                                                >
+                                                    <motion.div
+                                                        className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"
+                                                        animate={{
+                                                            backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+                                                        }}
+                                                        transition={{
+                                                            duration: 5,
+                                                            repeat: Infinity,
+                                                            ease: "easeInOut",
+                                                        }}
+                                                        style={{ backgroundSize: "200% 200%" }}
+                                                    />
+                                                    <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20" />
+                                                    <div className="relative flex flex-col justify-between h-full z-10 gap-4">
+                                                        <div className="p-3 bg-white/10 w-fit rounded-xl group-hover:bg-white/20 transition-colors backdrop-blur-sm">
+                                                            <FileText className="w-6 h-6 text-white" />
                                                         </div>
-                                                        <span className="text-slate-500 text-sm font-medium">Quick actions for ads & content</span>
+                                                        <div>
+                                                            <span className="text-lg font-bold text-white block mb-1">AI Detail Summary</span>
+                                                            <span className="text-indigo-100/90 text-sm font-medium">Deep dive analysis & strategic reports</span>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </motion.button>
-                                        </div>
-                                    </motion.div>
-                                )}
+                                                </motion.button>
+
+                                                {/* Campaign Tools Button (Secondary) */}
+                                                <motion.button
+                                                    whileHover={{ scale: 1.02, backgroundColor: 'rgba(248, 250, 252, 1)' }}
+                                                    whileTap={{ scale: 0.98 }}
+                                                    onClick={() => setViewMode('tools')}
+                                                    className="relative px-6 py-6 rounded-2xl text-left border border-slate-200 shadow-sm bg-white hover:border-slate-300 hover:shadow-md transition-all group h-full"
+                                                >
+                                                    <div className="relative flex flex-col justify-between h-full gap-4">
+                                                        <div className="p-3 bg-orange-50 w-fit rounded-xl mb-2 group-hover:bg-orange-100 transition-colors">
+                                                            <Calculator className="w-6 h-6 text-orange-600" />
+                                                        </div>
+                                                        <div>
+                                                            <div className="flex items-center gap-2 mb-1">
+                                                                <span className="text-lg font-bold text-slate-800">Marketing Calculators</span>
+                                                            </div>
+                                                            <span className="text-slate-500 text-sm font-medium">Quick actions for ads & content</span>
+                                                        </div>
+                                                    </div>
+                                                </motion.button>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
 
                                 {/* Message List */}
                                 <AnimatePresence initial={false}>

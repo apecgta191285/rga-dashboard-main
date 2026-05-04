@@ -1,240 +1,198 @@
-﻿import { Injectable, Logger } from '@nestjs/common';
-import { GoogleAdsApi, Customer } from 'google-ads-api';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import axios from 'axios';
+import { google } from 'googleapis';
 
 @Injectable()
 export class GoogleAdsClientService {
   private readonly logger = new Logger(GoogleAdsClientService.name);
-  private client: GoogleAdsApi;
 
   constructor(private configService: ConfigService) {
-    this.client = new GoogleAdsApi({
-      client_id: this.configService.get('GOOGLE_CLIENT_ID'),
-      client_secret: this.configService.get('GOOGLE_CLIENT_SECRET'),
-      developer_token: this.configService.get('GOOGLE_ADS_DEVELOPER_TOKEN'),
-    });
+    this.logger.log('🚀 [GoogleAdsClientService] Initialized with Smart-REST transport (v23 Stable)');
   }
 
   /**
-   * Get Google Ads Customer instance
-   * @param customerId - Customer ID (e.g., "5892016442")
-   * @param refreshToken - OAuth refresh token
-   * @returns Customer instance for querying
+   * 🔑 Get fresh Access Token
    */
-  getCustomer(customerId: string, refreshToken: string, loginCustomerId?: string | null): Customer {
-    return this.client.Customer({
-      customer_id: customerId,
-      refresh_token: refreshToken,
-      login_customer_id: loginCustomerId || undefined, // 🔑 สำคัญมาก! ใช้ค่าตามบริบท Tenant (อาจไม่มีถ้าเป็น Direct Account)
-    });
+  async getAccessToken(refreshToken: string): Promise<string> {
+    const clientId = this.configService.get('GOOGLE_ADS_CLIENT_ID') || this.configService.get('GOOGLE_CLIENT_ID');
+    const clientSecret = this.configService.get('GOOGLE_ADS_CLIENT_SECRET') || this.configService.get('GOOGLE_CLIENT_SECRET');
+
+    if (!clientId || !clientSecret) {
+      throw new Error('Missing Google OAuth client credentials for Ads');
+    }
+
+    const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
+    oauth2Client.setCredentials({ refresh_token: refreshToken });
+
+    try {
+      const { token } = await oauth2Client.getAccessToken();
+      if (!token) throw new Error('Token is null or expired');
+      return token;
+    } catch (error: any) {
+      this.logger.error(`[TOKEN] Failed refresh: ${error.message}`);
+      throw new Error(`Failed to refresh Google OAuth token: ${error.message}. Please reconnect.`);
+    }
   }
 
   /**
-   * List accessible customers for a given refresh token
-   * @param refreshToken - OAuth refresh token
-   * @returns List of resource names (e.g., "customers/1234567890")
+   * 🚀 executeRestCall: Universal fallback wrapper for Google Ads REST
+   */
+  private async executeRestCall(method: 'GET' | 'POST', path: string, refreshToken: string, data?: any, loginCustomerId?: string | null) {
+    const accessToken = await this.getAccessToken(refreshToken);
+    const devToken = this.configService.get('GOOGLE_ADS_DEVELOPER_TOKEN')?.trim().replace(/^"|"$/g, '');
+    
+    // Support for 2026 versions
+    const versions = ['v23', 'v22', 'v21', 'v20', 'v19'];
+    let lastError: any = null;
+
+    for (const ver of versions) {
+      const url = `https://googleads.googleapis.com/${ver}/${path}`;
+      try {
+        const headers: any = {
+          'Authorization': `Bearer ${accessToken}`,
+          'developer-token': devToken,
+          'Content-Type': 'application/json',
+          'User-Agent': 'RGA-Dashboard-REST-Agent/1.0'
+        };
+
+        if (loginCustomerId) {
+          headers['login-customer-id'] = loginCustomerId.replace(/-/g, '');
+        }
+
+        const config = { headers, timeout: 15000 };
+        const response = (method === 'GET') ? await axios.get(url, config) : await axios.post(url, data || {}, config);
+        return response.data;
+      } catch (error: any) {
+        lastError = error;
+        const status = error.response?.status;
+        if (status === 401 || status === 403) throw error;
+      }
+    }
+    throw lastError || new Error(`Failed to reach Google Ads API: ${path}`);
+  }
+
+  /**
+   * 🔎 Search metrics/campaigns
+   */
+  async rawRestQuery(customerId: string, refreshToken: string, query: string, loginCustomerId?: string | null) {
+    const cleanId = customerId.replace(/-/g, '');
+    const path = `customers/${cleanId}/googleAds:search`;
+    const data = await this.executeRestCall('POST', path, refreshToken, { query }, loginCustomerId);
+    return data?.results || [];
+  }
+
+  /**
+   * 🔎 List Accessible Customers
    */
   async listAccessibleCustomers(refreshToken: string): Promise<string[]> {
-    const result = await (this.client as any).listAccessibleCustomers(refreshToken);
-    // API returns { resource_names: [...] }, extract the array
-    if (result && result.resource_names) {
-      return result.resource_names;
+    try {
+      this.logger.log('[GoogleAdsAPI] Listing accessible customers (v23)...');
+      // ⚠️ IMPORTANT: No login-customer-id header for this call to get ALL root accounts
+      const data = await this.executeRestCall('GET', 'customers:listAccessibleCustomers', refreshToken);
+      const resourceNames = data?.resourceNames || [];
+      this.logger.log(`[GoogleAdsAPI] Found ${resourceNames.length} root accounts`);
+      return resourceNames;
+    } catch (error: any) {
+      this.logger.error(`[GoogleAdsAPI] Failed listing: ${error.message}`);
+      const loginCustomerId = this.configService.get('GOOGLE_ADS_LOGIN_CUSTOMER_ID')?.replace(/-/g, '');
+      return loginCustomerId ? [`customers/${loginCustomerId}`] : [];
     }
-    // Fallback: if it's already an array, return as-is
-    if (Array.isArray(result)) {
-      return result;
-    }
-    return [];
   }
 
   /**
-   * Get all client accounts under the manager account
-   * @param refreshToken - OAuth refresh token
-   * @returns Array of client accounts with id, name, and status
+   * 🔎 Flatten Accounts Hierarchy (Scan MCC & Children)
    */
-  async getClientAccounts(refreshToken: string, loginCustomerId: string) {
-    if (!loginCustomerId) {
-      throw new Error('loginCustomerId is required to get client accounts');
+  async getAllSelectableAccounts(refreshToken: string): Promise<any[]> {
+    this.logger.log(`[GET-ALL-ACCOUNTS] Starting full hierarchy scan...`);
+    try {
+      const accessibleCustomers = await this.listAccessibleCustomers(refreshToken);
+      const allAccounts: any[] = [];
+
+      for (const resourceName of accessibleCustomers) {
+        const customerId = resourceName.replace('customers/', '');
+        try {
+          const selfQuery = `SELECT customer.id, customer.descriptive_name, customer.manager, customer.status FROM customer LIMIT 1`;
+          const selfResult = await this.rawRestQuery(customerId, refreshToken, selfQuery, customerId);
+
+          if (selfResult.length > 0) {
+            const info = selfResult[0].customer;
+            const isManager = info.manager || false;
+            const accountName = info.descriptiveName || info.descriptive_name || `Account ${customerId}`;
+
+            // Add the account itself
+            if (!allAccounts.find(a => a.id === customerId)) {
+              allAccounts.push({
+                id: customerId,
+                name: isManager ? `${accountName} (Manager)` : accountName,
+                type: isManager ? 'MANAGER' : 'ACCOUNT',
+                status: info.status || 'ENABLED',
+              });
+            }
+
+            if (isManager) {
+              const childQuery = `SELECT customer_client.id, customer_client.descriptive_name, customer_client.status FROM customer_client WHERE customer_client.manager = FALSE AND customer_client.status != 'CANCELLED'`;
+              const children = await this.rawRestQuery(customerId, refreshToken, childQuery, customerId);
+
+              if (children && Array.isArray(children)) {
+                for (const row of children) {
+                  const client = row?.customerClient || row?.customer_client;
+                  if (client && client.id) {
+                    const childId = client.id.toString();
+                    if (!allAccounts.find(a => a.id === childId)) {
+                      allAccounts.push({
+                        id: childId,
+                        name: client.descriptiveName || client.descriptive_name || `Account ${childId}`,
+                        type: 'ACCOUNT',
+                        parentMccId: customerId,
+                        status: client.status || 'ENABLED',
+                      });
+                    }
+                  }
+                }
+              }
+            }
+          }
+        } catch (e: any) {
+          this.logger.warn(`Failed hierarchy scan for ${customerId}: ${e.message}`);
+        }
+      }
+      this.logger.log(`[GET-ALL-ACCOUNTS] Scan complete. Found ${allAccounts.length} selectable accounts.`);
+      return allAccounts;
+    } catch (error: any) {
+      this.logger.error(`Fatal error in getAllSelectableAccounts: ${error.message}`);
+      throw error;
     }
+  }
 
-    this.logger.log(`Using Manager Account ID: ${loginCustomerId} to list client accounts`);
-
-    // Use Manager Account to list client accounts
-    const customer = this.client.Customer({
-      customer_id: loginCustomerId, // Manager Account (e.g., "2626383041")
-      refresh_token: refreshToken,
-      login_customer_id: loginCustomerId,
-    });
-
+  async getClientAccounts(refreshToken: string, loginCustomerId: string) {
     const query = `
-      SELECT
-        customer_client.id,
-        customer_client.descriptive_name,
-        customer_client.manager,
-        customer_client.status
+      SELECT customer_client.id, customer_client.descriptive_name, customer_client.status
       FROM customer_client
       WHERE customer_client.manager = FALSE
     `;
-
-    try {
-      const results = await customer.query(query);
-
-      this.logger.log(`Found ${results.length} client accounts`);
-
-      const statusMap: Record<number, string> = {
-        0: 'UNSPECIFIED',
-        1: 'UNKNOWN',
-        2: 'ENABLED',
-        3: 'CANCELED',
-        4: 'SUSPENDED',
-        5: 'CLOSED',
+    const results = await this.rawRestQuery(loginCustomerId, refreshToken, query, loginCustomerId);
+    
+    return results.map((row: any) => {
+      const client = row?.customerClient || row?.customer_client;
+      if (!client || !client.id) {
+        return { id: 'UNKNOWN', name: 'Unknown', status: 'UNKNOWN' };
+      }
+      return {
+        id: client.id.toString(),
+        name: client.descriptiveName || client.descriptive_name || `Account ${client.id}`,
+        status: client.status || 'UNKNOWN',
       };
-
-      return results.map((row: any) => ({
-        id: row.customer_client.id.toString(),
-        name: row.customer_client.descriptive_name || `Account ${row.customer_client.id}`,
-        isManager: row.customer_client.manager || false,
-        status: statusMap[row.customer_client.status] || 'UNKNOWN',
-      }));
-    } catch (error) {
-      this.logger.error(`Failed to get client accounts: ${error.message}`);
-      throw new Error(`Failed to get client accounts: ${error.message}`);
-    }
+    });
   }
 
-  /**
-   * Get all selectable accounts by flattening accessible customers hierarchy (Option B)
-   * This loops through all accessible accounts (MCC + Direct) and extracts child accounts
-   * @param refreshToken - OAuth refresh token
-   * @returns Flattened array of selectable accounts with id, name, type
-   */
-  async getAllSelectableAccounts(refreshToken: string): Promise<{
-    id: string;
-    name: string;
-    type: 'ACCOUNT' | 'MANAGER';
-    parentMccId?: string;
-    parentMccName?: string;
-    status: string;
-  }[]> {
-    // Step 1: Get all accessible customer IDs
-    const accessibleCustomers = await this.listAccessibleCustomers(refreshToken);
-    this.logger.log(`Found ${accessibleCustomers.length} accessible customers: ${accessibleCustomers.join(', ')}`);
-
-    const allAccounts: {
-      id: string;
-      name: string;
-      type: 'ACCOUNT' | 'MANAGER';
-      parentMccId?: string;
-      parentMccName?: string;
-      status: string;
-    }[] = [];
-
-    const statusMap: Record<number, string> = {
-      0: 'UNSPECIFIED',
-      1: 'UNKNOWN',
-      2: 'ENABLED',
-      3: 'CANCELED',
-      4: 'SUSPENDED',
-      5: 'CLOSED',
-    };
-
-    // Step 2: Loop through each accessible customer and fetch its children
-    for (const resourceName of accessibleCustomers) {
-      const customerId = resourceName.replace('customers/', '');
-
-      try {
-        // ========================================================
-        // CRITICAL FIX: Tenant-Specific Authentication
-        // ========================================================
-        // Do NOT use global MCC ID. Use the customer's own ID as the login_customer_id 
-        // to discover if they are an MCC or regular account, and to list their children.
-        // ========================================================
-
-        const customer = this.client.Customer({
-          customer_id: customerId,
-          refresh_token: refreshToken,
-          login_customer_id: customerId, // 🔑 Use their own ID directly
-        });
-
-        // First, get info about this account itself
-        const selfQuery = `
-          SELECT
-            customer.id,
-            customer.descriptive_name,
-            customer.manager,
-            customer.status
-          FROM customer
-          LIMIT 1
-        `;
-
-        let accountInfo: any = null;
-        try {
-          const selfResult = await customer.query(selfQuery);
-          if (selfResult.length > 0) {
-            accountInfo = selfResult[0].customer;
-          }
-        } catch (e) {
-          this.logger.warn(`Could not get self info for ${customerId}: ${e.message}`);
-        }
-
-        const isManager = accountInfo?.manager || false;
-        const accountName = accountInfo?.descriptive_name || `Account ${customerId}`;
-        const accountStatus = statusMap[accountInfo?.status] || 'UNKNOWN';
-
-        if (isManager) {
-          // This is a Manager (MCC) account - query its child accounts
-          this.logger.debug(`${customerId} is MCC, fetching child accounts...`);
-
-          const childQuery = `
-            SELECT
-              customer_client.id,
-              customer_client.descriptive_name,
-              customer_client.manager,
-              customer_client.status
-            FROM customer_client
-            WHERE customer_client.manager = FALSE
-          `;
-
-          try {
-            const childResults = await customer.query(childQuery);
-            this.logger.log(`Found ${childResults.length} child accounts under MCC ${customerId}`);
-
-            for (const row of childResults) {
-              const childId = row.customer_client.id.toString();
-              // Check if already added (avoid duplicates)
-              if (!allAccounts.find(a => a.id === childId)) {
-                allAccounts.push({
-                  id: childId,
-                  name: row.customer_client.descriptive_name || `Account ${childId}`,
-                  type: 'ACCOUNT',
-                  parentMccId: customerId,
-                  parentMccName: accountName,
-                  status: statusMap[row.customer_client.status] || 'UNKNOWN',
-                });
-              }
-            }
-          } catch (childError) {
-            this.logger.warn(`Could not fetch children for MCC ${customerId}: ${childError.message}`);
-          }
-        } else {
-          // This is a Direct account - add it directly
-          this.logger.debug(`${customerId} is Direct Account, adding directly`);
-          if (!allAccounts.find(a => a.id === customerId)) {
-            allAccounts.push({
-              id: customerId,
-              name: accountName,
-              type: 'ACCOUNT',
-              status: accountStatus,
-            });
-          }
-        }
-      } catch (error) {
-        this.logger.error(`Error processing accessible customer ${customerId}: ${error.message}`);
-        // Continue with next account
-      }
-    }
-
-    this.logger.log(`Total selectable accounts after flatten: ${allAccounts.length}`);
-    return allAccounts;
+  async getAccessTokenFromCode(code: string): Promise<any> {
+    const oauth2Client = new google.auth.OAuth2(
+      this.configService.get('GOOGLE_CLIENT_ID'),
+      this.configService.get('GOOGLE_CLIENT_SECRET'),
+      this.configService.get('GOOGLE_REDIRECT_URI_ADS'),
+    );
+    const { tokens } = await oauth2Client.getToken(code);
+    return tokens;
   }
 }

@@ -15,14 +15,14 @@ export class SeoController {
 
     @Get('summary')
     @ApiOperation({ summary: 'Get SEO summary metrics' })
-    async getSummary(@CurrentUser() user: any) {
-        return this.seoService.getSeoSummary(user.tenantId);
+    async getSummary(@CurrentUser() user: any, @Query('days') days?: number) {
+        return this.seoService.getSeoSummary(user.tenantId, days ? Number(days) : undefined);
     }
 
     @Get('history')
     @ApiOperation({ summary: 'Get SEO history for chart' })
     async getHistory(@CurrentUser() user: any, @Query('days') days?: number) {
-        return this.seoService.getSeoHistory(user.tenantId, days ? Number(days) : 30);
+        return this.seoService.getSeoHistory(user.tenantId, days ? Number(days) : undefined);
     }
 
     @Get('keyword-intent')

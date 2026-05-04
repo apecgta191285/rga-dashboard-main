@@ -48,9 +48,9 @@ export class AdGroupsRepository {
         }
 
         // Build orderBy
-        const orderBy: Prisma.AdGroupOrderByWithRelationInput = {};
+        const orderBy: any = {};
         if (sortBy) {
-            orderBy[sortBy as keyof Prisma.AdGroupOrderByWithRelationInput] = sortOrder || 'asc';
+            orderBy[sortBy] = sortOrder || 'asc';
         } else {
             orderBy.createdAt = 'desc'; // Default sort
         }

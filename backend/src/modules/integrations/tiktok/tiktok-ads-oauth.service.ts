@@ -1,4 +1,4 @@
-import { Injectable, Logger, BadRequestException, Inject } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
@@ -6,6 +6,8 @@ import { Cache } from 'cache-manager';
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
 import { EncryptionService } from '../../../common/services/encryption.service';
+import { UnifiedSyncService } from '../../sync/unified-sync.service';
+import { AdPlatform } from '@prisma/client';
 import {
     OAuthProvider,
     OAuthCallbackResult,
@@ -55,6 +57,7 @@ export class TikTokAdsOAuthService implements OAuthProvider, SandboxSupport {
         private readonly configService: ConfigService,
         private readonly prisma: PrismaService,
         private readonly encryptionService: EncryptionService,
+        @Inject(forwardRef(() => UnifiedSyncService)) private readonly unifiedSyncService: UnifiedSyncService,
         @Inject(CACHE_MANAGER) private cacheManager: Cache,
     ) {
         // Load configuration
@@ -156,7 +159,15 @@ export class TikTokAdsOAuthService implements OAuthProvider, SandboxSupport {
                 this.logger.log(`[TikTok OAuth] Created Sandbox account: ${accountId}`);
             }
 
-            return { success: true, accountId, accountName };
+            const syncResult = await this.triggerInitialSync(accountId, tenantId);
+
+            return {
+                success: true,
+                accountId,
+                accountName,
+                initialSyncSucceeded: syncResult.success,
+                initialSyncError: syncResult.error,
+            };
         } catch (error) {
             this.logger.error(`[TikTok OAuth] Sandbox connection error: ${error.message}`);
             throw new BadRequestException(`Failed to connect Sandbox account: ${error.message}`);
@@ -417,17 +428,32 @@ export class TikTokAdsOAuthService implements OAuthProvider, SandboxSupport {
             await this.cacheManager.del(`tiktok_temp_tokens:${tempToken}`);
             await this.cacheManager.del(`tiktok_temp_accounts:${tempToken}`);
 
-            // TODO: Trigger initial sync (like Google Ads pattern)
-            // await this.triggerInitialSync(dbAccountId, tenantId);
+            // Trigger initial sync so newly connected TikTok data starts populating immediately
+            const syncResult = await this.triggerInitialSync(dbAccountId, tenantId);
 
             return {
                 success: true,
                 accountId: dbAccountId,
                 accountName,
+                initialSyncSucceeded: syncResult.success,
+                initialSyncError: syncResult.error,
             };
         } catch (error) {
             this.logger.error(`[TikTok OAuth] Complete connection error: ${error.message}`);
             throw new BadRequestException(`Failed to save TikTok account: ${error.message}`);
+        }
+    }
+
+    private async triggerInitialSync(accountId: string, tenantId: string): Promise<{ success: boolean; error?: string }> {
+        try {
+            this.logger.log(`[TikTok OAuth] Triggering initial TikTok initial sync for account: ${accountId}`);
+            await this.unifiedSyncService.syncAccount(AdPlatform.TIKTOK, accountId, tenantId, undefined, 90);
+            this.logger.log(`[TikTok OAuth] Initial sync completed for account: ${accountId}`);
+            return { success: true };
+        } catch (syncError: any) {
+            const errorMessage = syncError?.message || String(syncError);
+            this.logger.error(`[TikTok OAuth] Initial sync failed for account ${accountId}: ${errorMessage}`);
+            return { success: false, error: errorMessage };
         }
     }
 
@@ -537,6 +563,19 @@ export class TikTokAdsOAuthService implements OAuthProvider, SandboxSupport {
     async disconnect(tenantId: string): Promise<boolean> {
         this.logger.log(`[TikTok OAuth] Disconnecting all accounts for tenant: ${tenantId}`);
 
+        // First, soft delete all campaigns for this tenant and platform TIKTOK
+        await this.prisma.campaign.updateMany({
+            where: {
+                tenantId,
+                platform: 'TIKTOK',
+                status: { not: 'DELETED' },
+            },
+            data: {
+                status: 'DELETED',
+            },
+        });
+
+        // Then, delete all accounts for this tenant
         await this.prisma.tikTokAdsAccount.deleteMany({
             where: { tenantId },
         });

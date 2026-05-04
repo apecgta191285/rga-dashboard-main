@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowDownRight, ArrowUpRight, Target, Timer, Trophy, Users } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Target, Timer, Trophy, Users, Eye, Activity, MousePointerClick } from "lucide-react";
 import { SeoMetricSummary } from "../types";
 
 interface SeoSummaryCardsProps {
@@ -48,12 +48,52 @@ export function SeoSummaryCards({ data, isLoading }: SeoSummaryCardsProps) {
             description: "Average session duration",
             color: "text-purple-500",
             bg: "bg-purple-50"
+        },
+        {
+            title: "Active Users",
+            value: data.activeUsers !== undefined ? data.activeUsers.toLocaleString() : "-",
+            icon: Users,
+            trend: `${data.activeUsersTrend && data.activeUsersTrend > 0 ? '+' : ''}${data.activeUsersTrend ?? 0}%`,
+            trendUp: (data.activeUsersTrend ?? 0) >= 0,
+            description: "Total active users",
+            color: "text-indigo-500",
+            bg: "bg-indigo-50"
+        },
+        {
+            title: "Page Views",
+            value: data.screenPageViews !== undefined ? data.screenPageViews.toLocaleString() : "-",
+            icon: Eye,
+            trend: `${data.screenPageViewsTrend && data.screenPageViewsTrend > 0 ? '+' : ''}${data.screenPageViewsTrend ?? 0}%`,
+            trendUp: (data.screenPageViewsTrend ?? 0) >= 0,
+            description: "Total screen page views",
+            color: "text-sky-500",
+            bg: "bg-sky-50"
+        },
+        {
+            title: "Engagement Rate",
+            value: data.engagementRate !== undefined ? `${data.engagementRate}%` : "-",
+            icon: Activity,
+            trend: `${data.engagementRateTrend && data.engagementRateTrend > 0 ? '+' : ''}${data.engagementRateTrend ?? 0}%`,
+            trendUp: (data.engagementRateTrend ?? 0) >= 0,
+            description: "Percentage of engaged sessions",
+            color: "text-emerald-500",
+            bg: "bg-emerald-50"
+        },
+        {
+            title: "Bounce Rate",
+            value: data.bounceRate !== undefined ? `${data.bounceRate}%` : "-",
+            icon: MousePointerClick,
+            trend: `${data.bounceRateTrend && data.bounceRateTrend > 0 ? '+' : ''}${data.bounceRateTrend ?? 0}%`,
+            trendUp: (data.bounceRateTrend ?? 0) <= 0, // Lower is better
+            description: "Percentage of single-page sessions",
+            color: "text-rose-500",
+            bg: "bg-rose-50"
         }
     ];
 
     if (isLoading) {
         return <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {[1, 2, 3, 4].map((i) => (
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
                 <Card key={i} className="animate-pulse">
                     <CardContent className="p-6 h-32" />
                 </Card>

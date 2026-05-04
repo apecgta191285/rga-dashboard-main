@@ -22,12 +22,15 @@ export const N8nChatWidget = ({
   inputPlaceholder = 'เธเธดเธกเธเนเธเธณเธ–เธฒเธกเธเธญเธเธเธธเธ“...',
 }: N8nChatWidgetProps) => {
   useEffect(() => {
+    const defaultWebhook = 'https://suttipatrga1.app.n8n.cloud/webhook/chat-general';
     const resolvedWebhookUrl =
-      webhookUrl || (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHATBOT_WEBHOOK_URL : '');
+      webhookUrl ||
+      (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHATBOT_WEBHOOK_URL : '') ||
+      defaultWebhook;
 
     if (!resolvedWebhookUrl) {
       if (import.meta.env.MODE === 'development') {
-        console.warn('[N8nChatWidget] Missing VITE_CHATBOT_WEBHOOK_URL');
+        console.warn('[N8nChatWidget] Missing VITE_CHATBOT_WEBHOOK_URL, using default:', defaultWebhook);
       }
       return;
     }

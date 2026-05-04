@@ -36,9 +36,13 @@ import { dispatchSessionExpired } from '@/lib/auth-events';
 
 
 
-const API_BASE_URL =
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
-    import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+// Debug helper: print the resolved API base URL at runtime
+try {
+    // eslint-disable-next-line no-console
+    console.info('[apiClient] API_BASE_URL =', API_BASE_URL);
+} catch (e) { }
 
 
 
@@ -58,7 +62,7 @@ export const apiClient: AxiosInstance = axios.create({
 
     },
 
-    timeout: 30000,
+    timeout: 120000,
 
 });
 
@@ -270,11 +274,11 @@ apiClient.interceptors.request.use(
 
         config.headers = (config.headers ?? {}) as any;
 
+        // Skip token attachment for auth/public endpoints
+        const isAuthRequest = config.url?.includes('/auth/');
+
         if (token) {
-            // console.log('Attaching Token:', token.substring(0, 10) + '...');
             (config.headers as any).Authorization = `Bearer ${token}`;
-        } else {
-            console.warn('No token found in token-manager');
         }
 
 
@@ -306,61 +310,27 @@ apiClient.interceptors.request.use(
 // =============================================================================
 
 apiClient.interceptors.response.use(
-
     (response) => {
-
-        // ✅ Auto-unwrap Standard API Response { success: true, data: [...] }
-
-        // This prevents "data.map is not a function" errors across all services
-
         const responseData = response.data;
 
-
-
-        // Check if this is a Standard Wrapped Response
-
         if (
-
             responseData &&
-
             typeof responseData === 'object' &&
-
             'success' in responseData &&
-
             'data' in responseData
-
         ) {
-
-            // Validate success flag
-
             if (!responseData.success) {
-
-                // If backend explicitly says success: false, reject with error
-
-                const errorMessage =
-
-                    responseData.message || responseData.error || 'API Error';
-
-                return Promise.reject(new Error(errorMessage));
-
+                return Promise.reject({
+                    response: {
+                        data: responseData,
+                        status: response.status,
+                        headers: response.headers
+                    }
+                });
             }
-
-
-
-            // ✅ Unwrap: Return inner data directly to services
-
-            // Services will receive Array/Object directly, not { success, data }
-
             response.data = responseData.data;
-
         }
-
-
-
-        // For blob/file downloads or non-standard responses, return as-is
-
         return response;
-
     },
 
     async (error: AxiosError) => {

@@ -15,9 +15,9 @@ export function useOAuthFlow({ onSuccess }: UseOAuthFlowProps = {}) {
     const startGoogleAdsFlow = useCallback(async () => {
         try {
             setIsConnecting(true);
-            const response = await api.get('/integrations/google-ads/auth-url');
-            if (response.data && response.data.url) {
-                window.location.href = response.data.url;
+            const response = await api.get('/auth/google/ads/url');
+            if (response.data && response.data.authUrl) {
+                window.location.href = response.data.authUrl;
             } else {
                 toast.error('Failed to get authentication URL');
             }
@@ -60,16 +60,21 @@ export function useOAuthFlow({ onSuccess }: UseOAuthFlowProps = {}) {
         if (!tempToken) return;
         try {
             setIsConnecting(true);
-            await api.post('/auth/google/ads/complete', {
+            toast.success('Starting Google Ads data sync...');
+
+            const response = await api.post('/auth/google/ads/complete', {
                 tempToken,
                 customerId,
             });
 
-            // ✅ Sync Progress Toast
-            toast.info('Connection successful! Starting background sync...', {
-                duration: 5000,
-                description: 'Your campaigns are being imported. This may take a few minutes.'
-            });
+            const syncResult = response.data?.syncResult;
+            if (syncResult?.success) {
+                toast.success('Google Ads sync completed successfully.');
+            } else if (syncResult) {
+                toast.error(`Google Ads connection succeeded, but sync failed: ${syncResult.error || 'Unknown error'}`);
+            } else {
+                toast.success('Google Ads connection completed.');
+            }
 
             setTempAccounts([]);
             setTempToken(null);
